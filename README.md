@@ -74,11 +74,40 @@ fragment handoff). Those additive pieces are provided in a companion PR to
 **This subdomain only works once that companion PR is deployed to
 `my.20fit.id`.** CORS is already open on that server (`cors()`).
 
-## Deploy / DNS
+## Deploy to staging
 
-1. Deploy this app (e.g. Railway); set env from `.env.example`.
-2. Point DNS: `medicalcheckup.20fit.id` (Cloudflare) → the deployment, and add
-   it as a custom domain. (It does **not** resolve yet.)
+This app is **zero-dependency** (Node built-ins only), so there is no install or
+build step — `node src/server.js` is the whole runtime. A `Dockerfile` and
+`railway.json` are included for turnkey deploys.
+
+### Railway (spec §9.3)
+1. New Project → Deploy from GitHub repo → `Marketing-project-wq/MEDICAL-CHECK-UP-`,
+   branch `claude/medicalcheckup-subdomain-setup-myerpu` (or `main` after merge).
+   Railway uses the `Dockerfile` automatically (see `railway.json`).
+2. Set service **Variables** (see table below).
+3. Deploy. Health check is `GET /healthz`. Railway gives a
+   `*.up.railway.app` staging URL — set `PUBLIC_ORIGIN` to it.
+4. (Later, for production) add `medicalcheckup.20fit.id` as a custom domain and
+   point Cloudflare DNS at the deployment.
+
+Any container/Node host works the same way (Render, Fly, Replit): start command
+`node src/server.js`, Node ≥ 18.
+
+### Required staging variables
+| Variable | Staging value |
+|---|---|
+| `SUPABASE_ANON_KEY` | the project's publishable/anon key (public client key) |
+| `MY20FIT_ORIGIN` | the host serving `/api/mcu` etc. (e.g. `https://my.20fit.id`, or the backend's staging origin) |
+| `PUBLIC_ORIGIN` | this deployment's URL (e.g. the Railway `*.up.railway.app` URL) |
+| `SUPABASE_URL` | `https://cpvzwqptzcxnwzfzgrmt.supabase.co` (default; optional) |
+| `PORT` | injected by the platform |
+
+### Staging caveat
+The **member flow** (`/api/mcu`, `/api/translate`, SSO) only works once the
+companion `my20fit-dashboard` PR is deployed to whatever `MY20FIT_ORIGIN` points
+to. Until then, staging exercises the **anonymous** experience (education,
+sample, and the login redirect) end to end; the member analysis will get a 404
+from the API host.
 
 ## Testing note
 

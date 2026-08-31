@@ -27,6 +27,8 @@ const STRINGS = {
     heroPrimaryCta: "Analisa hasil punya saya",
     heroSecondaryCta: "Lihat contoh analisa",
     heroNote: "Alat bantu MEMAHAMI, bukan diagnosis. Keputusan kesehatan tetap ke dokter.",
+    scanMockTag: "Pratinjau ilustrasi — bukan hasil scan sungguhan",
+    trustBadges: ["Aman & terenkripsi", "File tidak disimpan", "Ditenagai AI 20FIT"],
 
     eduHeading: "Arti penanda lab yang umum",
     eduIntro:
@@ -88,6 +90,8 @@ const STRINGS = {
     heroPrimaryCta: "Analyze my results",
     heroSecondaryCta: "See an example",
     heroNote: "A tool to UNDERSTAND, not a diagnosis. Health decisions stay with your doctor.",
+    scanMockTag: "Illustrative preview — not a real scan result",
+    trustBadges: ["Secure & encrypted", "Files are never stored", "Powered by 20FIT AI"],
 
     eduHeading: "What common lab markers mean",
     eduIntro:

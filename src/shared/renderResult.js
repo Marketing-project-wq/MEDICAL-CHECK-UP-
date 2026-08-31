@@ -1,29 +1,50 @@
-// Pure renderer for a spec §4 MCU `result`. Returns an HTML string.
+// Pure renderer for the MCU analysis result returned by my.20fit.id's
+// POST /api/analyze-mcu (the REAL backend contract — verified against the
+// my20fit-dashboard source, not an aspirational spec). Shape:
+//   {
+//     patient_name: string|null, summary: string, grade: "A"|"B"|"C"|"D",
+//     metrics: [{label, value, status: "ok"|"high"|"low"|"warning", note}],
+//     recommendations: [string],
+//     checklist: [{icon, title, reason, priority: "high"|"med"|"low",
+//                  duration: string|null, location: "gym"|"home"|"clinic"|null}],
+//     doctor_notes: string, reviewed_at: string,
+//   }
 // Used identically by the server (SSR sample) and the browser client (real
-// results) so that the example and real analyses look exactly the same.
+// results) so the example and real analyses look exactly the same.
+// The safety disclaimer is ALWAYS rendered from `t` (fixed copy) — the
+// backend does not return one, so it must never depend on `result` data.
 // Dependency-free ESM.
 
 import { escapeHtml } from "./escape.js";
 
-const STATUS_CLASS = { normal: "ok", attention: "attn", unknown: "unk" };
-const SEVERITY_CLASS = { ringan: "sev-low", sedang: "sev-mid", tinggi: "sev-high" };
+const STATUS_CLASS = { ok: "ok", high: "attn", low: "attn", warning: "attn" };
+const PRIORITY_CLASS = { high: "attn", med: "unk", low: "ok" };
 
 function statusLabel(status, t) {
-  if (status === "attention") return t.statusAttention;
-  if (status === "normal") return t.statusNormal;
+  if (status === "ok") return t.statusOk;
+  if (status === "high") return t.statusHigh;
+  if (status === "low") return t.statusLow;
+  if (status === "warning") return t.statusWarning;
   return t.statusUnknown;
 }
 
-function directionArrow(direction) {
-  if (direction === "high") return "▲";
-  if (direction === "low") return "▼";
+function directionArrow(status) {
+  if (status === "high") return "▲";
+  if (status === "low") return "▼";
   return "";
 }
 
-function severityLabel(severity, t) {
-  if (severity === "tinggi") return t.severityTinggi;
-  if (severity === "sedang") return t.severitySedang;
-  return t.severityRingan;
+function priorityLabel(priority, t) {
+  if (priority === "high") return t.priorityHigh;
+  if (priority === "low") return t.priorityLow;
+  return t.priorityMed;
+}
+
+function locationLabel(location, t) {
+  if (location === "gym") return t.locationGym;
+  if (location === "home") return t.locationHome;
+  if (location === "clinic") return t.locationClinic;
+  return "";
 }
 
 function list(items) {
@@ -33,35 +54,29 @@ function list(items) {
     .join("");
 }
 
-function planBlock(title, items) {
-  const li = list(items);
-  if (!li) return "";
-  return `<div class="plan"><h4>${escapeHtml(title)}</h4><ul>${li}</ul></div>`;
-}
-
 /**
- * @param {object} result  spec §4 result object
+ * @param {object} result  the raw /api/analyze-mcu response (or sample data)
  * @param {object} t       render labels for the language (getRenderLabels)
  * @returns {string} HTML
  */
 export function renderResult(result, t) {
   const r = result || {};
-  const parameters = Array.isArray(r.parameters) ? r.parameters : [];
-  const abnormal = Array.isArray(r.abnormal_findings) ? r.abnormal_findings : [];
-
-  const meta = [];
-  if (r.patient_name) meta.push(`<span><strong>${escapeHtml(t.forPatient)}:</strong> ${escapeHtml(r.patient_name)}</span>`);
-  if (r.date) meta.push(`<span><strong>${escapeHtml(t.examDate)}:</strong> ${escapeHtml(r.date)}</span>`);
+  const metrics = Array.isArray(r.metrics) ? r.metrics : [];
+  const checklist = Array.isArray(r.checklist) ? r.checklist : [];
 
   const disclaimer = `
     <div class="mcu-disclaimer" role="note">
       <strong>${escapeHtml(t.disclaimerTitle)}:</strong>
-      ${escapeHtml(r.disclaimer || "")}
+      ${escapeHtml(t.disclaimerText)}
     </div>`;
+
+  const meta = [];
+  if (r.reviewed_at) meta.push(`<span><strong>${escapeHtml(t.reviewedAt)}:</strong> ${escapeHtml(r.reviewed_at)}</span>`);
+  if (r.grade) meta.push(`<span class="mcu-grade">${escapeHtml(t.gradeLabel)}: <strong>${escapeHtml(r.grade)}</strong></span>`);
 
   const header = `
     <div class="mcu-head">
-      <h3>${escapeHtml(r.document_type || "MCU")}</h3>
+      <h3>${r.patient_name ? `${escapeHtml(t.forPatient)}: ${escapeHtml(r.patient_name)}` : escapeHtml(t.resultTitle)}</h3>
       ${meta.length ? `<div class="mcu-meta">${meta.join("")}</div>` : ""}
     </div>`;
 
@@ -69,57 +84,32 @@ export function renderResult(result, t) {
     ? `<p class="mcu-summary"><strong>${escapeHtml(t.summary)}:</strong> ${escapeHtml(r.summary)}</p>`
     : "";
 
-  const abnormalHtml = abnormal.length
-    ? `<section class="mcu-abnormal">
-        <h4>${escapeHtml(t.abnormal)}</h4>
-        <div class="mcu-cards">
-          ${abnormal
-            .map((a) => {
-              const sevClass = SEVERITY_CLASS[a && a.severity] || "sev-low";
-              return `<div class="mcu-card ${sevClass}">
-                <div class="mcu-card-top">
-                  <span class="mcu-card-label">${escapeHtml(a && a.label)}</span>
-                  <span class="mcu-card-value">${escapeHtml(a && a.value)}</span>
-                  <span class="mcu-badge">${escapeHtml(severityLabel(a && a.severity, t))}</span>
-                </div>
-                <p class="mcu-why"><strong>${escapeHtml(t.whyItMatters)}:</strong> ${escapeHtml(a && a.why_it_matters)}</p>
-                <p class="mcu-todo"><strong>${escapeHtml(t.whatToDo)}:</strong> ${escapeHtml(a && a.what_to_do)}</p>
-              </div>`;
-            })
-            .join("")}
-        </div>
-      </section>`
-    : "";
-
-  const rows = parameters.length
-    ? parameters
-        .map((p) => {
-          const cls = STATUS_CLASS[p && p.status] || "unk";
-          const arrow = directionArrow(p && p.direction);
+  const rows = metrics.length
+    ? metrics
+        .map((m) => {
+          const cls = STATUS_CLASS[m && m.status] || "unk";
+          const arrow = directionArrow(m && m.status);
           return `<tr class="row-${cls}">
-            <td data-label="${escapeHtml(t.colParameter)}">
-              <span class="p-label">${escapeHtml(p && p.label)}</span>
-              ${p && p.explanation ? `<span class="p-explain">${escapeHtml(p.explanation)}</span>` : ""}
-            </td>
-            <td data-label="${escapeHtml(t.colValue)}" class="num">${arrow ? `<span class="arrow">${arrow}</span> ` : ""}${escapeHtml(p && p.value)}</td>
-            <td data-label="${escapeHtml(t.colRange)}" class="num">${escapeHtml(p && p.normal_range)}</td>
-            <td data-label="${escapeHtml(t.colStatus)}"><span class="pill pill-${cls}">${escapeHtml(statusLabel(p && p.status, t))}</span></td>
+            <td data-label="${escapeHtml(t.colLabel)}"><span class="p-label">${escapeHtml(m && m.label)}</span></td>
+            <td data-label="${escapeHtml(t.colValue)}" class="num">${arrow ? `<span class="arrow">${arrow}</span> ` : ""}${escapeHtml(m && m.value)}</td>
+            <td data-label="${escapeHtml(t.colStatus)}"><span class="pill pill-${cls}">${escapeHtml(statusLabel(m && m.status, t))}</span></td>
+            <td data-label="${escapeHtml(t.colNote)}" class="p-explain">${escapeHtml((m && m.note) || "")}</td>
           </tr>`;
         })
         .join("")
-    : `<tr><td colspan="4" class="muted">${escapeHtml(t.noParameters)}</td></tr>`;
+    : `<tr><td colspan="4" class="muted">${escapeHtml(t.noMetrics)}</td></tr>`;
 
-  const paramsHtml = `
+  const metricsHtml = `
     <section class="mcu-params">
-      <h4>${escapeHtml(t.parameters)}</h4>
+      <h4>${escapeHtml(t.metricsHeading)}</h4>
       <div class="table-wrap">
         <table class="mcu-table">
           <thead>
             <tr>
-              <th>${escapeHtml(t.colParameter)}</th>
+              <th>${escapeHtml(t.colLabel)}</th>
               <th>${escapeHtml(t.colValue)}</th>
-              <th>${escapeHtml(t.colRange)}</th>
               <th>${escapeHtml(t.colStatus)}</th>
+              <th>${escapeHtml(t.colNote)}</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -127,25 +117,45 @@ export function renderResult(result, t) {
       </div>
     </section>`;
 
-  const plans = [
-    planBlock(t.eating, r.eating_plan),
-    planBlock(t.exercise, r.exercise_plan),
-    planBlock(t.lifestyle, r.lifestyle_plan),
-  ].join("");
-  const plansHtml = plans ? `<section class="mcu-plans">${plans}</section>` : "";
+  const recommendationsLi = list(r.recommendations);
+  const recommendationsHtml = recommendationsLi
+    ? `<section class="mcu-plans"><div class="plan"><h4>${escapeHtml(t.recommendationsHeading)}</h4><ul>${recommendationsLi}</ul></div></section>`
+    : "";
 
-  const unreadable = list(r.unreadable);
-  const unreadableHtml = unreadable
-    ? `<section class="mcu-unreadable"><h4>${escapeHtml(t.unreadable)}</h4><ul>${unreadable}</ul></section>`
+  const checklistHtml = checklist.length
+    ? `<section class="mcu-checklist">
+        <h4>${escapeHtml(t.checklistHeading)}</h4>
+        <div class="mcu-cards">
+          ${checklist
+            .map((c) => {
+              const cls = PRIORITY_CLASS[c && c.priority] || "unk";
+              const loc = locationLabel(c && c.location, t);
+              const extras = [c && c.duration, loc].filter(Boolean).map(escapeHtml).join(" · ");
+              return `<div class="mcu-card sev-${cls === "attn" ? "high" : cls === "ok" ? "low" : "mid"}">
+                <div class="mcu-card-top">
+                  <span class="mcu-card-label">${c && c.icon ? escapeHtml(c.icon) + " " : ""}${escapeHtml(c && c.title)}</span>
+                  <span class="mcu-badge">${escapeHtml(priorityLabel(c && c.priority, t))}</span>
+                </div>
+                <p class="mcu-why">${escapeHtml(c && c.reason)}</p>
+                ${extras ? `<p class="mcu-todo">${extras}</p>` : ""}
+              </div>`;
+            })
+            .join("")}
+        </div>
+      </section>`
+    : "";
+
+  const doctorNotesHtml = r.doctor_notes
+    ? `<section class="mcu-doctor-notes"><h4>${escapeHtml(t.doctorNotesHeading)}</h4><p>${escapeHtml(r.doctor_notes)}</p></section>`
     : "";
 
   return `<article class="mcu-result">
     ${disclaimer}
     ${header}
     ${summary}
-    ${abnormalHtml}
-    ${paramsHtml}
-    ${plansHtml}
-    ${unreadableHtml}
+    ${metricsHtml}
+    ${recommendationsHtml}
+    ${checklistHtml}
+    ${doctorNotesHtml}
   </article>`;
 }

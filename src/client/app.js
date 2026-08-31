@@ -1,13 +1,17 @@
 // medicalcheckup.20fit.id browser client.
 // - Consumes the SSO fragment token (setSession + scrub).
 // - A single upload widget serves BOTH anonymous visitors and members:
-//     anonymous  → consent checkbox required, calls my.20fit.id/api/mcu with
-//                  NO Authorization header, result shown once and never saved
-//                  (no history is possible without an account).
-//     member     → same widget, existing Bearer-authenticated flow, result
-//                  saved to my20fit_mcu_result (RLS) and shown in history.
+//     anonymous  → consent checkbox required, calls my.20fit.id/api/analyze-mcu
+//                  with NO Authorization header, result shown once and never
+//                  saved (no history is possible without an account).
+//     member     → same widget, result saved to my20fit_mcu_result (RLS) and
+//                  shown in history.
 // AI is only ever called from the browser to my.20fit.id — never from this
 // app's own server, and no AI key ships here either way.
+//
+// The request contract below (multipart POST /api/analyze-mcu, no `lang`,
+// no /api/translate) matches the REAL my20fit-dashboard backend, verified
+// against its source — not an earlier aspirational spec shape.
 
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { renderResult } from "/shared/renderResult.js";
@@ -18,6 +22,7 @@ import { buildLoginUrl } from "/shared/returnTo.js";
 const CFG = window.__MCU_CONFIG__ || {};
 const LANG = CFG.lang === "en" ? "en" : "id";
 const S = getStrings(LANG);
+const T = getRenderLabels(LANG);
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
 const MAX_INPUT_BYTES = 8 * 1024 * 1024;
@@ -36,8 +41,7 @@ const supabase =
     : null;
 
 let selectedFile = null;
-let resultsByLang = {}; // { id: {...}, en: {...} }
-let displayLang = LANG;
+let currentResult = null;
 let currentSession = null;
 
 function currentReturnTo() {
@@ -82,6 +86,15 @@ function formatDate(v) {
   }
 }
 
+function dataUrlToBlob(dataUrl) {
+  const [meta, b64] = dataUrl.split(",");
+  const mime = /data:(.*?);base64/.exec(meta)?.[1] || "image/jpeg";
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 function setupUploadWidget(root) {
   const q = (sel) => root.querySelector(sel);
   const fileInput = q('[data-role="file"]');
@@ -94,7 +107,6 @@ function setupUploadWidget(root) {
   const resultSlot = q('[data-role="result-slot"]');
   const resultBody = q('[data-role="result-body"]');
   const ephemeralNote = q('[data-role="ephemeral-note"]');
-  const translateBtn = q('[data-act="translate"]');
   const historyWrap = q('[data-role="history-wrap"]');
   const historyEl = q('[data-role="history"]');
   const signedinEl = q('[data-role="signedin"]');
@@ -172,58 +184,17 @@ function setupUploadWidget(root) {
     }
   });
 
-  function showResult(lang, opts) {
-    const result = resultsByLang[lang];
-    if (!result) return;
-    displayLang = lang;
-    resultBody.innerHTML = renderResult(result, getRenderLabels(lang));
+  function showResult(result, opts) {
+    currentResult = result;
+    resultBody.innerHTML = renderResult(result, T);
     resultSlot.hidden = false;
     ephemeralNote.hidden = !(opts && opts.ephemeral);
-    translateBtn.hidden = false;
-    translateBtn.textContent = lang === LANG ? S.translateButton : S.translateBack;
     resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  let lastWasEphemeral = false;
-
   q('[data-act="sample"]').addEventListener("click", () => {
-    resultsByLang = { [LANG]: getSample(LANG) };
-    lastWasEphemeral = false;
     setStatus("");
-    showResult(LANG, { ephemeral: false });
-  });
-
-  translateBtn.addEventListener("click", async () => {
-    const target = displayLang === "id" ? "en" : "id";
-    if (resultsByLang[target]) return showResult(target, { ephemeral: lastWasEphemeral });
-    const token = await accessToken();
-    if (!token) {
-      // Anonymous results are never translated server-side (that endpoint
-      // requires a member session) — just note it instead of blocking.
-      setStatus(S.errGeneric, true);
-      return;
-    }
-    translateBtn.disabled = true;
-    setStatus(S.translating);
-    try {
-      const res = await fetch(`${API}/api/translate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lang: target, data: resultsByLang[displayLang] }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setStatus(data.error || S.errGeneric, true);
-        return;
-      }
-      resultsByLang[target] = data.result;
-      setStatus("");
-      showResult(target, { ephemeral: lastWasEphemeral });
-    } catch {
-      setStatus(S.errNetwork, true);
-    } finally {
-      translateBtn.disabled = false;
-    }
+    showResult(getSample(LANG), { ephemeral: false });
   });
 
   analyzeBtn.addEventListener("click", () => runAnalyze());
@@ -237,17 +208,22 @@ function setupUploadWidget(root) {
       const { preprocess } = await import("./preprocess.js");
       const { dataUrl, mime } = await preprocess(selectedFile);
       const token = await accessToken();
-      const headers = { "Content-Type": "application/json" };
+
+      const formData = new FormData();
+      const ext = mime === "image/png" ? "png" : mime === "application/pdf" ? "pdf" : "jpg";
+      formData.append("file", dataUrlToBlob(dataUrl), `mcu.${ext}`);
+
+      const headers = {};
       if (token) headers.Authorization = `Bearer ${token}`;
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 95000);
       let res;
       try {
-        res = await fetch(`${API}/api/mcu`, {
+        res = await fetch(`${API}/api/analyze-mcu`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ file: dataUrl, mime, lang: LANG }),
+          body: formData,
           signal: controller.signal,
         });
       } finally {
@@ -256,16 +232,14 @@ function setupUploadWidget(root) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setBusy(false);
-        setStatus(data.error || S.errGeneric, true);
+        setStatus(data.message || data.error || S.errGeneric, true);
         return;
       }
-      resultsByLang = { [LANG]: data.result };
-      displayLang = LANG;
-      lastWasEphemeral = !isMember();
+      const ephemeral = !isMember();
       setBusy(false);
-      showResult(LANG, { ephemeral: lastWasEphemeral });
+      showResult(data, { ephemeral });
       if (isMember()) {
-        await saveResult(data.result, setStatus);
+        await saveResult(data, setStatus);
         await loadHistory();
       }
     } catch (e) {
@@ -283,7 +257,7 @@ function setupUploadWidget(root) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      // File is NOT stored — only the JSON result (spec §6). file_path left null.
+      // File is NOT stored — only the JSON result. file_path left null.
       const { error } = await supabase.from("my20fit_mcu_result").insert({
         auth_user_id: user.id,
         result,
@@ -312,7 +286,7 @@ function setupUploadWidget(root) {
       historyEl.innerHTML = "";
       for (const row of data) {
         const when = row.analyzed_at || row.created_at || "";
-        const label = (row.result && (row.result.document_type || row.result.summary)) || "MCU";
+        const label = (row.result && (row.result.summary || row.result.patient_name)) || "MCU";
         const item = document.createElement("div");
         item.className = "history-item";
         item.setAttribute("role", "button");
@@ -320,11 +294,7 @@ function setupUploadWidget(root) {
         item.innerHTML = `<div class="history-date"></div><div class="history-label"></div>`;
         item.querySelector(".history-date").textContent = formatDate(when);
         item.querySelector(".history-label").textContent = String(label).slice(0, 90);
-        item.addEventListener("click", () => {
-          resultsByLang = { [LANG]: row.result };
-          lastWasEphemeral = false;
-          showResult(LANG, { ephemeral: false });
-        });
+        item.addEventListener("click", () => showResult(row.result, { ephemeral: false }));
         historyEl.appendChild(item);
       }
     } catch {

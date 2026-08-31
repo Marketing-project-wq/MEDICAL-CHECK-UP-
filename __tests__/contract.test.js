@@ -3,43 +3,30 @@ import assert from "node:assert/strict";
 import { getSample } from "../src/shared/sampleData.js";
 import { getStrings, getRenderLabels, LANGS } from "../src/shared/i18n.js";
 
-const RESULT_KEYS = [
-  "document_type",
-  "patient_name",
-  "date",
-  "summary",
-  "parameters",
-  "abnormal_findings",
-  "eating_plan",
-  "exercise_plan",
-  "lifestyle_plan",
-  "unreadable",
-  "disclaimer",
-];
-const STATUS = new Set(["normal", "attention", "unknown"]);
-const DIRECTION = new Set(["high", "low", "normal", "unknown"]);
-const SEVERITY = new Set(["ringan", "sedang", "tinggi"]);
+// Matches the REAL my.20fit.id POST /api/analyze-mcu response shape
+// (verified against the my20fit-dashboard source), not an aspirational spec.
+const RESULT_KEYS = ["patient_name", "summary", "grade", "metrics", "recommendations", "checklist", "doctor_notes", "reviewed_at"];
+const GRADES = new Set(["A", "B", "C", "D"]);
+const STATUS = new Set(["ok", "high", "low", "warning"]);
+const PRIORITY = new Set(["high", "med", "low"]);
 
-test("sample data matches the spec §4 shape in both languages", () => {
+test("sample data matches the real backend result shape in both languages", () => {
   for (const lang of LANGS) {
     const r = getSample(lang);
     for (const k of RESULT_KEYS) assert.ok(k in r, `${lang}: missing ${k}`);
-    assert.ok(Array.isArray(r.parameters) && r.parameters.length > 0, `${lang}: parameters`);
-    for (const p of r.parameters) {
-      for (const k of ["label", "value", "normal_range", "status", "direction", "explanation"]) {
-        assert.ok(k in p, `${lang}: parameter missing ${k}`);
-      }
-      assert.ok(STATUS.has(p.status), `${lang}: bad status ${p.status}`);
-      assert.ok(DIRECTION.has(p.direction), `${lang}: bad direction ${p.direction}`);
+    assert.ok(GRADES.has(r.grade), `${lang}: bad grade ${r.grade}`);
+    assert.ok(Array.isArray(r.metrics) && r.metrics.length > 0, `${lang}: metrics`);
+    for (const m of r.metrics) {
+      for (const k of ["label", "value", "status"]) assert.ok(k in m, `${lang}: metric missing ${k}`);
+      assert.ok(STATUS.has(m.status), `${lang}: bad status ${m.status}`);
     }
-    for (const a of r.abnormal_findings) {
-      for (const k of ["label", "value", "severity", "why_it_matters", "what_to_do"]) {
-        assert.ok(k in a, `${lang}: finding missing ${k}`);
-      }
-      assert.ok(SEVERITY.has(a.severity), `${lang}: bad severity ${a.severity}`);
+    assert.ok(Array.isArray(r.checklist) && r.checklist.length > 0, `${lang}: checklist`);
+    for (const c of r.checklist) {
+      for (const k of ["title", "reason", "priority"]) assert.ok(k in c, `${lang}: checklist item missing ${k}`);
+      assert.ok(PRIORITY.has(c.priority), `${lang}: bad priority ${c.priority}`);
     }
-    assert.equal(typeof r.disclaimer, "string");
-    assert.ok(r.disclaimer.length > 10, `${lang}: disclaimer present`);
+    assert.ok(Array.isArray(r.recommendations) && r.recommendations.length > 0, `${lang}: recommendations`);
+    assert.equal(typeof r.doctor_notes, "string");
   }
 });
 
@@ -59,4 +46,12 @@ test("i18n strings + render labels have identical keys across languages", () => 
   const lId = getRenderLabels("id");
   const lEn = getRenderLabels("en");
   assert.deepEqual(Object.keys(lId).sort(), Object.keys(lEn).sort(), "label keys differ");
+});
+
+test("the safety disclaimer is fixed copy in the render labels, not derived from the result", () => {
+  for (const lang of LANGS) {
+    const t = getRenderLabels(lang);
+    assert.equal(typeof t.disclaimerText, "string");
+    assert.ok(t.disclaimerText.length > 10, `${lang}: disclaimer text present`);
+  }
 });

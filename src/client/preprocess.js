@@ -1,6 +1,6 @@
-// Browser-side file preprocessing (spec §2 step 2). Runs entirely in the
-// browser — the original file never leaves the device except as a downscaled
-// JPEG data URL sent to /api/mcu. pdf.js is loaded from a CDN.
+// Browser-side file preprocessing. Runs entirely in the browser — the
+// original file never leaves the device except as a downscaled JPEG, sent
+// as multipart form data to POST /api/analyze-mcu. pdf.js is loaded from a CDN.
 
 import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs";
 
@@ -110,7 +110,8 @@ async function pdfToJpeg(file) {
 }
 
 /**
- * Preprocess a user file into a JPEG data URL suitable for POST /api/mcu.
+ * Preprocess a user file into a JPEG data URL, later converted to a Blob
+ * and sent as multipart form data to POST /api/analyze-mcu.
  * @returns {Promise<{ dataUrl: string, mime: "image/jpeg" }>}
  */
 export async function preprocess(file) {

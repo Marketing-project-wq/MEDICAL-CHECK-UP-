@@ -91,9 +91,6 @@ function uploadSection(s, loginUrl, returnToUrl) {
         <p><button type="button" class="upload-alt-link" data-act="sample">${escapeHtml(s.uploadSampleLink)}</button></p>
 
         <div class="result-slot" data-role="result-slot" hidden>
-          <div class="member-actions">
-            <button class="btn btn-ghost" data-act="translate" type="button" hidden></button>
-          </div>
           <div data-role="result-body"></div>
           <p class="ephemeral-note" data-role="ephemeral-note" hidden>${escapeHtml(s.ephemeralNote)}</p>
         </div>

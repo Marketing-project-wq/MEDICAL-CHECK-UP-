@@ -1,17 +1,28 @@
 // medicalcheckup.20fit.id browser client.
 // - Consumes the SSO fragment token (setSession + scrub).
-// - Anonymous: education + sample only (upload UI is never rendered).
-// - Member: upload → preprocess → POST my.20fit.id/api/mcu → render → save →
-//   history; optional translate. AI is only ever called on the server.
+// - A single upload widget serves BOTH anonymous visitors and members:
+//     anonymous  → consent checkbox required, calls my.20fit.id/api/analyze-mcu
+//                  with NO Authorization header, result shown once and never
+//                  saved (no history is possible without an account).
+//     member     → same widget, result saved to my20fit_mcu_result (RLS) and
+//                  shown in history.
+// AI is only ever called from the browser to my.20fit.id — never from this
+// app's own server, and no AI key ships here either way.
+//
+// The request contract below (multipart POST /api/analyze-mcu, no `lang`,
+// no /api/translate) matches the REAL my20fit-dashboard backend, verified
+// against its source — not an earlier aspirational spec shape.
 
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { renderResult } from "/shared/renderResult.js";
 import { getStrings, getRenderLabels } from "/shared/i18n.js";
+import { getSample } from "/shared/sampleData.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
 
 const CFG = window.__MCU_CONFIG__ || {};
 const LANG = CFG.lang === "en" ? "en" : "id";
 const S = getStrings(LANG);
+const T = getRenderLabels(LANG);
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
 const MAX_INPUT_BYTES = 8 * 1024 * 1024;
@@ -29,19 +40,18 @@ const supabase =
       })
     : null;
 
-// ── Session state for the translate toggle ────────────────────────────────
 let selectedFile = null;
-let resultsByLang = {}; // { id: {...}, en: {...} }
-let displayLang = LANG;
+let currentResult = null;
+let currentSession = null;
 
-// ── Helpers ───────────────────────────────────────────────────────────────
 function currentReturnTo() {
   return window.location.origin + window.location.pathname + window.location.search;
 }
 
 function updateLoginCta() {
-  const cta = document.querySelector('[data-role="login-cta"]');
-  if (cta && CFG.loginUrl) cta.href = buildLoginUrl(CFG.loginUrl, currentReturnTo());
+  document.querySelectorAll('[data-role="login-cta"]').forEach((cta) => {
+    if (CFG.loginUrl) cta.href = buildLoginUrl(CFG.loginUrl, currentReturnTo());
+  });
 }
 
 async function consumeSsoFragment() {
@@ -62,71 +72,75 @@ async function consumeSsoFragment() {
   history.replaceState(null, "", cleanUrl);
 }
 
-function el(html) {
-  const t = document.createElement("template");
-  t.innerHTML = html.trim();
-  return t.content.firstElementChild;
+async function accessToken() {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data && data.session ? data.session.access_token : null;
 }
 
-// ── Member UI ───────────────────────────────────────────────────────────
-function memberMarkup(email) {
-  return `
-    <div class="member-signedin">
-      <span class="member-who">${S.signedInAs}: <strong></strong></span>
-      <button class="btn btn-ghost" data-act="signout" type="button">${S.signOut}</button>
-    </div>
-    <p class="section-intro">${S.memberIntroMember}</p>
-    <div class="uploader" data-role="dropzone">
-      <input type="file" accept="image/jpeg,image/png,application/pdf" hidden data-role="file">
-      <button class="btn btn-ghost" data-act="choose" type="button">${S.uploadCta}</button>
-      <div class="upload-hint">${S.uploadHint}</div>
-      <div class="file-name" data-role="filename" hidden></div>
-    </div>
-    <div class="member-actions">
-      <button class="btn btn-primary" data-act="analyze" type="button" disabled>${S.analyzeButton}</button>
-      <span class="status-msg" data-role="status" role="status" aria-live="polite"></span>
-    </div>
-    <div class="result-slot" data-role="result-slot" hidden>
-      <div class="member-actions">
-        <button class="btn btn-ghost" data-act="translate" type="button" hidden></button>
-      </div>
-      <div data-role="result-body"></div>
-    </div>
-    <div class="history">
-      <h3>${S.historyHeading}</h3>
-      <div data-role="history"></div>
-    </div>`;
+function formatDate(v) {
+  try {
+    return new Date(v).toLocaleString(LANG === "en" ? "en-GB" : "id-ID");
+  } catch {
+    return String(v || "");
+  }
 }
 
-function renderMemberUI(root, user) {
-  // Hide the anonymous view and inject the member UI (upload only exists here).
-  const anon = root.querySelector('[data-role="anon"]');
-  if (anon) anon.hidden = true;
-  const container = el(`<div class="member-app" data-role="member"></div>`);
-  container.innerHTML = memberMarkup();
-  root.appendChild(container);
+function dataUrlToBlob(dataUrl) {
+  const [meta, b64] = dataUrl.split(",");
+  const mime = /data:(.*?);base64/.exec(meta)?.[1] || "image/jpeg";
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
 
-  const q = (sel) => container.querySelector(sel);
-  q(".member-who strong").textContent = user.email || user.id;
-
+function setupUploadWidget(root) {
+  const q = (sel) => root.querySelector(sel);
   const fileInput = q('[data-role="file"]');
   const dropzone = q('[data-role="dropzone"]');
   const fileNameEl = q('[data-role="filename"]');
+  const consentBox = q('[data-role="consent"]');
+  const consentRow = q('[data-role="consent-row"]');
   const analyzeBtn = q('[data-act="analyze"]');
   const statusEl = q('[data-role="status"]');
   const resultSlot = q('[data-role="result-slot"]');
   const resultBody = q('[data-role="result-body"]');
-  const translateBtn = q('[data-act="translate"]');
+  const ephemeralNote = q('[data-role="ephemeral-note"]');
+  const historyWrap = q('[data-role="history-wrap"]');
   const historyEl = q('[data-role="history"]');
+  const signedinEl = q('[data-role="signedin"]');
+  const anonHintEl = q('[data-role="anon-login-hint"]');
+  const whoEl = q('[data-role="who"]');
+
+  function isMember() {
+    return Boolean(currentSession && currentSession.user);
+  }
+
+  function canAnalyze() {
+    return Boolean(selectedFile) && (isMember() || consentBox.checked);
+  }
 
   function setStatus(msg, isError) {
     statusEl.textContent = msg || "";
     statusEl.classList.toggle("error", Boolean(isError));
   }
   function setBusy(busy, msg) {
-    analyzeBtn.disabled = busy || !selectedFile;
+    analyzeBtn.disabled = busy || !canAnalyze();
     if (busy) statusEl.innerHTML = `<span class="spinner"></span>${msg || ""}`;
     else setStatus(msg || "");
+  }
+
+  function applySessionState(session) {
+    currentSession = session;
+    const member = isMember();
+    signedinEl.hidden = !member;
+    consentRow.hidden = member;
+    anonHintEl.hidden = member;
+    historyWrap.hidden = !member;
+    if (member) whoEl.textContent = session.user.email || session.user.id;
+    analyzeBtn.disabled = !canAnalyze();
+    if (member) loadHistory();
   }
 
   function pickFile(file) {
@@ -136,7 +150,7 @@ function renderMemberUI(root, user) {
     selectedFile = file;
     fileNameEl.hidden = false;
     fileNameEl.textContent = file.name;
-    analyzeBtn.disabled = false;
+    analyzeBtn.disabled = !canAnalyze();
     setStatus("");
   }
 
@@ -158,6 +172,9 @@ function renderMemberUI(root, user) {
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) pickFile(f);
   });
+  consentBox.addEventListener("change", () => {
+    analyzeBtn.disabled = !canAnalyze();
+  });
 
   q('[data-act="signout"]').addEventListener("click", async () => {
     try {
@@ -167,67 +184,46 @@ function renderMemberUI(root, user) {
     }
   });
 
-  function showResult(lang) {
-    const result = resultsByLang[lang];
-    if (!result) return;
-    displayLang = lang;
-    resultBody.innerHTML = renderResult(result, getRenderLabels(lang));
+  function showResult(result, opts) {
+    currentResult = result;
+    resultBody.innerHTML = renderResult(result, T);
     resultSlot.hidden = false;
-    // Translate toggle: offer the other language.
-    translateBtn.hidden = false;
-    translateBtn.textContent = lang === LANG ? S.translateButton : S.translateBack;
+    ephemeralNote.hidden = !(opts && opts.ephemeral);
+    resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  translateBtn.addEventListener("click", async () => {
-    const target = displayLang === "id" ? "en" : "id";
-    if (resultsByLang[target]) return showResult(target);
-    const token = await accessToken();
-    if (!token) return needLogin(setStatus);
-    translateBtn.disabled = true;
-    setStatus(S.translating);
-    try {
-      const res = await fetch(`${API}/api/translate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lang: target, data: resultsByLang[displayLang] }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setStatus(data.error || S.errGeneric, true);
-        return;
-      }
-      resultsByLang[target] = data.result;
-      setStatus("");
-      showResult(target);
-    } catch {
-      setStatus(S.errNetwork, true);
-    } finally {
-      translateBtn.disabled = false;
-    }
+  q('[data-act="sample"]').addEventListener("click", () => {
+    setStatus("");
+    showResult(getSample(LANG), { ephemeral: false });
   });
 
   analyzeBtn.addEventListener("click", () => runAnalyze());
 
   async function runAnalyze() {
     if (!selectedFile) return setStatus(S.errFile, true);
+    if (!isMember() && !consentBox.checked) return setStatus(S.errConsent, true);
     setBusy(true, S.analyzing);
     resultSlot.hidden = true;
     try {
       const { preprocess } = await import("./preprocess.js");
       const { dataUrl, mime } = await preprocess(selectedFile);
       const token = await accessToken();
-      if (!token) {
-        setBusy(false);
-        return needLogin(setStatus);
-      }
+
+      const formData = new FormData();
+      const ext = mime === "image/png" ? "png" : mime === "application/pdf" ? "pdf" : "jpg";
+      formData.append("file", dataUrlToBlob(dataUrl), `mcu.${ext}`);
+
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 95000);
       let res;
       try {
-        res = await fetch(`${API}/api/mcu`, {
+        res = await fetch(`${API}/api/analyze-mcu`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ file: dataUrl, mime, lang: LANG }),
+          headers,
+          body: formData,
           signal: controller.signal,
         });
       } finally {
@@ -236,16 +232,16 @@ function renderMemberUI(root, user) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setBusy(false);
-        setStatus(data.error || S.errGeneric, true);
-        if (data.session_expired) needLogin(setStatus);
+        setStatus(data.message || data.error || S.errGeneric, true);
         return;
       }
-      resultsByLang = { [LANG]: data.result };
-      displayLang = LANG;
+      const ephemeral = !isMember();
       setBusy(false);
-      showResult(LANG);
-      await saveResult(data.result, setStatus);
-      await loadHistory();
+      showResult(data, { ephemeral });
+      if (isMember()) {
+        await saveResult(data, setStatus);
+        await loadHistory();
+      }
     } catch (e) {
       setBusy(false);
       if (e && e.name === "AbortError") setStatus(S.errGeneric, true);
@@ -254,13 +250,32 @@ function renderMemberUI(root, user) {
     }
   }
 
+  async function saveResult(result, setStatusFn) {
+    if (!supabase || !currentSession) return;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      // File is NOT stored — only the JSON result. file_path left null.
+      const { error } = await supabase.from("my20fit_mcu_result").insert({
+        auth_user_id: user.id,
+        result,
+        analyzed_at: new Date().toISOString(),
+      });
+      if (error) setStatusFn(S.errSave, true);
+    } catch {
+      setStatusFn(S.errSave, true);
+    }
+  }
+
   async function loadHistory() {
-    if (!supabase) return;
+    if (!supabase || !currentSession) return;
     try {
       const { data, error } = await supabase
         .from("my20fit_mcu_result")
         .select("id, result, analyzed_at, created_at")
-        .eq("auth_user_id", user.id)
+        .eq("auth_user_id", currentSession.user.id)
         .order("analyzed_at", { ascending: false })
         .limit(20);
       if (error) return;
@@ -271,18 +286,15 @@ function renderMemberUI(root, user) {
       historyEl.innerHTML = "";
       for (const row of data) {
         const when = row.analyzed_at || row.created_at || "";
-        const label = (row.result && (row.result.document_type || row.result.summary)) || "MCU";
-        const item = el(
-          `<div class="history-item" role="button" tabindex="0"><div class="history-date"></div><div class="history-label"></div></div>`,
-        );
+        const label = (row.result && (row.result.summary || row.result.patient_name)) || "MCU";
+        const item = document.createElement("div");
+        item.className = "history-item";
+        item.setAttribute("role", "button");
+        item.tabIndex = 0;
+        item.innerHTML = `<div class="history-date"></div><div class="history-label"></div>`;
         item.querySelector(".history-date").textContent = formatDate(when);
         item.querySelector(".history-label").textContent = String(label).slice(0, 90);
-        item.addEventListener("click", () => {
-          resultsByLang = { [LANG]: row.result };
-          displayLang = LANG;
-          showResult(LANG);
-          resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
+        item.addEventListener("click", () => showResult(row.result, { ephemeral: false }));
         historyEl.appendChild(item);
       }
     } catch {
@@ -290,64 +302,29 @@ function renderMemberUI(root, user) {
     }
   }
 
-  // Kick off initial history load.
-  loadHistory();
+  applySessionState(currentSession);
+  return { applySessionState };
 }
 
-function formatDate(v) {
-  try {
-    return new Date(v).toLocaleString(LANG === "en" ? "en-GB" : "id-ID");
-  } catch {
-    return String(v || "");
-  }
-}
-
-async function accessToken() {
-  if (!supabase) return null;
-  const { data } = await supabase.auth.getSession();
-  return data && data.session ? data.session.access_token : null;
-}
-
-function needLogin(setStatus) {
-  setStatus(S.memberIntroAnon, true);
-  const anon = document.querySelector('[data-role="anon"]');
-  if (anon) anon.hidden = false;
-}
-
-async function saveResult(result, setStatus) {
-  if (!supabase) return;
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    // File is NOT stored — only the JSON result (spec §6). file_path left null.
-    const { error } = await supabase.from("my20fit_mcu_result").insert({
-      auth_user_id: user.id,
-      result,
-      analyzed_at: new Date().toISOString(),
-    });
-    if (error) setStatus(S.errSave, true);
-  } catch {
-    setStatus(S.errSave, true);
-  }
-}
-
-// ── Boot ────────────────────────────────────────────────────────────────
 async function boot() {
   updateLoginCta();
   await consumeSsoFragment();
 
   const root = document.getElementById("member-app");
-  if (!root || !supabase) return; // anonymous / misconfigured → public mode only
+  if (!root) return;
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session && session.user) {
-    renderMemberUI(root, session.user);
+  const widget = setupUploadWidget(root);
+
+  if (supabase) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    widget.applySessionState(session);
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      widget.applySessionState(session);
+    });
   }
-  // else: leave the server-rendered anonymous view (login CTA) as-is.
 }
 
 boot();

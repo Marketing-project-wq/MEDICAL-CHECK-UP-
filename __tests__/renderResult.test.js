@@ -12,53 +12,50 @@ test("renders the fictional sample (both languages) with all sections", () => {
     const html = renderResult(getSample(lang), t);
     assert.match(html, /class="mcu-result"/, `${lang}: wrapper`);
     assert.match(html, /mcu-disclaimer/, `${lang}: disclaimer always shown`);
-    assert.match(html, /class="pill pill-attn"/, `${lang}: attention highlighted`);
-    assert.match(html, /mcu-card/, `${lang}: abnormal cards`);
-    assert.match(html, /mcu-plans/, `${lang}: plans present`);
+    assert.match(html, /class="pill pill-attn"/, `${lang}: high/warning status highlighted`);
+    assert.match(html, /mcu-checklist/, `${lang}: checklist present`);
+    assert.match(html, /mcu-doctor-notes/, `${lang}: doctor notes present`);
   }
+});
+
+test("the disclaimer is fixed copy — identical regardless of what the result contains", () => {
+  const withDoctorNotes = renderResult({ ...getSample("id"), doctor_notes: "Sesuatu yang lain" }, tId);
+  const withoutDoctorNotes = renderResult({ ...getSample("id"), doctor_notes: "" }, tId);
+  const extractDisclaimer = (html) => html.match(/<div class="mcu-disclaimer"[^]*?<\/div>/)[0];
+  assert.equal(extractDisclaimer(withDoctorNotes), extractDisclaimer(withoutDoctorNotes));
 });
 
 test("sample and a real-shaped result use the identical code path (same wrapper)", () => {
   const realShaped = {
-    document_type: "Hasil Lab",
     patient_name: "Someone",
-    date: "2026-08-30",
+    reviewed_at: "2026-08-30",
+    grade: "A",
     summary: "Ringkasan singkat.",
-    parameters: [
-      { label: "Glukosa", value: "95 mg/dL", normal_range: "70-100 mg/dL", status: "normal", direction: "normal", explanation: "Gula darah." },
-    ],
-    abnormal_findings: [],
-    eating_plan: ["Sayur"],
-    exercise_plan: [],
-    lifestyle_plan: [],
-    unreadable: [],
-    disclaimer: "Bukan diagnosis.",
+    metrics: [{ label: "Glukosa", value: "95 mg/dL", status: "ok", note: "Dalam rentang normal." }],
+    recommendations: ["Sayur"],
+    checklist: [],
+    doctor_notes: "",
   };
   const sampleHtml = renderResult(getSample("id"), tId);
   const realHtml = renderResult(realShaped, tId);
   const wrapper = /^<article class="mcu-result">/;
   assert.match(sampleHtml.trim(), wrapper);
   assert.match(realHtml.trim(), wrapper);
-  // Empty abnormal/plan sections are simply omitted, never crash.
-  assert.doesNotMatch(realHtml, /mcu-abnormal/);
-  assert.doesNotMatch(realHtml, /mcu-plans[^]*Olahraga/);
+  // Empty checklist/doctor-notes sections are simply omitted, never crash.
+  assert.doesNotMatch(realHtml, /mcu-checklist/);
+  assert.doesNotMatch(realHtml, /mcu-doctor-notes/);
 });
 
 test("escapes untrusted strings (no HTML injection)", () => {
   const evil = {
-    document_type: "<script>alert(1)</script>",
     patient_name: "\"><img src=x onerror=alert(1)>",
-    date: null,
+    reviewed_at: "<script>alert(1)</script>",
+    grade: "A",
     summary: "<b>bold</b>",
-    parameters: [
-      { label: "<i>x</i>", value: "<svg/onload=1>", normal_range: "a&b", status: "attention", direction: "high", explanation: "</td>break" },
-    ],
-    abnormal_findings: [],
-    eating_plan: [],
-    exercise_plan: [],
-    lifestyle_plan: [],
-    unreadable: [],
-    disclaimer: "<x>",
+    metrics: [{ label: "<i>x</i>", value: "<svg/onload=1>", status: "high", note: "</td>break" }],
+    recommendations: ["<script>alert(2)</script>"],
+    checklist: [{ icon: "<x>", title: "<script>alert(3)</script>", reason: "</section>", priority: "high", duration: null, location: null }],
+    doctor_notes: "<x>",
   };
   const html = renderResult(evil, tId);
   assert.doesNotMatch(html, /<script>alert/);
@@ -70,5 +67,5 @@ test("escapes untrusted strings (no HTML injection)", () => {
 test("does not throw on empty / partial input", () => {
   assert.doesNotThrow(() => renderResult({}, tId));
   assert.doesNotThrow(() => renderResult(null, tEn));
-  assert.doesNotThrow(() => renderResult({ parameters: null, abnormal_findings: undefined }, tId));
+  assert.doesNotThrow(() => renderResult({ metrics: null, checklist: undefined }, tId));
 });

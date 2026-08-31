@@ -65,9 +65,9 @@ export function renderLayout(opts) {
       <span class="brand-sub">${escapeHtml(lang === "en" ? "Understand your MCU" : "Pahami hasil MCU")}</span>
     </a>
     <nav class="site-nav" aria-label="primary">
-      <a href="#education">${escapeHtml(s.nav.education)}</a>
-      <a href="#example">${escapeHtml(s.nav.example)}</a>
-      <a href="#analyze" class="nav-cta">${escapeHtml(s.nav.analyze)}</a>
+      <a href="#why" class="nav-secondary">${escapeHtml(s.nav.education)}</a>
+      <a href="#education" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
+      <a href="#upload" class="nav-cta">${escapeHtml(s.nav.analyze)}</a>
       <a class="lang-switch" href="${escapeHtml(s.otherLangHref)}" rel="alternate">${escapeHtml(s.otherLangLabel)}</a>
     </nav>
   </div>
@@ -77,10 +77,39 @@ ${bodyHtml}
 </main>
 <footer class="site-footer">
   <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <span class="brand-mark">20FIT</span>
+        <p>${escapeHtml(s.footerTagline)}</p>
+      </div>
+      <div class="footer-col">
+        <h4>${escapeHtml(s.footerColApp)}</h4>
+        <ul>
+          <li><a href="https://calories.20fit.id">${escapeHtml(s.ecosystemProducts[0].name)}</a></li>
+          <li><a href="https://menu.20fit.id">${escapeHtml(s.ecosystemProducts[1].name)}</a></li>
+          <li><a href="${escapeHtml(publicOrigin)}">${escapeHtml(s.ecosystemProducts[2].name)}</a></li>
+          <li><a href="${escapeHtml(myOrigin)}">${escapeHtml(s.ecosystemProducts[3].name)}</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>${escapeHtml(s.footerColBrand)}</h4>
+        <ul>
+          <li>${escapeHtml(s.footerAbout)}</li>
+          <li>${escapeHtml(s.footerStudioLocations)}</li>
+          <li>${escapeHtml(s.footerContact)}</li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>${escapeHtml(s.footerColLegal)}</h4>
+        <ul>
+          <li>${escapeHtml(s.footerPrivacy)}</li>
+          <li>${escapeHtml(s.footerTerms)}</li>
+          <li>${escapeHtml(s.footerHealthData)}</li>
+        </ul>
+      </div>
+    </div>
     <p class="footer-disclaimer">${escapeHtml(s.footerDisclaimer)}</p>
     <p class="footer-links">
-      <a href="${escapeHtml(myOrigin)}">${escapeHtml(s.footerBackToApp)}</a>
-      <span aria-hidden="true">·</span>
       <a href="${escapeHtml(s.otherLangHref)}">${escapeHtml(s.otherLangLabel)}</a>
     </p>
     <p class="footer-copy">© ${new Date().getFullYear()} 20FIT Sport Clinic Indonesia</p>

@@ -8,25 +8,37 @@ Built to `MEDICALCHECKUPSUBDOMAINSPEC.md` (the binding spec). **Zero runtime
 dependencies** — the server uses only Node's built-in `http`; browser libraries
 (`@supabase/supabase-js`, `pdf.js`) are loaded from a CDN by the client.
 
-## Two modes (spec §1)
+## Two modes (updated — see note below)
 
 | | Anonymous | Member (logged in) |
 |---|---|---|
 | Education (server-rendered, SEO) | ✅ | ✅ |
 | Example analysis (sample data) | ✅ | ✅ |
-| Upload form | ❌ never rendered | ✅ |
-| Calls AI (`/api/mcu`) | ❌ never | ✅ |
-| Saves result (`my20fit_mcu_result`, RLS) | ❌ | ✅ |
+| Upload form | ✅ (own widget, consent-gated) | ✅ |
+| Calls AI (`/api/mcu`) | ✅ — no Authorization header, no persistence | ✅ — Bearer auth |
+| Result shown | ✅ once, in-page, never saved | ✅ + saved to history |
+| Saves result (`my20fit_mcu_result`, RLS) | ❌ (no account to attach it to) | ✅ |
+| Compare across periods / history | ❌ — CTA to login | ✅ |
 
-The upload UI is gated **at the point of upload**: it is never present for
-anonymous visitors (not server-rendered, not injected). Anonymous "Analisa hasil
-punya saya" links to `my.20fit.id/login?return_to=<this page>`.
+> **Change of policy from the original spec:** the original spec gated the
+> upload UI itself behind login. Per an explicit product decision, anonymous
+> visitors can now upload and get a fully-open, one-time analysis with no
+> account — only saving/history/period comparison stays behind login. The
+> anonymous path requires the visitor to tick a consent checkbox ("this file
+> will be processed by AI, the result is not stored") before the analyze
+> button enables, and its result is never persisted anywhere by this app.
+> Anonymous **rate limiting / abuse protection must be enforced on the
+> `my.20fit.id` side** — this static app has no way to throttle calls it
+> doesn't proxy.
 
 ## How it fits together
 
 ```
 Browser (medicalcheckup.20fit.id)
-  ├─ Anonymous: SSR education + sample (spec §4 renderer) + login CTA
+  ├─ Anonymous: SSR education + sample (spec §4 renderer)
+  │    + upload widget (consent checkbox required)
+  │    → POST https://my.20fit.id/api/mcu  (NO Authorization header)
+  │    → render result (SAME renderer as the sample) — shown once, never saved
   └─ Member (after SSO fragment-token handoff):
        pick file → preprocess in-browser (downscale ≤1500px / pdf.js ≤3 pages → 1 JPEG)
        → POST https://my.20fit.id/api/mcu  (Authorization: Bearer <token>)
@@ -37,7 +49,9 @@ Browser (medicalcheckup.20fit.id)
 ```
 
 - **AI is only ever called on the server** (`my.20fit.id`). No AI key ships to the browser.
-- **Files are never stored** — only the JSON `result` (spec §6). `file_path` is left null.
+- **Files are never stored** — only the JSON `result` (spec §6), and only for
+  logged-in members. `file_path` is left null. Anonymous results are not
+  stored at all.
 - **SSO** uses the fragment-token model (spec §5). `return_to` is validated to
   `*.20fit.id` only (open-redirect guard); tokens are consumed via
   `supabase.auth.setSession(...)` then scrubbed from the URL/history.
@@ -73,6 +87,16 @@ fragment handoff). Those additive pieces are provided in a companion PR to
 
 **This subdomain only works once that companion PR is deployed to
 `my.20fit.id`.** CORS is already open on that server (`cors()`).
+
+### New requirement: anonymous `/api/mcu` calls
+
+Per the updated gating policy above, this app now also calls `POST /api/mcu`
+**without** an `Authorization` header for anonymous visitors. `my.20fit.id`
+must accept that (returning the same result shape) for the anonymous flow to
+work at all — today it likely 401s on a missing Bearer token. Because this
+removes the auth requirement, `my.20fit.id` should also apply its own
+rate limiting / abuse protection to unauthenticated calls to this endpoint;
+this repo has no way to enforce that itself.
 
 ## Deploy to staging
 

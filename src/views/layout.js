@@ -136,7 +136,7 @@ export function renderLayout(opts) {
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="${escapeHtml(myOrigin)}" aria-label="20FIT">
-      <img class="brand-logo" alt="20FIT" width="96" height="28">
+      <img class="brand-logo" alt="20FIT" width="112" height="32">
       <span class="brand-logo-fallback" hidden>20FIT</span>
       <script nonce="${escapeHtml(nonce)}">${themeLogoBootScript(logoLightUrl, logoDarkUrl)}</script>
       <span class="brand-sub">${escapeHtml(s.headerTagline)}</span>

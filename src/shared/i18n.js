@@ -16,8 +16,6 @@ const STRINGS = {
     metaTitle: "Cara Membaca & Memahami Hasil Medical Check-Up (MCU) | 20FIT",
     metaDescription:
       "Panduan memahami hasil medical check-up: arti penanda lab, rentang normal kolesterol, gula darah, tekanan darah, dan lainnya. Alat pemahaman, bukan diagnosis.",
-    otherLangLabel: "English",
-    otherLangHref: "/",
     skipToContent: "Lompat ke konten",
     headerTagline: "Pahami hasil MCU",
     notFoundTitle: "404",
@@ -25,6 +23,7 @@ const STRINGS = {
     notFoundBackHome: "Kembali ke beranda",
     serviceUnavailable: "Fitur scan belum dikonfigurasi di server ini.",
     themeToggleLabel: "Ganti tema terang/gelap",
+    langToggleAriaLabel: "Bahasa",
     nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang" },
 
     heroBadge: "Panduan MCU",
@@ -156,8 +155,6 @@ const STRINGS = {
     metaTitle: "How to Read & Understand Medical Check-Up (MCU) Results | 20FIT",
     metaDescription:
       "A plain-language guide to understanding medical check-up results: what lab markers mean, normal ranges for cholesterol, blood sugar, blood pressure and more. An understanding tool, not a diagnosis.",
-    otherLangLabel: "Bahasa Indonesia",
-    otherLangHref: "/id",
     skipToContent: "Skip to content",
     headerTagline: "Understand your MCU",
     notFoundTitle: "404",
@@ -165,6 +162,7 @@ const STRINGS = {
     notFoundBackHome: "Back to home",
     serviceUnavailable: "Scanning isn't configured on this server yet.",
     themeToggleLabel: "Toggle light/dark theme",
+    langToggleAriaLabel: "Language",
     nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now" },
 
     heroBadge: "MCU Guide",

@@ -40,6 +40,21 @@ function themeInitScript() {
   }catch(e){document.documentElement.setAttribute("data-theme","light");}})();`;
 }
 
+// Two explicit EN/ID buttons (not a dropdown, not one button that swaps
+// label) — the active one is visually distinct (.is-active) AND carries
+// aria-pressed for screen readers/keyboard users. Real <button> elements:
+// both are always present and focusable, keyboard-operable natively
+// (Enter/Space), no href/navigation involved — switching is handled by the
+// client-side applyLanguage() in app.js. Reused for both the header and
+// the footer, and re-rendered by the client on every language switch, so
+// the "active" state always matches whatever the client just picked.
+function langToggleMarkup(lang, s) {
+  return `<div class="lang-toggle" role="group" aria-label="${escapeHtml(s.langToggleAriaLabel)}">
+    <button type="button" class="lang-btn${lang === "en" ? " is-active" : ""}" data-act="lang" data-lang="en" aria-pressed="${lang === "en" ? "true" : "false"}">EN</button>
+    <button type="button" class="lang-btn${lang === "id" ? " is-active" : ""}" data-act="lang" data-lang="id" aria-pressed="${lang === "id" ? "true" : "false"}">ID</button>
+  </div>`;
+}
+
 // Sits immediately after the header logo <img> + its text fallback in the
 // HTML flow (see theme-logo markup below), reached via the shared .brand
 // parent rather than a sibling index so it's resilient to markup order. If
@@ -130,7 +145,7 @@ export function renderLayout(opts) {
       <a href="#ecosystem" class="nav-secondary">${escapeHtml(s.nav.education)}</a>
       <a href="#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
       <a href="#upload" class="nav-cta">${escapeHtml(s.nav.analyze)}</a>
-      <a class="lang-switch" href="${escapeHtml(s.otherLangHref)}" rel="alternate">${escapeHtml(s.otherLangLabel)}</a>
+      ${langToggleMarkup(lang, s)}
       <button type="button" class="theme-toggle" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.4 14.7A8.6 8.6 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1Z"></path></svg>
@@ -175,9 +190,7 @@ ${bodyHtml}
       </div>
     </div>
     <p class="footer-disclaimer">${escapeHtml(s.footerDisclaimer)}</p>
-    <p class="footer-links">
-      <a class="lang-switch" href="${escapeHtml(s.otherLangHref)}" rel="alternate">${escapeHtml(s.otherLangLabel)}</a>
-    </p>
+    <div class="footer-links">${langToggleMarkup(lang, s)}</div>
     <p class="footer-copy">© ${new Date().getFullYear()} 20FIT Sport Clinic Indonesia</p>
   </div>
 </footer>

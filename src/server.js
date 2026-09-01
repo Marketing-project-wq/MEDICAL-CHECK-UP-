@@ -85,6 +85,11 @@ const MIME = {
 const STATIC_ROOTS = [
   { prefix: "/client/", dir: path.join(SRC_DIR, "client") },
   { prefix: "/shared/", dir: path.join(SRC_DIR, "shared") },
+  // pages.js is dependency-free (only imports from shared/) and is reused
+  // client-side so the language toggle re-renders from the SAME source the
+  // server uses — no separately-maintained list of translatable strings
+  // that could fall out of sync and silently miss a spot.
+  { prefix: "/views/", dir: path.join(SRC_DIR, "views") },
   { prefix: "/public/", dir: PUBLIC_DIR },
 ];
 

@@ -296,11 +296,26 @@ function setupUploadWidget(root) {
     if (!isMember() && !consentBox.checked) return setStatus(S.errConsent, true);
     setBusy(true, S.analyzing);
     resultSlot.hidden = true;
+
+    // Step 1: client-side preprocessing (downscale image / PDF→JPEG via
+    // pdf.js). Kept separate from the network step below so a failure here
+    // — e.g. an unreadable/encrypted PDF, or pdf.js failing to load — is
+    // never mislabeled as a network error.
+    let dataUrl, mime;
     try {
       const { preprocess } = await import("./preprocess.js");
-      const { dataUrl, mime } = await preprocess(selectedFile);
-      const token = await accessToken();
+      ({ dataUrl, mime } = await preprocess(selectedFile));
+    } catch (e) {
+      console.error("MCU preprocess failed:", e);
+      setBusy(false);
+      if (e && e.message === "unsupported_type") setStatus(S.errType, true);
+      else setStatus(S.errPreprocess, true);
+      return;
+    }
 
+    // Step 2: send to our own server, which proxies to my.20fit.id.
+    try {
+      const token = await accessToken();
       const headers = { "Content-Type": "application/json" };
       if (token) headers.Authorization = `Bearer ${token}`;
       else headers["X-Anon-Id"] = getAnonId();
@@ -342,9 +357,9 @@ function setupUploadWidget(root) {
       setPendingScan({ anon_id: getAnonId(), scan_id: data.scan_id });
       showLockedTeaser(data.teaser);
     } catch (e) {
+      console.error("MCU scan request failed:", e);
       setBusy(false);
       if (e && e.name === "AbortError") setStatus(S.errGeneric, true);
-      else if (e && e.message === "unsupported_type") setStatus(S.errType, true);
       else setStatus(S.errNetwork, true);
     }
   }

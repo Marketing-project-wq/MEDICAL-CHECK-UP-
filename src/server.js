@@ -53,7 +53,7 @@ function getScanHandlers() {
     serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
     anonKey: SUPABASE_ANON_KEY,
   });
-  scanHandlers = createScanHandlers({ supabaseAdmin, my20fitOrigin: MY20FIT_ORIGIN, ipHashSalt: IP_HASH_SALT, lang: "id" });
+  scanHandlers = createScanHandlers({ supabaseAdmin, my20fitOrigin: MY20FIT_ORIGIN, ipHashSalt: IP_HASH_SALT, lang: "en" });
   return scanHandlers;
 }
 
@@ -235,7 +235,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { "Content-Type": MIME[".xml"] }).end(
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         `<url><loc>${PUBLIC_ORIGIN}/</loc><lastmod>${now}</lastmod></url>\n` +
-        `<url><loc>${PUBLIC_ORIGIN}/en</loc><lastmod>${now}</lastmod></url>\n` +
+        `<url><loc>${PUBLIC_ORIGIN}/id</loc><lastmod>${now}</lastmod></url>\n` +
         `</urlset>\n`,
     );
     return;
@@ -267,24 +267,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Pages (Indonesian default, English at /en). /auth/callback shares the ID
-  // page — the client handles the SSO fragment on load, then continues here.
+  // Pages (English default, Indonesian at /id). /auth/callback shares the
+  // English page — the client handles the SSO fragment on load, then
+  // continues here. /en is a legacy alias from before English became the
+  // default — redirected to / rather than served twice, so there's a
+  // single canonical URL per language.
   if (pathname === "/" || pathname === "/auth/callback") {
-    const { html, nonce } = renderPage("id", "/");
+    const { html, nonce } = renderPage("en", "/");
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id" || pathname === "/id/" || pathname === "/id/auth/callback") {
+    const { html, nonce } = renderPage("id", "/id");
     sendHtml(res, 200, html, nonce);
     return;
   }
   if (pathname === "/en" || pathname === "/en/" || pathname === "/en/auth/callback") {
-    const { html, nonce } = renderPage("en", "/en");
-    sendHtml(res, 200, html, nonce);
+    res.writeHead(302, { Location: pathname.replace(/^\/en/, "") || "/" }).end();
     return;
   }
 
   // 404
-  const lang = pathname.startsWith("/en") ? "en" : "id";
+  const lang = pathname.startsWith("/id") ? "id" : "en";
   const nonce = crypto.randomBytes(16).toString("base64");
   const s = strings(lang);
-  const homePath = lang === "en" ? "/en" : "/";
+  const homePath = lang === "id" ? "/id" : "/";
   const body = `<section class="section"><div class="wrap"><h1>${escapeHtml(s.notFoundTitle)}</h1><p>${escapeHtml(
     s.notFoundBody,
   )}</p><p><a href="${escapeHtml(homePath)}">${escapeHtml(s.notFoundBackHome)}</a></p></div></section>`;
@@ -293,7 +300,7 @@ const server = http.createServer(async (req, res) => {
     strings: s,
     title: "404 — " + s.brand,
     description: "",
-    canonicalPath: lang === "en" ? "/en" : "/",
+    canonicalPath: homePath,
     publicOrigin: PUBLIC_ORIGIN,
     bodyHtml: body,
     clientConfig: clientConfig(lang),

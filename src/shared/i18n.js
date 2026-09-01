@@ -1,11 +1,11 @@
 // UI strings + renderer labels for both languages. Dependency-free ESM.
-// Default language is Bahasa Indonesia (spec §7).
+// Default language is English — Indonesian is available at /id.
 
 export const LANGS = ["id", "en"];
-export const DEFAULT_LANG = "id";
+export const DEFAULT_LANG = "en";
 
 export function normalizeLang(value) {
-  return value === "en" ? "en" : "id";
+  return value === "id" ? "id" : "en";
 }
 
 const STRINGS = {
@@ -17,7 +17,7 @@ const STRINGS = {
     metaDescription:
       "Panduan memahami hasil medical check-up: arti penanda lab, rentang normal kolesterol, gula darah, tekanan darah, dan lainnya. Alat pemahaman, bukan diagnosis.",
     otherLangLabel: "English",
-    otherLangHref: "/en",
+    otherLangHref: "/",
     skipToContent: "Lompat ke konten",
     headerTagline: "Pahami hasil MCU",
     notFoundTitle: "404",
@@ -157,7 +157,7 @@ const STRINGS = {
     metaDescription:
       "A plain-language guide to understanding medical check-up results: what lab markers mean, normal ranges for cholesterol, blood sugar, blood pressure and more. An understanding tool, not a diagnosis.",
     otherLangLabel: "Bahasa Indonesia",
-    otherLangHref: "/",
+    otherLangHref: "/id",
     skipToContent: "Skip to content",
     headerTagline: "Understand your MCU",
     notFoundTitle: "404",

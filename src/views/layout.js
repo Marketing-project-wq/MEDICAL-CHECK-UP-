@@ -15,12 +15,12 @@ function langRedirectScript() {
     var stored = localStorage.getItem(${JSON.stringify(LANG_STORAGE_KEY)});
     if (!stored) return;
     var path = location.pathname;
-    var isEnPath = path === "/en" || path.indexOf("/en/") === 0;
-    var current = isEnPath ? "en" : "id";
+    var isIdPath = path === "/id" || path.indexOf("/id/") === 0;
+    var current = isIdPath ? "id" : "en";
     if (stored !== "en" && stored !== "id") return;
     if (stored === current) return;
-    var rest = isEnPath ? (path.slice(3) || "/") : path;
-    var target = stored === "en" ? ("/en" + (rest === "/" ? "" : rest)) : rest;
+    var rest = isIdPath ? (path.slice(3) || "/") : path;
+    var target = stored === "id" ? ("/id" + (rest === "/" ? "" : rest)) : rest;
     location.replace(target + location.search + location.hash);
   }catch(e){}})();`;
 }
@@ -63,7 +63,7 @@ function themeLogoBootScript(logoLightUrl, logoDarkUrl) {
  * @param {object} opts.strings         getStrings(lang)
  * @param {string} opts.title
  * @param {string} opts.description
- * @param {string} opts.canonicalPath   e.g. "/" or "/en"
+ * @param {string} opts.canonicalPath   e.g. "/" (English, default) or "/id"
  * @param {string} opts.publicOrigin    e.g. https://medicalcheckup.20fit.id
  * @param {string} opts.bodyHtml
  * @param {object} opts.clientConfig    injected as window.__MCU_CONFIG__
@@ -86,8 +86,8 @@ export function renderLayout(opts) {
   } = opts;
 
   const canonical = publicOrigin + canonicalPath;
-  const altId = publicOrigin + "/";
-  const altEn = publicOrigin + "/en";
+  const altId = publicOrigin + "/id";
+  const altEn = publicOrigin + "/";
   const myOrigin = clientConfig.apiBase;
 
   return `<!doctype html>
@@ -102,7 +102,7 @@ export function renderLayout(opts) {
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <link rel="alternate" hreflang="id" href="${escapeHtml(altId)}">
 <link rel="alternate" hreflang="en" href="${escapeHtml(altEn)}">
-<link rel="alternate" hreflang="x-default" href="${escapeHtml(altId)}">
+<link rel="alternate" hreflang="x-default" href="${escapeHtml(altEn)}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeHtml(title)}">
 <link rel="preload" as="image" href="${escapeHtml(logoLightUrl)}">

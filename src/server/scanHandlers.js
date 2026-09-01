@@ -59,7 +59,7 @@ function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     const declaredLength = Number(req.headers["content-length"] || 0);
     if (declaredLength > MAX_BODY_BYTES) {
-      reject({ status: 413, message: "File terlalu besar (maks 8MB). Kompres atau perkecil dulu ya." });
+      reject({ status: 413, code: "file_too_large" });
       return;
     }
     const chunks = [];
@@ -67,7 +67,7 @@ function readJsonBody(req) {
     req.on("data", (chunk) => {
       total += chunk.length;
       if (total > MAX_BODY_BYTES) {
-        reject({ status: 413, message: "File terlalu besar (maks 8MB). Kompres atau perkecil dulu ya." });
+        reject({ status: 413, code: "file_too_large" });
         req.destroy();
         return;
       }
@@ -77,10 +77,10 @@ function readJsonBody(req) {
       try {
         resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}"));
       } catch {
-        reject({ status: 400, message: "Isi permintaan tidak valid." });
+        reject({ status: 400, code: "invalid_body" });
       }
     });
-    req.on("error", () => reject({ status: 400, message: "Isi permintaan tidak valid." }));
+    req.on("error", () => reject({ status: 400, code: "invalid_body" }));
   });
 }
 
@@ -97,25 +97,22 @@ export function createScanHandlers({ supabaseAdmin, my20fitOrigin, ipHashSalt, l
     try {
       body = await readJsonBody(req);
     } catch (err) {
-      return sendJson(res, err.status || 400, { ok: false, error: err.message || "Permintaan tidak valid." });
+      return sendJson(res, err.status || 400, { ok: false, code: err.code || "invalid_request" });
     }
 
     const lang = body.lang === "en" ? "en" : defaultLang || "id";
     if (typeof body.file !== "string" || body.file.length === 0) {
-      return sendJson(res, 400, { ok: false, error: "File tidak ada." });
+      return sendJson(res, 400, { ok: false, code: "no_file" });
     }
     const mime = typeof body.mime === "string" ? body.mime : "";
     if (!ACCEPTED_MIME.has(mime)) {
-      return sendJson(res, 400, {
-        ok: false,
-        error: "Tipe file tidak didukung. Gunakan foto (JPG/PNG) atau PDF hasil MCU.",
-      });
+      return sendJson(res, 400, { ok: false, code: "unsupported_type" });
     }
     // Rough pre-check on encoded size (exact decoded size is checked by the
     // upstream endpoint too, but failing fast here avoids burning a call).
     const approxDecodedBytes = Math.floor((body.file.length * 3) / 4);
     if (approxDecodedBytes > MAX_DECODED_BYTES) {
-      return sendJson(res, 413, { ok: false, error: "File terlalu besar (maks 8MB). Kompres atau perkecil dulu ya." });
+      return sendJson(res, 413, { ok: false, code: "file_too_large" });
     }
 
     const ip = clientIp(req);
@@ -126,21 +123,21 @@ export function createScanHandlers({ supabaseAdmin, my20fitOrigin, ipHashSalt, l
     if (user) {
       // ── Member path: unchanged behavior, full result returned immediately. ──
       if (isRateLimited(memberHits, user.id, MEMBER_WINDOW_MS, MEMBER_MAX_REQ)) {
-        return sendJson(res, 429, { ok: false, error: "Terlalu banyak percobaan. Coba lagi beberapa menit lagi ya." });
+        return sendJson(res, 429, { ok: false, code: "rate_limited_member" });
       }
       const outcome = await callAnalyzeMcu({ my20fitOrigin, dataUrl: body.file, mime });
       await supabaseAdmin.logAiAccess({ authUserId: user.id, route: "/api/scan", ok: outcome.ok, errCode: outcome.ok ? null : String(outcome.status) });
-      if (!outcome.ok) return sendJson(res, outcome.status, { ok: false, error: outcome.message });
+      if (!outcome.ok) return sendJson(res, outcome.status, { ok: false, code: outcome.code });
       return sendJson(res, 200, { ok: true, mode: "member", result: outcome.result });
     }
 
     // ── Anonymous path: hold the result, return only a safe teaser. ──
     const anonId = req.headers["x-anon-id"];
     if (typeof anonId !== "string" || !/^[0-9a-f-]{36}$/i.test(anonId)) {
-      return sendJson(res, 400, { ok: false, error: "Sesi tidak valid. Muat ulang halaman lalu coba lagi." });
+      return sendJson(res, 400, { ok: false, code: "invalid_session" });
     }
     if (isRateLimited(anonHits, ip, ANON_WINDOW_MS, ANON_MAX_REQ)) {
-      return sendJson(res, 429, { ok: false, error: "Terlalu banyak percobaan dari perangkat ini. Coba lagi beberapa menit lagi ya." });
+      return sendJson(res, 429, { ok: false, code: "rate_limited_device" });
     }
 
     let session;
@@ -151,26 +148,21 @@ export function createScanHandlers({ supabaseAdmin, my20fitOrigin, ipHashSalt, l
       // already-known anon_id continuing its own scans doesn't add to this.
       const isLikelyNew = existingCount === 0; // best-effort; exact existence check happens in touchAnonSession
       if (isLikelyNew && existingCount >= IP_NEW_SESSION_CAP_PER_DAY) {
-        return sendJson(res, 429, { ok: false, error: "Terlalu banyak percobaan dari jaringan ini. Coba lagi besok, atau buat akun." });
+        return sendJson(res, 429, { ok: false, code: "rate_limited_network" });
       }
       session = await supabaseAdmin.touchAnonSession({ anonId, ipHash, uaHash: hashValue(req.headers["user-agent"] || "", ipHashSalt) });
     } catch (err) {
       console.error("touchAnonSession failed", err);
-      return sendJson(res, 502, { ok: false, error: "Terjadi kesalahan. Coba lagi ya." });
+      return sendJson(res, 502, { ok: false, code: "generic_error" });
     }
 
     if ((session?.scan_count ?? 0) > ANON_LIFETIME_SCAN_CAP) {
-      return sendJson(res, 200, {
-        ok: true,
-        mode: "anon",
-        limit_reached: true,
-        error: "Kamu sudah mencapai batas scan gratis. Buat akun 20FIT untuk terus scan & simpan riwayatmu.",
-      });
+      return sendJson(res, 200, { ok: true, mode: "anon", limit_reached: true, code: "scan_limit_reached" });
     }
 
     const outcome = await callAnalyzeMcu({ my20fitOrigin, dataUrl: body.file, mime });
     await supabaseAdmin.logAiAccess({ authUserId: null, route: "/api/scan", ok: outcome.ok, errCode: outcome.ok ? null : String(outcome.status) });
-    if (!outcome.ok) return sendJson(res, outcome.status, { ok: false, error: outcome.message });
+    if (!outcome.ok) return sendJson(res, outcome.status, { ok: false, code: outcome.code });
 
     const teaser = deriveTeaser(outcome.result, lang);
     let pending;
@@ -178,7 +170,7 @@ export function createScanHandlers({ supabaseAdmin, my20fitOrigin, ipHashSalt, l
       pending = await supabaseAdmin.insertPendingScan({ anonId, result: outcome.result, teaser });
     } catch (err) {
       console.error("insertPendingScan failed", err);
-      return sendJson(res, 502, { ok: false, error: "Terjadi kesalahan menyimpan hasil sementara. Coba lagi ya." });
+      return sendJson(res, 502, { ok: false, code: "save_pending_failed" });
     }
 
     return sendJson(res, 200, { ok: true, mode: "anon", scan_id: pending.id, teaser });
@@ -189,27 +181,24 @@ export function createScanHandlers({ supabaseAdmin, my20fitOrigin, ipHashSalt, l
     try {
       body = await readJsonBody(req);
     } catch (err) {
-      return sendJson(res, err.status || 400, { ok: false, error: err.message });
+      return sendJson(res, err.status || 400, { ok: false, code: err.code || "invalid_request" });
     }
 
     const token = bearerToken(req);
     const user = token ? await supabaseAdmin.verifyUser(token) : null;
     if (!user) {
-      return sendJson(res, 401, { ok: false, error: "Sesi kamu sudah habis. Silakan login lagi.", session_expired: true });
+      return sendJson(res, 401, { ok: false, code: "auth_session_expired", session_expired: true });
     }
 
     const anonId = typeof body.anon_id === "string" ? body.anon_id : null;
     const scanId = typeof body.scan_id === "string" ? body.scan_id : null;
     if (!anonId || !scanId) {
-      return sendJson(res, 400, { ok: false, error: "Data scan tidak lengkap." });
+      return sendJson(res, 400, { ok: false, code: "incomplete_scan_data" });
     }
 
     const pending = await supabaseAdmin.claimPendingScan({ scanId, anonId });
     if (!pending) {
-      return sendJson(res, 404, {
-        ok: false,
-        error: "Waktu penyimpanan hasil sudah habis atau tidak ditemukan. Silakan scan ulang — sekarang hasilnya langsung tersimpan ke akunmu.",
-      });
+      return sendJson(res, 404, { ok: false, code: "pending_scan_expired" });
     }
 
     try {
@@ -217,7 +206,7 @@ export function createScanHandlers({ supabaseAdmin, my20fitOrigin, ipHashSalt, l
       await supabaseAdmin.markSessionConverted({ anonId, userId: user.id });
     } catch (err) {
       console.error("claim insertMcuResult failed", err);
-      return sendJson(res, 502, { ok: false, error: "Hasil ditemukan tapi gagal disimpan ke akunmu. Coba lagi ya." });
+      return sendJson(res, 502, { ok: false, code: "claim_save_failed" });
     }
 
     return sendJson(res, 200, { ok: true, result: pending.result });

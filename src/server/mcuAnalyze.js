@@ -49,12 +49,12 @@ function dataUrlToBuffer(dataUrl) {
 }
 
 /**
- * @returns {Promise<{ok:true, result:object} | {ok:false, status:number, message:string}>}
+ * @returns {Promise<{ok:true, result:object} | {ok:false, status:number, code:string}>}
  */
 export async function callAnalyzeMcu({ my20fitOrigin, dataUrl, mime, timeoutMs = 90_000 }) {
   const decoded = dataUrlToBuffer(dataUrl);
   if (!decoded || decoded.buffer.length === 0) {
-    return { ok: false, status: 400, message: "File tidak ada." };
+    return { ok: false, status: 400, code: "no_file" };
   }
 
   const form = new FormData();
@@ -71,16 +71,21 @@ export async function callAnalyzeMcu({ my20fitOrigin, dataUrl, mime, timeoutMs =
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return { ok: false, status: res.status, message: body.message || body.error || "Gagal menganalisa hasil MCU. Coba lagi." };
+      // The upstream message (body.message/body.error) is dynamic, upstream-
+      // controlled text we cannot guarantee is translated — log it for
+      // diagnosis but never forward it as the user-facing error; the client
+      // always renders a fully-localized string for this fixed code instead.
+      console.error(`analyze-mcu upstream error ${res.status}:`, body.message || body.error || "(no message)");
+      return { ok: false, status: res.status, code: "analyze_failed" };
     }
     return { ok: true, result: body };
   } catch (err) {
     if (err && err.name === "AbortError") {
       console.error(`callAnalyzeMcu timed out after ${timeoutMs}ms calling ${my20fitOrigin}/api/analyze-mcu`);
-      return { ok: false, status: 504, message: "Analisa memakan waktu lebih lama dari biasanya. Coba lagi ya." };
+      return { ok: false, status: 504, code: "analyze_timeout" };
     }
     console.error("callAnalyzeMcu failed:", err);
-    return { ok: false, status: 502, message: "Gagal menganalisa hasil MCU. Coba lagi." };
+    return { ok: false, status: 502, code: "analyze_failed" };
   } finally {
     clearTimeout(timer);
   }

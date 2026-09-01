@@ -11,6 +11,7 @@ import crypto from "node:crypto";
 import { renderLayout } from "./views/layout.js";
 import { renderHomePage } from "./views/pages.js";
 import { getStrings } from "./shared/i18n.js";
+import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
 
@@ -26,6 +27,16 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const IP_HASH_SALT = process.env.IP_HASH_SALT || "";
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fit.id").replace(/\/$/, "");
+// Tahap 3: served from this app's own static assets, not hotlinked from
+// media.20fit.id, so the logo never breaks if that host is slow or down.
+// Override via env once the final files live in Supabase Storage instead —
+// no other code needs to change.
+// PLACEHOLDER pending the real brand files (see PR description / report):
+// the user's actual logo images haven't reached this environment yet, so a
+// plain text-mark SVG stands in for now — swap the two files in public/ (or
+// point these at Supabase Storage URLs via env) and nothing else changes.
+const LOGO_LIGHT_URL = process.env.LOGO_LIGHT_URL || "/public/logo-light.svg";
+const LOGO_DARK_URL = process.env.LOGO_DARK_URL || "/public/logo-dark.svg";
 
 const supabaseOrigin = safeOrigin(SUPABASE_URL);
 
@@ -84,7 +95,7 @@ function securityHeaders(nonce) {
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self' " + MY20FIT_ORIGIN,
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob: ${supabaseOrigin}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     `script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`,
@@ -108,6 +119,8 @@ function clientConfig(lang) {
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,
     publicOrigin: PUBLIC_ORIGIN,
+    logoLightUrl: LOGO_LIGHT_URL,
+    logoDarkUrl: LOGO_DARK_URL,
   };
 }
 
@@ -138,6 +151,8 @@ function renderPage(lang, canonicalPath) {
     bodyHtml: page.bodyHtml,
     clientConfig: clientConfig(lang),
     nonce,
+    logoLightUrl: LOGO_LIGHT_URL,
+    logoDarkUrl: LOGO_DARK_URL,
   });
   return { html, nonce };
 }
@@ -188,7 +203,7 @@ const server = http.createServer(async (req, res) => {
     const handlers = getScanHandlers();
     if (!handlers) {
       res.writeHead(503, { "Content-Type": "application/json" }).end(
-        JSON.stringify({ ok: false, error: "Fitur scan belum dikonfigurasi di server ini." }),
+        JSON.stringify({ ok: false, code: "service_unavailable" }),
       );
       return;
     }
@@ -264,9 +279,10 @@ const server = http.createServer(async (req, res) => {
   const lang = pathname.startsWith("/en") ? "en" : "id";
   const nonce = crypto.randomBytes(16).toString("base64");
   const s = strings(lang);
-  const body = `<section class="section"><div class="wrap"><h1>404</h1><p>${
-    lang === "en" ? "Page not found." : "Halaman tidak ditemukan."
-  }</p><p><a href="${lang === "en" ? "/en" : "/"}">${escapeHome(lang)}</a></p></div></section>`;
+  const homePath = lang === "en" ? "/en" : "/";
+  const body = `<section class="section"><div class="wrap"><h1>${escapeHtml(s.notFoundTitle)}</h1><p>${escapeHtml(
+    s.notFoundBody,
+  )}</p><p><a href="${escapeHtml(homePath)}">${escapeHtml(s.notFoundBackHome)}</a></p></div></section>`;
   const html = renderLayout({
     lang,
     strings: s,
@@ -277,13 +293,11 @@ const server = http.createServer(async (req, res) => {
     bodyHtml: body,
     clientConfig: clientConfig(lang),
     nonce,
+    logoLightUrl: LOGO_LIGHT_URL,
+    logoDarkUrl: LOGO_DARK_URL,
   });
   sendHtml(res, 404, html, nonce);
 });
-
-function escapeHome(lang) {
-  return lang === "en" ? "Back to home" : "Kembali ke beranda";
-}
 
 server.listen(PORT, () => {
   // eslint-disable-next-line no-console

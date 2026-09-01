@@ -163,6 +163,7 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
 }
 @media (prefers-reduced-motion: reduce) { .site-header { transition: none; } }
 .brand-logo { display: block; height: 28px; width: auto; }
+.brand-logo-fallback { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.06em; color: var(--ink); font-size: 1.25rem; }
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; }
 .brand { display: flex; flex-direction: column; line-height: 1.05; }
 .brand-mark { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.06em; color: var(--black); font-size: 1.25rem; }

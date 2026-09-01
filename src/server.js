@@ -35,8 +35,8 @@ const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fi
 // the user's actual logo images haven't reached this environment yet, so a
 // plain text-mark SVG stands in for now — swap the two files in public/ (or
 // point these at Supabase Storage URLs via env) and nothing else changes.
-const LOGO_LIGHT_URL = process.env.LOGO_LIGHT_URL || "/public/logo-light.svg";
-const LOGO_DARK_URL = process.env.LOGO_DARK_URL || "/public/logo-dark.svg";
+const LOGO_LIGHT_URL = process.env.LOGO_LIGHT_URL || "/logo-light.svg";
+const LOGO_DARK_URL = process.env.LOGO_DARK_URL || "/logo-dark.svg";
 
 const supabaseOrigin = safeOrigin(SUPABASE_URL);
 
@@ -241,15 +241,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // styles.css convenience alias
-  if (pathname === "/styles.css") {
+  // Root-level convenience aliases (serve straight from public/, no /public/
+  // prefix) — logos in particular are referenced from the very first
+  // pre-paint <script> in <head>, so they stay on the same simple,
+  // well-tested path convention as styles.css rather than a nested prefix.
+  const ROOT_ALIASES = { "/styles.css": "styles.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg" };
+  if (ROOT_ALIASES[pathname]) {
     try {
-      const css = await readFile(path.join(PUBLIC_DIR, "styles.css"));
+      const file = await readFile(path.join(PUBLIC_DIR, ROOT_ALIASES[pathname]));
+      const ext = path.extname(ROOT_ALIASES[pathname]).toLowerCase();
       res.writeHead(200, {
-        "Content-Type": MIME[".css"],
+        "Content-Type": MIME[ext] || "application/octet-stream",
         "Cache-Control": "public, max-age=600",
       });
-      res.end(css);
+      res.end(file);
     } catch {
       res.writeHead(404).end("Not found");
     }

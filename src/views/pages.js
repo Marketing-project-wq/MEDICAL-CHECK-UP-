@@ -95,7 +95,6 @@ function uploadSection(s, loginUrl, returnToUrl) {
 
         <div class="result-slot" data-role="result-slot" hidden>
           <div data-role="result-body"></div>
-          <p class="ephemeral-note" data-role="ephemeral-note" hidden>${escapeHtml(s.ephemeralNote)}</p>
         </div>
 
         <div class="history" data-role="history-wrap" hidden>
@@ -254,7 +253,7 @@ function faqSection(s) {
 }
 
 function ctaBanner(s, myOrigin) {
-  return `<div class="cta-banner">
+  return `<div class="cta-banner" data-role="cta-banner">
     <div class="wrap cta-banner-inner">
       <p>${escapeHtml(s.ctaBannerText)}</p>
       <div class="hero-cta">

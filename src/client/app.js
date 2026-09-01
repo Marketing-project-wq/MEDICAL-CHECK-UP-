@@ -1,17 +1,19 @@
 // medicalcheckup.20fit.id browser client.
 // - Consumes the SSO fragment token (setSession + scrub).
-// - A single upload widget serves BOTH anonymous visitors and members:
-//     anonymous  → consent checkbox required, calls my.20fit.id/api/analyze-mcu
-//                  with NO Authorization header, result shown once and never
-//                  saved (no history is possible without an account).
-//     member     → same widget, result saved to my20fit_mcu_result (RLS) and
-//                  shown in history.
-// AI is only ever called from the browser to my.20fit.id — never from this
-// app's own server, and no AI key ships here either way.
-//
-// The request contract below (multipart POST /api/analyze-mcu, no `lang`,
-// no /api/translate) matches the REAL my20fit-dashboard backend, verified
-// against its source — not an earlier aspirational spec shape.
+// - A single upload widget serves BOTH anonymous visitors and members, but
+//   they now go through THIS APP'S OWN SERVER (POST /api/scan), not
+//   my.20fit.id directly:
+//     member  → server proxies to my.20fit.id/api/analyze-mcu and returns
+//               the full result immediately (unchanged from the visitor's
+//               perspective); this client still saves it via Supabase (RLS).
+//     anon    → server runs the SAME analysis, but HOLDS the full result
+//               server-side and returns only a safe teaser (parameter count,
+//               categories, timestamp) + a scan_id. The full result is never
+//               sent to an anonymous browser. Creating an account and
+//               claiming the scan_id (POST /api/scan/claim) is the only way
+//               to see it — it's held up to 24h, then auto-deleted.
+// AI is only ever called from THIS APP'S SERVER — never the browser, and no
+// AI key or Supabase service-role key ships here either way.
 
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { renderResult } from "/shared/renderResult.js";
@@ -26,7 +28,8 @@ const T = getRenderLabels(LANG);
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
 const MAX_INPUT_BYTES = 8 * 1024 * 1024;
-const API = (CFG.apiBase || "").replace(/\/$/, "");
+const ANON_ID_KEY = "mcu20fit-anon-id";
+const PENDING_SCAN_KEY = "mcu20fit-pending-scan";
 
 const supabase =
   CFG.supabaseUrl && CFG.supabaseAnonKey
@@ -41,8 +44,37 @@ const supabase =
     : null;
 
 let selectedFile = null;
-let currentResult = null;
 let currentSession = null;
+
+function getAnonId() {
+  try {
+    let id = localStorage.getItem(ANON_ID_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(ANON_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return crypto.randomUUID(); // storage unavailable (private mode etc.) — best effort
+  }
+}
+
+function getPendingScan() {
+  try {
+    const raw = localStorage.getItem(PENDING_SCAN_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function setPendingScan(value) {
+  try {
+    if (value) localStorage.setItem(PENDING_SCAN_KEY, JSON.stringify(value));
+    else localStorage.removeItem(PENDING_SCAN_KEY);
+  } catch {
+    /* best effort */
+  }
+}
 
 function currentReturnTo() {
   return window.location.origin + window.location.pathname + window.location.search;
@@ -60,7 +92,6 @@ async function consumeSsoFragment() {
   const params = new URLSearchParams(hash.replace(/^#/, ""));
   const access_token = params.get("access_token");
   const refresh_token = params.get("refresh_token");
-  // Always scrub the fragment from the URL/history, even on failure.
   const cleanUrl = window.location.pathname + window.location.search;
   if (access_token && refresh_token && supabase) {
     try {
@@ -86,13 +117,61 @@ function formatDate(v) {
   }
 }
 
-function dataUrlToBlob(dataUrl) {
-  const [meta, b64] = dataUrl.split(",");
-  const mime = /data:(.*?);base64/.exec(meta)?.[1] || "image/jpeg";
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
+function el(tag, props = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "className") node.className = v;
+    else if (k === "text") node.textContent = v;
+    else node.setAttribute(k, v);
+  }
+  for (const child of children) node.appendChild(child);
+  return node;
+}
+
+/** Builds the locked/blurred teaser view from server-safe fields only — no
+ * real value ever passes through here, so there is nothing for DevTools to
+ * reveal beyond what's already visibly rendered. */
+function buildLockedTeaser(teaser, loginHref) {
+  const wrap = el("article", { className: "mcu-result locked-teaser" });
+  wrap.appendChild(
+    el("div", { className: "mcu-disclaimer" }, [
+      el("strong", { text: `${T.disclaimerTitle}: ` }),
+      document.createTextNode(T.disclaimerText),
+    ]),
+  );
+  wrap.appendChild(el("h3", { text: S.teaserHeading }));
+  const stats = el("div", { className: "teaser-stats" });
+  stats.appendChild(
+    el("div", { className: "teaser-stat" }, [
+      el("strong", { text: String(teaser.parameters_detected ?? 0) }),
+      el("span", { text: S.teaserParamsLabel }),
+    ]),
+  );
+  if (teaser.scanned_at) {
+    stats.appendChild(el("div", { className: "teaser-stat teaser-stat-time", text: formatDate(teaser.scanned_at) }));
+  }
+  wrap.appendChild(stats);
+
+  if (Array.isArray(teaser.categories) && teaser.categories.length > 0) {
+    const chips = el("div", { className: "teaser-categories" });
+    for (const cat of teaser.categories) chips.appendChild(el("span", { className: "teaser-chip", text: cat }));
+    wrap.appendChild(chips);
+  }
+
+  const lockedPanel = el("div", { className: "locked-panel" });
+  const placeholderCount = Math.max(3, Math.min(teaser.parameters_detected || 3, 6));
+  for (let i = 0; i < placeholderCount; i++) {
+    lockedPanel.appendChild(
+      el("div", { className: "locked-row" }, [el("span", { className: "locked-row-fake" }), el("span", { className: "locked-row-fake short" })]),
+    );
+  }
+  const overlay = el("div", { className: "locked-overlay" }, [
+    el("p", { text: S.teaserLockedNote }),
+    el("a", { className: "btn btn-primary", href: loginHref, text: S.teaserUnlockCta }),
+  ]);
+  lockedPanel.appendChild(overlay);
+  wrap.appendChild(lockedPanel);
+  return wrap;
 }
 
 function setupUploadWidget(root) {
@@ -106,12 +185,12 @@ function setupUploadWidget(root) {
   const statusEl = q('[data-role="status"]');
   const resultSlot = q('[data-role="result-slot"]');
   const resultBody = q('[data-role="result-body"]');
-  const ephemeralNote = q('[data-role="ephemeral-note"]');
   const historyWrap = q('[data-role="history-wrap"]');
   const historyEl = q('[data-role="history"]');
   const signedinEl = q('[data-role="signedin"]');
   const anonHintEl = q('[data-role="anon-login-hint"]');
   const whoEl = q('[data-role="who"]');
+  const loginHref = root.dataset.loginHref || "#";
 
   function isMember() {
     return Boolean(currentSession && currentSession.user);
@@ -131,7 +210,7 @@ function setupUploadWidget(root) {
     else setStatus(msg || "");
   }
 
-  function applySessionState(session) {
+  async function applySessionState(session) {
     currentSession = session;
     const member = isMember();
     signedinEl.hidden = !member;
@@ -140,7 +219,15 @@ function setupUploadWidget(root) {
     historyWrap.hidden = !member;
     if (member) whoEl.textContent = session.user.email || session.user.id;
     analyzeBtn.disabled = !canAnalyze();
-    if (member) loadHistory();
+    // Tahap 5: a logged-in member must never see a "create an account" pitch
+    // anywhere on the page, not just inside this widget.
+    document.querySelectorAll('[data-role="cta-banner"]').forEach((banner) => {
+      banner.hidden = member;
+    });
+    if (member) {
+      await tryClaimPendingScan();
+      loadHistory();
+    }
   }
 
   function pickFile(file) {
@@ -184,17 +271,22 @@ function setupUploadWidget(root) {
     }
   });
 
-  function showResult(result, opts) {
-    currentResult = result;
+  function showResult(result) {
     resultBody.innerHTML = renderResult(result, T);
     resultSlot.hidden = false;
-    ephemeralNote.hidden = !(opts && opts.ephemeral);
+    resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function showLockedTeaser(teaser) {
+    resultBody.innerHTML = "";
+    resultBody.appendChild(buildLockedTeaser(teaser, loginHref));
+    resultSlot.hidden = false;
     resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   q('[data-act="sample"]').addEventListener("click", () => {
     setStatus("");
-    showResult(getSample(LANG), { ephemeral: false });
+    showResult(getSample(LANG));
   });
 
   analyzeBtn.addEventListener("click", () => runAnalyze());
@@ -209,44 +301,74 @@ function setupUploadWidget(root) {
       const { dataUrl, mime } = await preprocess(selectedFile);
       const token = await accessToken();
 
-      const formData = new FormData();
-      const ext = mime === "image/png" ? "png" : mime === "application/pdf" ? "pdf" : "jpg";
-      formData.append("file", dataUrlToBlob(dataUrl), `mcu.${ext}`);
-
-      const headers = {};
+      const headers = { "Content-Type": "application/json" };
       if (token) headers.Authorization = `Bearer ${token}`;
+      else headers["X-Anon-Id"] = getAnonId();
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 95000);
       let res;
       try {
-        res = await fetch(`${API}/api/analyze-mcu`, {
+        res = await fetch("/api/scan", {
           method: "POST",
           headers,
-          body: formData,
+          body: JSON.stringify({ file: dataUrl, mime, lang: LANG }),
           signal: controller.signal,
         });
       } finally {
         clearTimeout(timer);
       }
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      if (!res.ok || !data.ok) {
         setBusy(false);
-        setStatus(data.message || data.error || S.errGeneric, true);
+        setStatus(data.error || S.errGeneric, true);
         return;
       }
-      const ephemeral = !isMember();
+
       setBusy(false);
-      showResult(data, { ephemeral });
-      if (isMember()) {
-        await saveResult(data, setStatus);
+
+      if (data.mode === "member") {
+        showResult(data.result);
+        await saveResult(data.result, setStatus);
         await loadHistory();
+        return;
       }
+
+      // mode === "anon"
+      if (data.limit_reached) {
+        setStatus(data.error, true);
+        return;
+      }
+      setPendingScan({ anon_id: getAnonId(), scan_id: data.scan_id });
+      showLockedTeaser(data.teaser);
     } catch (e) {
       setBusy(false);
       if (e && e.name === "AbortError") setStatus(S.errGeneric, true);
       else if (e && e.message === "unsupported_type") setStatus(S.errType, true);
       else setStatus(S.errNetwork, true);
+    }
+  }
+
+  /** After signup/login, unlock a scan that was held while anonymous. */
+  async function tryClaimPendingScan() {
+    const pending = getPendingScan();
+    if (!pending) return;
+    const token = await accessToken();
+    if (!token) return;
+    try {
+      const res = await fetch("/api/scan/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(pending),
+      });
+      const data = await res.json().catch(() => ({}));
+      setPendingScan(null); // one attempt only, whatever the outcome
+      if (res.ok && data.ok) {
+        showResult(data.result);
+        setStatus(S.teaserUnlockedNote);
+      }
+    } catch {
+      setPendingScan(null);
     }
   }
 
@@ -257,7 +379,6 @@ function setupUploadWidget(root) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      // File is NOT stored — only the JSON result. file_path left null.
       const { error } = await supabase.from("my20fit_mcu_result").insert({
         auth_user_id: user.id,
         result,
@@ -287,14 +408,11 @@ function setupUploadWidget(root) {
       for (const row of data) {
         const when = row.analyzed_at || row.created_at || "";
         const label = (row.result && (row.result.summary || row.result.patient_name)) || "MCU";
-        const item = document.createElement("div");
-        item.className = "history-item";
-        item.setAttribute("role", "button");
-        item.tabIndex = 0;
-        item.innerHTML = `<div class="history-date"></div><div class="history-label"></div>`;
-        item.querySelector(".history-date").textContent = formatDate(when);
-        item.querySelector(".history-label").textContent = String(label).slice(0, 90);
-        item.addEventListener("click", () => showResult(row.result, { ephemeral: false }));
+        const item = el("div", { className: "history-item", role: "button", tabindex: "0" }, [
+          el("div", { className: "history-date", text: formatDate(when) }),
+          el("div", { className: "history-label", text: String(label).slice(0, 90) }),
+        ]);
+        item.addEventListener("click", () => showResult(row.result));
         historyEl.appendChild(item);
       }
     } catch {
@@ -319,7 +437,7 @@ async function boot() {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    widget.applySessionState(session);
+    await widget.applySessionState(session);
 
     supabase.auth.onAuthStateChange((_event, session) => {
       widget.applySessionState(session);

@@ -76,8 +76,10 @@ export async function callAnalyzeMcu({ my20fitOrigin, dataUrl, mime, timeoutMs =
     return { ok: true, result: body };
   } catch (err) {
     if (err && err.name === "AbortError") {
+      console.error(`callAnalyzeMcu timed out after ${timeoutMs}ms calling ${my20fitOrigin}/api/analyze-mcu`);
       return { ok: false, status: 504, message: "Analisa memakan waktu lebih lama dari biasanya. Coba lagi ya." };
     }
+    console.error("callAnalyzeMcu failed:", err);
     return { ok: false, status: 502, message: "Gagal menganalisa hasil MCU. Coba lagi." };
   } finally {
     clearTimeout(timer);

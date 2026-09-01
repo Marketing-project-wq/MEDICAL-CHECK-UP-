@@ -239,9 +239,9 @@ export function renderHomePage({ lang, publicOrigin, loginUrl, canonicalPath }) 
   const bodyHtml = [
     heroSection(s),
     uploadSection(s, loginUrl, returnToUrl),
-    educationSection(s, getMarkers(lang)),
-    exampleSection(s, lang),
     whySection(s),
+    exampleSection(s, lang),
+    educationSection(s, getMarkers(lang)),
     testimonialsSection(s),
     ecosystemSection(s),
     faqSection(s),

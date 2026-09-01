@@ -1,11 +1,22 @@
 // Browser-side file preprocessing. Runs entirely in the browser — the
 // original file never leaves the device except as a downscaled JPEG, sent
-// as multipart form data to POST /api/analyze-mcu. pdf.js is loaded from a CDN.
-
-import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs";
+// as multipart form data to POST /api/analyze-mcu. pdf.js is loaded from a
+// CDN lazily (only when a PDF is actually picked, see pdfToJpeg below) —
+// a plain JPG/PNG upload never depends on that CDN request succeeding at
+// all. A static top-level import here would fail this ENTIRE module (and
+// therefore break image uploads too, not just PDFs) the instant that one
+// CDN request has any hiccup, exactly like the Supabase client import bug
+// fixed in app.js.
+let pdfjsLibPromise = null;
+function loadPdfjs() {
+  if (!pdfjsLibPromise) {
+    pdfjsLibPromise = import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs").then((lib) => {
+      lib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs";
+      return lib;
+    });
+  }
+  return pdfjsLibPromise;
+}
 
 const MAX_DIM = 1500; // longest side for photos
 const PDF_MAX_PAGES = 3;
@@ -55,6 +66,7 @@ async function downscalePhoto(file) {
 }
 
 async function pdfToJpeg(file) {
+  const pdfjsLib = await loadPdfjs();
   const buf = await readAsArrayBuffer(file);
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   const pageCount = Math.min(PDF_MAX_PAGES, pdf.numPages);

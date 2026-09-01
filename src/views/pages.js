@@ -28,11 +28,14 @@ function heroSection(s) {
         </div>
         <p class="hero-note">${escapeHtml(s.heroNote)}</p>
       </div>
-      <div class="hero-media" aria-hidden="true">
-        <div class="hero-media-inner">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
-          <p class="hero-media-caption">${escapeHtml(s.heroMediaCaption)}</p>
-        </div>
+      <div class="hero-media">
+        <a class="hero-scan-cta" href="#upload">
+          <span class="hero-scan-cta-icon" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7V5a1 1 0 0 1 1-1h2M20 7V5a1 1 0 0 0-1-1h-2M4 17v2a1 1 0 0 0 1 1h2M20 17v2a1 1 0 0 1-1 1h-2"></path><line x1="4" y1="12" x2="20" y2="12"></line></svg>
+          </span>
+          <span class="hero-scan-cta-title">${escapeHtml(s.heroScanCta)}</span>
+          <span class="hero-scan-cta-hint">${escapeHtml(s.heroMediaCaption)}</span>
+        </a>
       </div>
     </div>
     <div class="wrap">
@@ -147,7 +150,40 @@ function exampleSection(s, lang) {
   </section>`;
 }
 
-function whySection(s) {
+/**
+ * Illustrative phone mockup of a finished (unlocked) analysis — fictional
+ * sample data, clearly marked as an example. This is NOT the locked/blurred
+ * teaser shape used post-scan (§ gating) — it's the marketing "here's roughly
+ * what you get" preview, so it's fine to reuse the same shared sample data
+ * the #example section renders.
+ */
+function phoneMockup(s, lang) {
+  const sample = getSample(lang);
+  const metrics = sample.metrics.slice(0, 4);
+  const rows = metrics
+    .map((m) => {
+      const cls = m.status === "ok" ? "ok" : "attn";
+      const label = m.status === "ok" ? "Normal" : m.status === "low" ? "Rendah" : m.status === "high" ? "Tinggi" : "Perlu perhatian";
+      return `<div class="phone-metric">
+        <span class="phone-metric-label">${escapeHtml(m.label)}</span>
+        <span class="pill pill-${cls}">${escapeHtml(label)}</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="phone-mock" aria-hidden="true">
+    <div class="phone-mock-frame">
+      <div class="phone-mock-notch"></div>
+      <div class="phone-mock-screen">
+        <div class="phone-mock-sample-tag">${escapeHtml(s.sampleBadge)}</div>
+        <div class="phone-mock-grade">${escapeHtml(s.gradeLabelShort)} <strong>${escapeHtml(sample.grade)}</strong></div>
+        <p class="phone-mock-summary">${escapeHtml(sample.summary)}</p>
+        <div class="phone-mock-metrics">${rows}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function whySection(s, lang) {
   const callouts = s.callouts
     .map(
       (c) => `<div class="callout-item ${c.locked ? "" : "open"}">
@@ -161,7 +197,7 @@ function whySection(s) {
       <h2>${escapeHtml(s.whyHeading)}</h2>
       <p class="section-intro">${escapeHtml(s.whySubtitle)}</p>
       <div class="why-grid">
-        <div class="why-media" aria-hidden="true">${escapeHtml(s.whyMediaCaption)}</div>
+        ${phoneMockup(s, lang)}
         <div class="callout-list">${callouts}</div>
       </div>
     </div>
@@ -239,7 +275,7 @@ export function renderHomePage({ lang, publicOrigin, loginUrl, canonicalPath }) 
   const bodyHtml = [
     heroSection(s),
     uploadSection(s, loginUrl, returnToUrl),
-    whySection(s),
+    whySection(s, lang),
     exampleSection(s, lang),
     educationSection(s, getMarkers(lang)),
     testimonialsSection(s),

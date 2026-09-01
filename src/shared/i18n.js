@@ -24,7 +24,7 @@ const STRINGS = {
     heroKicker: "Pantau Kesehatan Berkelanjutan",
     heroTitle: "Scan MCU kamu, tiap kali kamu periksa",
     heroSubtitle:
-      "Ini bukan cuma bacaan sekali selesai. Upload hasil MCU tiap kali kamu periksa — penjelasannya langsung terbuka, tanpa akun. Bikin akun 20FIT supaya tiap hasil tersimpan dan kamu bisa pantau perubahannya dari waktu ke waktu.",
+      "Ini bukan cuma bacaan sekali selesai. Scan hasil MCU tiap kali kamu periksa — langsung kelihatan gambaran hasilnya. Bikin akun 20FIT untuk buka hasil lengkapnya dan pantau perubahannya dari waktu ke waktu.",
     heroPrimaryCta: "Scan hasil MCU sekarang",
     heroSecondaryCta: "Lihat contoh analisa",
     heroDownloadCta: "Download aplikasi",
@@ -33,8 +33,10 @@ const STRINGS = {
     playStoreLine1: "Tersedia di",
     playStoreLine2: "Google Play",
     socialProofText: "Dipakai oleh komunitas 20FIT",
-    heroNote: "Tanpa akun. Hasil analisisnya terbuka penuh. Alat bantu MEMAHAMI, bukan diagnosis.",
+    heroNote: "Scan tanpa akun. Untuk lihat & simpan hasil lengkapnya, bikin akun setelahnya. Alat bantu MEMAHAMI, bukan diagnosis.",
+    heroScanCta: "Aku Mau Scan Sekarang",
     heroMediaCaption: "Foto lembar hasil lab / konsultasi",
+    gradeLabelShort: "Skor",
     heroDisclaimer:
       "Halaman ini alat bantu memahami hasil lab, bukan diagnosis. Rentang rujukan berbeda antar laboratorium. Untuk keputusan kesehatan, konsultasikan dengan dokter.",
 
@@ -179,7 +181,7 @@ const STRINGS = {
     heroKicker: "Continuous Health Tracking",
     heroTitle: "Scan your MCU, every time you get checked",
     heroSubtitle:
-      "This isn't a one-time read. Upload your MCU results every time you get checked — the explanation opens up right away, no account needed. Create a 20FIT account so every result is saved and you can track the change over time.",
+      "This isn't a one-time read. Scan your MCU every time you get checked — you'll see a glimpse of the result right away. Create a 20FIT account to unlock the full result and track the change over time.",
     heroPrimaryCta: "Scan my MCU results now",
     heroSecondaryCta: "See an example",
     heroDownloadCta: "Download the app",
@@ -188,8 +190,10 @@ const STRINGS = {
     playStoreLine1: "Get it on",
     playStoreLine2: "Google Play",
     socialProofText: "Used by the 20FIT community",
-    heroNote: "No account needed. The analysis is fully open. A tool to UNDERSTAND, not a diagnosis.",
+    heroNote: "Scan with no account needed. Create one afterward to see and save the full result. A tool to UNDERSTAND, not a diagnosis.",
+    heroScanCta: "I Want To Scan Now",
     heroMediaCaption: "Photo of your lab report / consultation",
+    gradeLabelShort: "Score",
     heroDisclaimer:
       "This page is a tool to understand lab results, not a diagnosis. Reference ranges differ between labs. For health decisions, consult a doctor.",
 

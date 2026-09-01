@@ -40,14 +40,19 @@ function themeInitScript() {
   }catch(e){document.documentElement.setAttribute("data-theme","light");}})();`;
 }
 
-// Sits immediately after the header logo <img> in the HTML flow (see
-// theme-logo markup below) so it can reach that exact element via
-// currentScript, without an id, the moment it's parsed — still before the
-// rest of the page, and long before paint.
+// Sits immediately after the header logo <img> + its text fallback in the
+// HTML flow (see theme-logo markup below), reached via the shared .brand
+// parent rather than a sibling index so it's resilient to markup order. If
+// the image ever fails to load for any reason (asset missing, blocked,
+// wrong path), the plain text mark takes over instead of the browser's
+// oversized broken-image-plus-alt-text rendering.
 function themeLogoBootScript(logoLightUrl, logoDarkUrl) {
   return `(function(){try{
     var theme = document.documentElement.getAttribute("data-theme") || "light";
-    var img = document.currentScript.previousElementSibling;
+    var brand = document.currentScript.closest(".brand");
+    var img = brand.querySelector(".brand-logo");
+    var fallback = brand.querySelector(".brand-logo-fallback");
+    img.onerror = function(){ img.hidden = true; fallback.hidden = false; };
     img.src = theme === "dark" ? ${JSON.stringify(logoDarkUrl)} : ${JSON.stringify(logoLightUrl)};
   }catch(e){}})();`;
 }
@@ -117,6 +122,7 @@ export function renderLayout(opts) {
   <div class="wrap header-inner">
     <a class="brand" href="${escapeHtml(myOrigin)}" aria-label="20FIT">
       <img class="brand-logo" alt="20FIT" width="96" height="28">
+      <span class="brand-logo-fallback" hidden>20FIT</span>
       <script nonce="${escapeHtml(nonce)}">${themeLogoBootScript(logoLightUrl, logoDarkUrl)}</script>
       <span class="brand-sub">${escapeHtml(s.headerTagline)}</span>
     </a>

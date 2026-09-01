@@ -15,7 +15,6 @@
 // AI is only ever called from THIS APP'S SERVER — never the browser, and no
 // AI key or Supabase service-role key ships here either way.
 
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { renderResult } from "/shared/renderResult.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
@@ -80,17 +79,31 @@ const MAX_INPUT_BYTES = 8 * 1024 * 1024;
 const ANON_ID_KEY = "mcu20fit-anon-id";
 const PENDING_SCAN_KEY = "mcu20fit-pending-scan";
 
-const supabase =
-  CFG.supabaseUrl && CFG.supabaseAnonKey
-    ? createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: false, // we handle the SSO fragment ourselves
-          storageKey: "mcu20fit-auth",
-        },
-      })
-    : null;
+// Loaded lazily (not a static top-level import) and guarded: a static
+// `import ... from "https://cdn.jsdelivr.net/..."` would fail this ENTIRE
+// module — nothing in this file would run at all, not even the theme/
+// language toggle wiring below — the instant that one CDN request fails
+// for any reason (network hiccup, ad-blocker, CDN outage). This way, a
+// failure here only disables Supabase-dependent features (auth, history,
+// saving results); the base page (including both toggles) stays working.
+let supabase = null;
+async function initSupabase() {
+  if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return null;
+  try {
+    const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
+    return createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false, // we handle the SSO fragment ourselves
+        storageKey: "mcu20fit-auth",
+      },
+    });
+  } catch (e) {
+    console.error("Failed to load Supabase client (CDN unreachable?):", e);
+    return null;
+  }
+}
 
 let selectedFile = null;
 let currentSession = null;
@@ -487,6 +500,7 @@ async function boot() {
   wireLangSwitchLinks();
   wireThemeToggle();
   updateLoginCta();
+  supabase = await initSupabase();
   await consumeSsoFragment();
 
   const root = document.getElementById("member-app");

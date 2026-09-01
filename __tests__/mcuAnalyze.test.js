@@ -1,10 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { deriveTeaser } from "../src/server/mcuAnalyze.js";
-import { getSample } from "../src/shared/sampleData.js";
+
+// Fixture matching the real my.20fit.id POST /api/analyze-mcu response shape.
+const sample = {
+  summary: "Ringkasan hasil keseluruhan.",
+  doctor_notes: "Tidak ada perhatian mendesak.",
+  metrics: [
+    { label: "Kolesterol Total", value: "228 mg/dL", status: "high", note: "Di atas rentang rujukan." },
+    { label: "HDL", value: "52 mg/dL", status: "ok", note: "Dalam rentang normal." },
+  ],
+};
 
 test("deriveTeaser never leaks per-parameter values, statuses, or notes", () => {
-  const sample = getSample("id");
   const teaser = deriveTeaser(sample, "id");
   const json = JSON.stringify(teaser);
   for (const m of sample.metrics) {

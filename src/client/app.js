@@ -18,7 +18,6 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { renderResult } from "/shared/renderResult.js";
 import { getStrings, getRenderLabels } from "/shared/i18n.js";
-import { getSample } from "/shared/sampleData.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
 
 const CFG = window.__MCU_CONFIG__ || {};
@@ -283,11 +282,6 @@ function setupUploadWidget(root) {
     resultSlot.hidden = false;
     resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
   }
-
-  q('[data-act="sample"]').addEventListener("click", () => {
-    setStatus("");
-    showResult(getSample(LANG));
-  });
 
   analyzeBtn.addEventListener("click", () => runAnalyze());
 

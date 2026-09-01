@@ -65,8 +65,8 @@ export function renderLayout(opts) {
       <span class="brand-sub">${escapeHtml(lang === "en" ? "Understand your MCU" : "Pahami hasil MCU")}</span>
     </a>
     <nav class="site-nav" aria-label="primary">
-      <a href="#why" class="nav-secondary">${escapeHtml(s.nav.education)}</a>
-      <a href="#education" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
+      <a href="#ecosystem" class="nav-secondary">${escapeHtml(s.nav.education)}</a>
+      <a href="#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
       <a href="#upload" class="nav-cta">${escapeHtml(s.nav.analyze)}</a>
       <a class="lang-switch" href="${escapeHtml(s.otherLangHref)}" rel="alternate">${escapeHtml(s.otherLangLabel)}</a>
     </nav>

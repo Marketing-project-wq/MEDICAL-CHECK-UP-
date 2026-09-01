@@ -1,10 +1,7 @@
 // Home page composition (server-rendered). Dependency-free ESM.
 
 import { escapeHtml } from "../shared/escape.js";
-import { getStrings, getRenderLabels } from "../shared/i18n.js";
-import { getMarkers } from "../shared/education.js";
-import { getSample } from "../shared/sampleData.js";
-import { renderResult } from "../shared/renderResult.js";
+import { getStrings } from "../shared/i18n.js";
 import { buildLoginUrl } from "../shared/returnTo.js";
 
 function heroSection(s) {
@@ -91,7 +88,6 @@ function uploadSection(s, loginUrl, returnToUrl) {
           <button class="btn btn-primary btn-block" data-act="analyze" type="button" disabled>${escapeHtml(s.analyzeButton)}</button>
         </div>
         <span class="status-msg" data-role="status" role="status" aria-live="polite"></span>
-        <p><button type="button" class="upload-alt-link" data-act="sample">${escapeHtml(s.uploadSampleLink)}</button></p>
 
         <div class="result-slot" data-role="result-slot" hidden>
           <div data-role="result-body"></div>
@@ -116,99 +112,12 @@ function uploadSection(s, loginUrl, returnToUrl) {
   </section>`;
 }
 
-function educationSection(s, markers) {
-  const cards = markers
-    .map(
-      (m) => `<article class="edu-card">
-        <h3>${escapeHtml(m.name)}</h3>
-        <p class="edu-range"><span>${escapeHtml(s.rangeLabel)}:</span> ${escapeHtml(m.range)}</p>
-        <p class="edu-meaning">${escapeHtml(m.meaning)}</p>
-      </article>`,
-    )
-    .join("");
-  return `<section id="education" class="section section-alt">
-    <div class="wrap">
-      <h2>${escapeHtml(s.eduHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.eduIntro)}</p>
-      <div class="edu-grid">${cards}</div>
-    </div>
-  </section>`;
-}
-
-function exampleSection(s, lang) {
-  const sampleHtml = renderResult(getSample(lang), getRenderLabels(lang));
-  return `<section id="example" class="section">
-    <div class="wrap">
-      <h2>${escapeHtml(s.exampleHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.exampleIntro)}</p>
-      <div class="sample-wrap">
-        <div class="sample-badge">${escapeHtml(s.sampleBadge)}</div>
-        ${sampleHtml}
-      </div>
-    </div>
-  </section>`;
-}
-
-/**
- * Illustrative phone mockup of a finished (unlocked) analysis — fictional
- * sample data, clearly marked as an example. This is NOT the locked/blurred
- * teaser shape used post-scan (§ gating) — it's the marketing "here's roughly
- * what you get" preview, so it's fine to reuse the same shared sample data
- * the #example section renders.
- */
-function phoneMockup(s, lang) {
-  const sample = getSample(lang);
-  const metrics = sample.metrics.slice(0, 4);
-  const rows = metrics
-    .map((m) => {
-      const cls = m.status === "ok" ? "ok" : "attn";
-      const label = m.status === "ok" ? "Normal" : m.status === "low" ? "Rendah" : m.status === "high" ? "Tinggi" : "Perlu perhatian";
-      return `<div class="phone-metric">
-        <span class="phone-metric-label">${escapeHtml(m.label)}</span>
-        <span class="pill pill-${cls}">${escapeHtml(label)}</span>
-      </div>`;
-    })
-    .join("");
-  return `<div class="phone-mock" aria-hidden="true">
-    <div class="phone-mock-frame">
-      <div class="phone-mock-notch"></div>
-      <div class="phone-mock-screen">
-        <div class="phone-mock-sample-tag">${escapeHtml(s.sampleBadge)}</div>
-        <div class="phone-mock-grade">${escapeHtml(s.gradeLabelShort)} <strong>${escapeHtml(sample.grade)}</strong></div>
-        <p class="phone-mock-summary">${escapeHtml(sample.summary)}</p>
-        <div class="phone-mock-metrics">${rows}</div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function whySection(s, lang) {
-  const callouts = s.callouts
-    .map(
-      (c) => `<div class="callout-item ${c.locked ? "" : "open"}">
-        <div class="callout-title">${escapeHtml(c.title)}${c.locked ? `<span class="badge-locked">${escapeHtml(s.lockedBadge)}</span>` : ""}</div>
-        <p>${escapeHtml(c.desc)}</p>
-      </div>`,
-    )
-    .join("");
-  return `<section id="why" class="section section-alt">
-    <div class="wrap">
-      <h2>${escapeHtml(s.whyHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.whySubtitle)}</p>
-      <div class="why-grid">
-        ${phoneMockup(s, lang)}
-        <div class="callout-list">${callouts}</div>
-      </div>
-    </div>
-  </section>`;
-}
-
 /**
  * Testimonial slots are intentionally an honest empty state, not fabricated
  * reviews — do not replace testimonialsEmptyState with invented quotes.
  */
 function testimonialsSection(s) {
-  return `<section id="testimonials" class="section">
+  return `<section id="testimonials" class="section section-alt">
     <div class="wrap">
       <h2>${escapeHtml(s.testimonialsHeading)}</h2>
       <p class="section-intro">${escapeHtml(s.testimonialsEmptyState)}</p>
@@ -274,9 +183,6 @@ export function renderHomePage({ lang, publicOrigin, loginUrl, canonicalPath }) 
   const bodyHtml = [
     heroSection(s),
     uploadSection(s, loginUrl, returnToUrl),
-    whySection(s, lang),
-    exampleSection(s, lang),
-    educationSection(s, getMarkers(lang)),
     testimonialsSection(s),
     ecosystemSection(s),
     faqSection(s),

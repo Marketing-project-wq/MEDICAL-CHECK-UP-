@@ -174,7 +174,18 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
 .site-nav .nav-current { color: var(--blue); font-weight: 700; }
 .site-nav .nav-cta { color: var(--white) !important; font-weight: 700; background: var(--red); padding: 8px 16px; border-radius: 999px; }
 .site-nav .nav-cta:hover { background: var(--red-dark); }
-.lang-switch { color: var(--muted) !important; border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 10px; font-size: 0.78rem; font-family: var(--font-mono); }
+.lang-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 999px; padding: 2px; gap: 2px; }
+.lang-btn {
+  border: none; background: transparent; color: var(--muted); font-family: var(--font-mono); font-weight: 700;
+  font-size: 0.78rem; letter-spacing: 0.03em; padding: 4px 11px; border-radius: 999px; cursor: pointer;
+}
+.lang-btn:hover { color: var(--ink); }
+.lang-btn.is-active { background: var(--red); color: var(--white); }
+.lang-btn.is-active:hover { color: var(--white); }
+.footer-links { margin: 0 0 1rem; }
+.footer-links .lang-toggle { border-color: rgba(255, 255, 255, 0.3); }
+.footer-links .lang-btn { color: rgba(255, 255, 255, 0.82); }
+.footer-links .lang-btn:hover { color: var(--white); }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 .btn {

@@ -20,11 +20,13 @@ import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
 import { LANG_STORAGE_KEY } from "/shared/langPref.js";
 import { THEME_STORAGE_KEY } from "/shared/themePref.js";
+import { renderHomePage } from "/views/pages.js";
+import { renderLayout } from "/views/layout.js";
 
 const CFG = window.__MCU_CONFIG__ || {};
-const LANG = CFG.lang === "en" ? "en" : "id";
-const S = getStrings(LANG);
-const T = getRenderLabels(LANG);
+let LANG = CFG.lang === "id" ? "id" : "en";
+let S = getStrings(LANG);
+let T = getRenderLabels(LANG);
 
 // Persist the language actually being shown, so a plain internal link (not
 // just the explicit EN/ID toggle) also keeps a returning visitor's choice
@@ -36,42 +38,114 @@ try {
   /* best effort — storage unavailable (private mode etc.) */
 }
 
-function wireLangSwitchLinks() {
-  const other = LANG === "en" ? "id" : "en";
-  document.querySelectorAll("a.lang-switch").forEach((a) => {
-    a.addEventListener("click", () => {
-      try {
-        localStorage.setItem(LANG_STORAGE_KEY, other);
-      } catch {
-        /* best effort */
-      }
-    });
+function setLogosForTheme(theme) {
+  document.querySelectorAll("img.brand-logo").forEach((img) => {
+    img.src = theme === "dark" ? CFG.logoDarkUrl : CFG.logoLightUrl;
   });
 }
 
-// The <html data-theme> attribute (and the header logo's initial src) are
-// already set correctly before paint by the inline scripts in
-// src/views/layout.js — this only wires up the toggle button for changes
-// made *after* load, and keeps every <img class="brand-logo"> in sync.
+function currentTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
 function wireThemeToggle() {
   const btn = document.querySelector('[data-act="theme-toggle"]');
   if (!btn) return;
-  const setLogos = (theme) => {
-    document.querySelectorAll("img.brand-logo").forEach((img) => {
-      img.src = theme === "dark" ? CFG.logoDarkUrl : CFG.logoLightUrl;
-    });
-  };
   btn.addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
-    const next = current === "dark" ? "light" : "dark";
+    const next = currentTheme() === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
-    setLogos(next);
+    setLogosForTheme(next);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
       /* best effort */
     }
   });
+}
+
+function wireLangToggleButtons() {
+  document.querySelectorAll('[data-act="lang"]').forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const next = btn.dataset.lang === "id" ? "id" : "en";
+      if (next !== LANG) applyLanguage(next);
+    });
+  });
+}
+
+/**
+ * Switches the entire page's language in place — no navigation, no reload
+ * (per spec: the toggle must not lose scroll position, focus, or whatever
+ * the visitor was in the middle of). Re-renders <main>, the header, and the
+ * footer using the EXACT SAME render functions the server uses
+ * (renderHomePage / renderLayout, both dependency-free and browser-safe —
+ * see the /views/ static route in server.js) rather than a hand-maintained
+ * list of "translatable" DOM nodes, so there is no way for a spot to be
+ * missed independently of what the server itself would have rendered for
+ * that language.
+ */
+async function applyLanguage(newLang) {
+  const root = document.getElementById("member-app");
+  const captured = root && currentWidget ? currentWidget.captureState() : null;
+
+  LANG = newLang;
+  S = getStrings(newLang);
+  T = getRenderLabels(newLang);
+
+  const canonicalPath = newLang === "id" ? "/id" : "/";
+  const returnToUrl = currentReturnTo();
+  const page = renderHomePage({
+    lang: newLang,
+    publicOrigin: CFG.publicOrigin,
+    loginUrl: CFG.loginUrl,
+    canonicalPath,
+  });
+  const fullHtml = renderLayout({
+    lang: newLang,
+    strings: S,
+    title: page.title,
+    description: page.description,
+    canonicalPath,
+    publicOrigin: CFG.publicOrigin,
+    bodyHtml: "",
+    clientConfig: CFG,
+    nonce: "x", // parsed only, never executed — DOMParser never runs scripts
+  });
+  const parsed = new DOMParser().parseFromString(fullHtml, "text/html");
+
+  document.title = page.title;
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute("content", page.description);
+  document.documentElement.lang = S.htmlLang;
+
+  const newHeader = parsed.querySelector(".site-header");
+  const oldHeader = document.querySelector(".site-header");
+  if (newHeader && oldHeader) oldHeader.replaceWith(newHeader);
+
+  const newFooter = parsed.querySelector(".site-footer");
+  const oldFooter = document.querySelector(".site-footer");
+  if (newFooter && oldFooter) oldFooter.replaceWith(newFooter);
+
+  const main = document.querySelector("main");
+  if (main) main.innerHTML = page.bodyHtml;
+
+  // Re-wire everything the innerHTML/replaceWith swaps above just tore out
+  // the listeners for.
+  setLogosForTheme(currentTheme());
+  wireThemeToggle();
+  wireLangToggleButtons();
+  updateLoginCta();
+  const newRoot = document.getElementById("member-app");
+  if (newRoot) {
+    currentWidget = setupUploadWidget(newRoot, captured);
+    await currentWidget.applySessionState(currentSession);
+  }
+
+  try {
+    localStorage.setItem(LANG_STORAGE_KEY, newLang);
+  } catch {
+    /* best effort */
+  }
+  history.replaceState(null, "", canonicalPath + location.search + location.hash);
 }
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
@@ -107,6 +181,7 @@ async function initSupabase() {
 
 let selectedFile = null;
 let currentSession = null;
+let currentWidget = null;
 
 function getAnonId() {
   try {
@@ -236,7 +311,18 @@ function buildLockedTeaser(teaser, loginHref) {
   return wrap;
 }
 
-function setupUploadWidget(root) {
+/**
+ * @param {HTMLElement} root
+ * @param {{fileName?: string, consentChecked?: boolean, display?: {type: "result"|"teaser", data: object}}} [restoreState]
+ *   Carries state across a language switch's full re-render of #member-app
+ *   (which otherwise would silently drop the file the visitor had already
+ *   picked, or the result/teaser they were already looking at). A
+ *   currently-shown *status* message (an error, "analyzing…") is
+ *   deliberately NOT restored — it's transient and about to be stale by
+ *   definition; anything shown from this point on already uses the new
+ *   language.
+ */
+function setupUploadWidget(root, restoreState) {
   const q = (sel) => root.querySelector(sel);
   const fileInput = q('[data-role="file"]');
   const dropzone = q('[data-role="dropzone"]');
@@ -333,17 +419,21 @@ function setupUploadWidget(root) {
     }
   });
 
-  function showResult(result) {
+  let lastDisplay = null; // tracked so a language switch can re-render this same result/teaser in the new language, instead of it silently vanishing
+
+  function showResult(result, { scroll = true } = {}) {
+    lastDisplay = { type: "result", data: result };
     resultBody.innerHTML = renderResult(result, T);
     resultSlot.hidden = false;
-    resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (scroll) resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function showLockedTeaser(teaser) {
+  function showLockedTeaser(teaser, { scroll = true } = {}) {
+    lastDisplay = { type: "teaser", data: teaser };
     resultBody.innerHTML = "";
     resultBody.appendChild(buildLockedTeaser(teaser, loginHref));
     resultSlot.hidden = false;
-    resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (scroll) resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   analyzeBtn.addEventListener("click", () => runAnalyze());
@@ -492,12 +582,32 @@ function setupUploadWidget(root) {
     }
   }
 
+  if (restoreState) {
+    if (restoreState.fileName) {
+      fileNameEl.hidden = false;
+      fileNameEl.textContent = restoreState.fileName;
+    }
+    if (restoreState.consentChecked) consentBox.checked = true;
+    if (restoreState.display) {
+      if (restoreState.display.type === "result") showResult(restoreState.display.data, { scroll: false });
+      else if (restoreState.display.type === "teaser") showLockedTeaser(restoreState.display.data, { scroll: false });
+    }
+    analyzeBtn.disabled = !canAnalyze();
+  }
+
   applySessionState(currentSession);
-  return { applySessionState };
+  return {
+    applySessionState,
+    captureState: () => ({
+      fileName: selectedFile ? fileNameEl.textContent : null,
+      consentChecked: consentBox.checked,
+      display: lastDisplay,
+    }),
+  };
 }
 
 async function boot() {
-  wireLangSwitchLinks();
+  wireLangToggleButtons();
   wireThemeToggle();
   updateLoginCta();
   supabase = await initSupabase();
@@ -506,16 +616,16 @@ async function boot() {
   const root = document.getElementById("member-app");
   if (!root) return;
 
-  const widget = setupUploadWidget(root);
+  currentWidget = setupUploadWidget(root);
 
   if (supabase) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    await widget.applySessionState(session);
+    await currentWidget.applySessionState(session);
 
     supabase.auth.onAuthStateChange((_event, session) => {
-      widget.applySessionState(session);
+      currentWidget.applySessionState(session);
     });
   }
 }

@@ -24,6 +24,7 @@ const STRINGS = {
     notFoundBody: "Halaman tidak ditemukan.",
     notFoundBackHome: "Kembali ke beranda",
     serviceUnavailable: "Fitur scan belum dikonfigurasi di server ini.",
+    themeToggleLabel: "Ganti tema terang/gelap",
     nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang" },
 
     heroBadge: "Panduan MCU",
@@ -163,6 +164,7 @@ const STRINGS = {
     notFoundBody: "Page not found.",
     notFoundBackHome: "Back to home",
     serviceUnavailable: "Scanning isn't configured on this server yet.",
+    themeToggleLabel: "Toggle light/dark theme",
     nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now" },
 
     heroBadge: "MCU Guide",

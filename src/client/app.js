@@ -20,6 +20,7 @@ import { renderResult } from "/shared/renderResult.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
 import { LANG_STORAGE_KEY } from "/shared/langPref.js";
+import { THEME_STORAGE_KEY } from "/shared/themePref.js";
 
 const CFG = window.__MCU_CONFIG__ || {};
 const LANG = CFG.lang === "en" ? "en" : "id";
@@ -46,6 +47,31 @@ function wireLangSwitchLinks() {
         /* best effort */
       }
     });
+  });
+}
+
+// The <html data-theme> attribute (and the header logo's initial src) are
+// already set correctly before paint by the inline scripts in
+// src/views/layout.js — this only wires up the toggle button for changes
+// made *after* load, and keeps every <img class="brand-logo"> in sync.
+function wireThemeToggle() {
+  const btn = document.querySelector('[data-act="theme-toggle"]');
+  if (!btn) return;
+  const setLogos = (theme) => {
+    document.querySelectorAll("img.brand-logo").forEach((img) => {
+      img.src = theme === "dark" ? CFG.logoDarkUrl : CFG.logoLightUrl;
+    });
+  };
+  btn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    setLogos(next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      /* best effort */
+    }
   });
 }
 
@@ -459,6 +485,7 @@ function setupUploadWidget(root) {
 
 async function boot() {
   wireLangSwitchLinks();
+  wireThemeToggle();
   updateLoginCta();
   await consumeSsoFragment();
 

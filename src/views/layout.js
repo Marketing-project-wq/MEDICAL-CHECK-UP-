@@ -2,6 +2,27 @@
 // Dependency-free ESM.
 
 import { escapeHtml, escapeJsonForScript } from "../shared/escape.js";
+import { LANG_STORAGE_KEY } from "../shared/langPref.js";
+
+// Runs synchronously, before the browser paints anything, so a returning
+// visitor's stored language preference always wins over whatever the URL
+// happens to be — the redirect happens before there is anything to flash.
+// Must stay a plain classic (non-module) inline script: a `type="module"`
+// script is deferred until after parsing, which would be too late here.
+function langRedirectScript() {
+  return `(function(){try{
+    var stored = localStorage.getItem(${JSON.stringify(LANG_STORAGE_KEY)});
+    if (!stored) return;
+    var path = location.pathname;
+    var isEnPath = path === "/en" || path.indexOf("/en/") === 0;
+    var current = isEnPath ? "en" : "id";
+    if (stored !== "en" && stored !== "id") return;
+    if (stored === current) return;
+    var rest = isEnPath ? (path.slice(3) || "/") : path;
+    var target = stored === "en" ? ("/en" + (rest === "/" ? "" : rest)) : rest;
+    location.replace(target + location.search + location.hash);
+  }catch(e){}})();`;
+}
 
 /**
  * @param {object} opts
@@ -39,6 +60,7 @@ export function renderLayout(opts) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script nonce="${escapeHtml(nonce)}">${langRedirectScript()}</script>
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
@@ -57,12 +79,12 @@ export function renderLayout(opts) {
 <script nonce="${escapeHtml(nonce)}">window.__MCU_CONFIG__ = ${escapeJsonForScript(clientConfig)};</script>
 </head>
 <body class="${escapeHtml(bodyClass)}">
-<a class="skip-link" href="#main">${escapeHtml(lang === "en" ? "Skip to content" : "Lompat ke konten")}</a>
+<a class="skip-link" href="#main">${escapeHtml(s.skipToContent)}</a>
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="${escapeHtml(myOrigin)}" aria-label="20FIT">
       <span class="brand-mark">20FIT</span>
-      <span class="brand-sub">${escapeHtml(lang === "en" ? "Understand your MCU" : "Pahami hasil MCU")}</span>
+      <span class="brand-sub">${escapeHtml(s.headerTagline)}</span>
     </a>
     <nav class="site-nav" aria-label="primary">
       <a href="#ecosystem" class="nav-secondary">${escapeHtml(s.nav.education)}</a>
@@ -110,7 +132,7 @@ ${bodyHtml}
     </div>
     <p class="footer-disclaimer">${escapeHtml(s.footerDisclaimer)}</p>
     <p class="footer-links">
-      <a href="${escapeHtml(s.otherLangHref)}">${escapeHtml(s.otherLangLabel)}</a>
+      <a class="lang-switch" href="${escapeHtml(s.otherLangHref)}" rel="alternate">${escapeHtml(s.otherLangLabel)}</a>
     </p>
     <p class="footer-copy">© ${new Date().getFullYear()} 20FIT Sport Clinic Indonesia</p>
   </div>

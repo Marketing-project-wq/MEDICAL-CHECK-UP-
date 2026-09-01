@@ -11,6 +11,7 @@ import crypto from "node:crypto";
 import { renderLayout } from "./views/layout.js";
 import { renderHomePage } from "./views/pages.js";
 import { getStrings } from "./shared/i18n.js";
+import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
 
@@ -188,7 +189,7 @@ const server = http.createServer(async (req, res) => {
     const handlers = getScanHandlers();
     if (!handlers) {
       res.writeHead(503, { "Content-Type": "application/json" }).end(
-        JSON.stringify({ ok: false, error: "Fitur scan belum dikonfigurasi di server ini." }),
+        JSON.stringify({ ok: false, code: "service_unavailable" }),
       );
       return;
     }
@@ -264,9 +265,10 @@ const server = http.createServer(async (req, res) => {
   const lang = pathname.startsWith("/en") ? "en" : "id";
   const nonce = crypto.randomBytes(16).toString("base64");
   const s = strings(lang);
-  const body = `<section class="section"><div class="wrap"><h1>404</h1><p>${
-    lang === "en" ? "Page not found." : "Halaman tidak ditemukan."
-  }</p><p><a href="${lang === "en" ? "/en" : "/"}">${escapeHome(lang)}</a></p></div></section>`;
+  const homePath = lang === "en" ? "/en" : "/";
+  const body = `<section class="section"><div class="wrap"><h1>${escapeHtml(s.notFoundTitle)}</h1><p>${escapeHtml(
+    s.notFoundBody,
+  )}</p><p><a href="${escapeHtml(homePath)}">${escapeHtml(s.notFoundBackHome)}</a></p></div></section>`;
   const html = renderLayout({
     lang,
     strings: s,
@@ -280,10 +282,6 @@ const server = http.createServer(async (req, res) => {
   });
   sendHtml(res, 404, html, nonce);
 });
-
-function escapeHome(lang) {
-  return lang === "en" ? "Back to home" : "Kembali ke beranda";
-}
 
 server.listen(PORT, () => {
   // eslint-disable-next-line no-console

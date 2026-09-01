@@ -17,13 +17,37 @@
 
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 import { renderResult } from "/shared/renderResult.js";
-import { getStrings, getRenderLabels } from "/shared/i18n.js";
+import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
+import { LANG_STORAGE_KEY } from "/shared/langPref.js";
 
 const CFG = window.__MCU_CONFIG__ || {};
 const LANG = CFG.lang === "en" ? "en" : "id";
 const S = getStrings(LANG);
 const T = getRenderLabels(LANG);
+
+// Persist the language actually being shown, so a plain internal link (not
+// just the explicit EN/ID toggle) also keeps a returning visitor's choice
+// sticky — the pre-paint redirect script in layout.js reads this on the
+// next page load / next visit and sends them straight to it.
+try {
+  localStorage.setItem(LANG_STORAGE_KEY, LANG);
+} catch {
+  /* best effort — storage unavailable (private mode etc.) */
+}
+
+function wireLangSwitchLinks() {
+  const other = LANG === "en" ? "id" : "en";
+  document.querySelectorAll("a.lang-switch").forEach((a) => {
+    a.addEventListener("click", () => {
+      try {
+        localStorage.setItem(LANG_STORAGE_KEY, other);
+      } catch {
+        /* best effort */
+      }
+    });
+  });
+}
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
 const MAX_INPUT_BYTES = 8 * 1024 * 1024;
@@ -330,7 +354,7 @@ function setupUploadWidget(root) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
         setBusy(false);
-        setStatus(data.error || S.errGeneric, true);
+        setStatus(getErrorMessage(LANG, data.code), true);
         return;
       }
 
@@ -345,7 +369,7 @@ function setupUploadWidget(root) {
 
       // mode === "anon"
       if (data.limit_reached) {
-        setStatus(data.error, true);
+        setStatus(getErrorMessage(LANG, data.code), true);
         return;
       }
       setPendingScan({ anon_id: getAnonId(), scan_id: data.scan_id });
@@ -434,6 +458,7 @@ function setupUploadWidget(root) {
 }
 
 async function boot() {
+  wireLangSwitchLinks();
   updateLoginCta();
   await consumeSsoFragment();
 

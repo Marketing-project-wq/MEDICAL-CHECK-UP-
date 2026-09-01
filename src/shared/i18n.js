@@ -18,6 +18,12 @@ const STRINGS = {
       "Panduan memahami hasil medical check-up: arti penanda lab, rentang normal kolesterol, gula darah, tekanan darah, dan lainnya. Alat pemahaman, bukan diagnosis.",
     otherLangLabel: "English",
     otherLangHref: "/en",
+    skipToContent: "Lompat ke konten",
+    headerTagline: "Pahami hasil MCU",
+    notFoundTitle: "404",
+    notFoundBody: "Halaman tidak ditemukan.",
+    notFoundBackHome: "Kembali ke beranda",
+    serviceUnavailable: "Fitur scan belum dikonfigurasi di server ini.",
     nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang" },
 
     heroBadge: "Panduan MCU",
@@ -124,6 +130,18 @@ const STRINGS = {
     errNetwork: "Gagal terhubung. Cek koneksi lalu coba lagi.",
     errGeneric: "Terjadi kesalahan. Coba lagi ya.",
     errSave: "Hasil berhasil dianalisa tapi gagal disimpan ke riwayat.",
+    errRateLimitedMember: "Terlalu banyak percobaan. Coba lagi beberapa menit lagi ya.",
+    errInvalidSession: "Sesi tidak valid. Muat ulang halaman lalu coba lagi.",
+    errRateLimitedDevice: "Terlalu banyak percobaan dari perangkat ini. Coba lagi beberapa menit lagi ya.",
+    errRateLimitedNetwork: "Terlalu banyak percobaan dari jaringan ini. Coba lagi besok, atau buat akun.",
+    errScanLimitReached: "Kamu sudah mencapai batas scan gratis. Buat akun 20FIT untuk terus scan & simpan riwayatmu.",
+    errSavePendingFailed: "Terjadi kesalahan menyimpan hasil sementara. Coba lagi ya.",
+    errAuthSessionExpired: "Sesi kamu sudah habis. Silakan login lagi.",
+    errIncompleteScanData: "Data scan tidak lengkap.",
+    errPendingScanExpired: "Waktu penyimpanan hasil sudah habis atau tidak ditemukan. Silakan scan ulang — sekarang hasilnya langsung tersimpan ke akunmu.",
+    errClaimSaveFailed: "Hasil ditemukan tapi gagal disimpan ke akunmu. Coba lagi ya.",
+    errAnalyzeFailed: "Gagal menganalisa hasil MCU. Coba lagi.",
+    errAnalyzeTimeout: "Analisa memakan waktu lebih lama dari biasanya. Coba lagi ya.",
 
     footerDisclaimer:
       "medicalcheckup.20fit.id membantu kamu MEMAHAMI hasil lab. Ini bukan diagnosis dan bukan pengganti nasihat dokter.",
@@ -139,6 +157,12 @@ const STRINGS = {
       "A plain-language guide to understanding medical check-up results: what lab markers mean, normal ranges for cholesterol, blood sugar, blood pressure and more. An understanding tool, not a diagnosis.",
     otherLangLabel: "Bahasa Indonesia",
     otherLangHref: "/",
+    skipToContent: "Skip to content",
+    headerTagline: "Understand your MCU",
+    notFoundTitle: "404",
+    notFoundBody: "Page not found.",
+    notFoundBackHome: "Back to home",
+    serviceUnavailable: "Scanning isn't configured on this server yet.",
     nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now" },
 
     heroBadge: "MCU Guide",
@@ -245,6 +269,18 @@ const STRINGS = {
     errNetwork: "Couldn't connect. Check your connection and try again.",
     errGeneric: "Something went wrong. Please try again.",
     errSave: "Analysis succeeded but couldn't be saved to your history.",
+    errRateLimitedMember: "Too many attempts. Please try again in a few minutes.",
+    errInvalidSession: "Invalid session. Reload the page and try again.",
+    errRateLimitedDevice: "Too many attempts from this device. Please try again in a few minutes.",
+    errRateLimitedNetwork: "Too many attempts from this network. Try again tomorrow, or create an account.",
+    errScanLimitReached: "You've reached the free scan limit. Create a 20FIT account to keep scanning & save your history.",
+    errSavePendingFailed: "Something went wrong saving your result temporarily. Please try again.",
+    errAuthSessionExpired: "Your session has expired. Please sign in again.",
+    errIncompleteScanData: "Incomplete scan data.",
+    errPendingScanExpired: "The held result has expired or wasn't found. Please scan again — it will now be saved to your account right away.",
+    errClaimSaveFailed: "Result found but couldn't be saved to your account. Please try again.",
+    errAnalyzeFailed: "Couldn't analyze your MCU results. Please try again.",
+    errAnalyzeTimeout: "The analysis is taking longer than usual. Please try again.",
 
     footerDisclaimer:
       "medicalcheckup.20fit.id helps you UNDERSTAND lab results. It is not a diagnosis and not a substitute for a doctor's advice.",
@@ -325,4 +361,37 @@ export function getStrings(lang) {
 
 export function getRenderLabels(lang) {
   return RENDER_LABELS[normalizeLang(lang)];
+}
+
+// Maps a stable server error `code` (see src/server/scanHandlers.js and
+// mcuAnalyze.js) to a fully-localized i18n key. The server never sends
+// user-facing text directly — only a code — so a language switch always
+// translates every error too, including ones for requests already in
+// flight, and an unrecognized code never falls back to raw server text.
+const ERROR_CODE_KEYS = {
+  file_too_large: "errTooLarge",
+  invalid_body: "errGeneric",
+  invalid_request: "errGeneric",
+  no_file: "errFile",
+  unsupported_type: "errType",
+  rate_limited_member: "errRateLimitedMember",
+  invalid_session: "errInvalidSession",
+  rate_limited_device: "errRateLimitedDevice",
+  rate_limited_network: "errRateLimitedNetwork",
+  generic_error: "errGeneric",
+  scan_limit_reached: "errScanLimitReached",
+  save_pending_failed: "errSavePendingFailed",
+  auth_session_expired: "errAuthSessionExpired",
+  incomplete_scan_data: "errIncompleteScanData",
+  pending_scan_expired: "errPendingScanExpired",
+  claim_save_failed: "errClaimSaveFailed",
+  analyze_failed: "errAnalyzeFailed",
+  analyze_timeout: "errAnalyzeTimeout",
+  service_unavailable: "serviceUnavailable",
+};
+
+export function getErrorMessage(lang, code) {
+  const s = getStrings(lang);
+  const key = ERROR_CODE_KEYS[code];
+  return (key && s[key]) || s.errGeneric;
 }

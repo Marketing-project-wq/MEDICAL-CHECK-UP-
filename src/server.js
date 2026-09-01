@@ -11,6 +11,8 @@ import crypto from "node:crypto";
 import { renderLayout } from "./views/layout.js";
 import { renderHomePage } from "./views/pages.js";
 import { getStrings } from "./shared/i18n.js";
+import { createSupabaseAdmin } from "./server/supabaseRest.js";
+import { createScanHandlers } from "./server/scanHandlers.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -21,9 +23,28 @@ const PORT = Number(process.env.PORT) || 3000;
 const MY20FIT_ORIGIN = (process.env.MY20FIT_ORIGIN || "https://my.20fit.id").replace(/\/$/, "");
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://cpvzwqptzcxnwzfzgrmt.supabase.co").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const IP_HASH_SALT = process.env.IP_HASH_SALT || "";
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fit.id").replace(/\/$/, "");
 
 const supabaseOrigin = safeOrigin(SUPABASE_URL);
+
+// Service-role client: server-only, used for the scan-hold/claim flow (Tahap
+// 3-4). Lazily constructed so a missing key doesn't crash page rendering —
+// /api/scan itself fails clearly if it's actually invoked without one.
+let supabaseAdmin = null;
+let scanHandlers = null;
+function getScanHandlers() {
+  if (scanHandlers) return scanHandlers;
+  if (!SUPABASE_SERVICE_ROLE_KEY || !IP_HASH_SALT) return null;
+  supabaseAdmin = createSupabaseAdmin({
+    url: SUPABASE_URL,
+    serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
+    anonKey: SUPABASE_ANON_KEY,
+  });
+  scanHandlers = createScanHandlers({ supabaseAdmin, my20fitOrigin: MY20FIT_ORIGIN, ipHashSalt: IP_HASH_SALT, lang: "id" });
+  return scanHandlers;
+}
 
 function safeOrigin(u) {
   try {
@@ -159,6 +180,22 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   const pathname = url.pathname;
+
+  // Scan endpoints (Tahap 3-4): the only POST routes this app serves. AI is
+  // still only ever called server-side; no AI key or service-role key ships
+  // to the browser.
+  if (req.method === "POST" && (pathname === "/api/scan" || pathname === "/api/scan/claim")) {
+    const handlers = getScanHandlers();
+    if (!handlers) {
+      res.writeHead(503, { "Content-Type": "application/json" }).end(
+        JSON.stringify({ ok: false, error: "Fitur scan belum dikonfigurasi di server ini." }),
+      );
+      return;
+    }
+    if (pathname === "/api/scan") await handlers.handleScan(req, res);
+    else await handlers.handleClaim(req, res);
+    return;
+  }
 
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.writeHead(405, { Allow: "GET, HEAD" }).end("Method not allowed");

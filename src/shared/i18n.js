@@ -21,11 +21,11 @@ const STRINGS = {
     nav: { education: "Fitur", example: "Panduan Penanda", analyze: "Upload Sekarang" },
 
     heroBadge: "Panduan MCU",
-    heroKicker: "Literasi Kesehatan",
-    heroTitle: "Upload hasil MCU, lihat penjelasannya",
+    heroKicker: "Pantau Kesehatan Berkelanjutan",
+    heroTitle: "Scan MCU kamu, tiap kali kamu periksa",
     heroSubtitle:
-      "Penjelasan tiap penanda terbuka penuh, tanpa akun. Yang butuh akun adalah rencana lanjutannya dan perbandingan antar periode.",
-    heroPrimaryCta: "Analisis hasil MCU",
+      "Ini bukan cuma bacaan sekali selesai. Scan hasil MCU tiap kali kamu periksa — langsung kelihatan gambaran hasilnya. Bikin akun 20FIT untuk buka hasil lengkapnya dan pantau perubahannya dari waktu ke waktu.",
+    heroPrimaryCta: "Scan hasil MCU sekarang",
     heroSecondaryCta: "Lihat contoh analisa",
     heroDownloadCta: "Download aplikasi",
     appStoreLine1: "Download di",
@@ -33,8 +33,10 @@ const STRINGS = {
     playStoreLine1: "Tersedia di",
     playStoreLine2: "Google Play",
     socialProofText: "Dipakai oleh komunitas 20FIT",
-    heroNote: "Tanpa akun. Hasil analisisnya terbuka penuh. Alat bantu MEMAHAMI, bukan diagnosis.",
+    heroNote: "Scan tanpa akun. Untuk lihat & simpan hasil lengkapnya, bikin akun setelahnya. Alat bantu MEMAHAMI, bukan diagnosis.",
+    heroScanCta: "Aku Mau Scan Sekarang",
     heroMediaCaption: "Foto lembar hasil lab / konsultasi",
+    gradeLabelShort: "Skor",
     heroDisclaimer:
       "Halaman ini alat bantu memahami hasil lab, bukan diagnosis. Rentang rujukan berbeda antar laboratorium. Untuk keputusan kesehatan, konsultasikan dengan dokter.",
 
@@ -43,9 +45,13 @@ const STRINGS = {
     uploadCardHint: "Foto atau PDF lembar hasil laboratorium",
     uploadSampleLink: "Atau pakai hasil lab contoh",
     consentLabel:
-      "Saya mengerti file ini akan diproses oleh AI untuk analisis, dan hasilnya tidak disimpan di mana pun.",
+      "Saya mengerti file ini akan diproses oleh AI untuk dianalisis. Hasilnya ditahan sampai 24 jam menunggu saya membuat akun — kalau tidak, otomatis dihapus.",
     errConsent: "Centang dulu kotak persetujuan di atas ya.",
-    ephemeralNote: "Hasil ini ditampilkan sekali dan tidak disimpan. Untuk menyimpan riwayat, buat akun 20FIT.",
+    teaserHeading: "Hasil Scan Kamu",
+    teaserParamsLabel: "Penanda terbaca",
+    teaserLockedNote: "Buat akun 20FIT untuk buka nilai & penjelasan lengkapnya. Hasil ini ditahan sampai 24 jam — kalau tidak dibuka, otomatis terhapus.",
+    teaserUnlockCta: "Buat Akun / Login untuk Buka Hasil",
+    teaserUnlockedNote: "Hasil scan sebelumnya berhasil dibuka dan disimpan ke akunmu.",
     step1Title: "Upload lembar hasil",
     step1Desc: "Foto atau PDF dari laboratorium mana pun.",
     step2Title: "Penanda dikenali",
@@ -53,30 +59,30 @@ const STRINGS = {
     step3Title: "Baca penjelasannya",
     step3Desc: "Tiap penanda dijelaskan dengan bahasa biasa, tanpa kesimpulan diagnosis.",
 
-    whyHeading: "Kenapa Pakai Panduan MCU 20FIT",
-    whySubtitle: "Yang bisa dibaca tanpa akun, dan yang butuh akun karena memerlukan riwayat.",
-    whyMediaCaption: "Foto layar hasil analisis MCU",
+    whyHeading: "Bukan Cuma Sekali Cek — Pantau Terus",
+    whySubtitle: "Scan tiap kali kamu MCU. Baca penjelasannya langsung tanpa akun — bikin akun supaya semua hasilnya tersambung jadi satu riwayat yang bisa kamu pantau.",
+    whyMediaCaption: "Foto layar riwayat & tren MCU kamu",
     lockedBadge: "Perlu akun",
     callouts: [
+      {
+        title: "Pantau perubahan antar periode",
+        desc: "Tiap kali kamu scan MCU baru, hasilnya dibandingkan dengan yang sebelumnya — jadi kamu lihat arah tren kesehatanmu, bukan cuma angka hari ini.",
+        locked: true,
+      },
+      {
+        title: "Semua riwayat MCU di satu tempat",
+        desc: "Setiap hasil MCU yang pernah kamu scan tersimpan rapi di akunmu, siap dibuka kapan saja.",
+        locked: true,
+      },
       {
         title: "Baca penanda lab tanpa kamus",
         desc: "Upload lembar hasil, tiap penanda dijelaskan dengan bahasa biasa beserta rentang rujukan dari lab kamu sendiri.",
         locked: false,
       },
       {
-        title: "Perbandingan antar periode",
-        desc: "Hasil MCU tahun ini dibandingkan dengan sebelumnya, sehingga arah perubahannya terlihat, bukan cuma angka hari ini.",
-        locked: true,
-      },
-      {
         title: "Rencana makan dari hasil lab",
         desc: "Penyesuaian pola makan yang menimbang penanda mana yang di atas rentang.",
         locked: false,
-      },
-      {
-        title: "Riwayat kesehatan satu tempat",
-        desc: "Hasil MCU, data latihan, dan catatan makan berada di akun yang sama.",
-        locked: true,
       },
     ],
 
@@ -128,7 +134,7 @@ const STRINGS = {
 
     eduHeading: "Arti penanda lab yang umum",
     eduIntro:
-      "Setiap hasil MCU biasanya menampilkan nilai kamu di samping rentang normal. Berikut penjelasan singkat penanda yang sering muncul. Ini edukasi umum — bukan penilaian atas hasil kamu.",
+      "Supaya tiap scan MCU-mu makin gampang dipahami, ini penjelasan singkat penanda yang sering muncul di hasil lab. Ini edukasi umum — bukan penilaian atas hasil kamu.",
     rangeLabel: "Rentang rujukan umum",
     meaningLabel: "Apa artinya",
 
@@ -147,8 +153,8 @@ const STRINGS = {
     uploadHint: "Foto (JPG/PNG) atau PDF, maks 8MB. File tidak disimpan.",
     analyzeButton: "Analisa sekarang",
     analyzing: "Menganalisa… ini bisa sampai ~1,5 menit.",
-    historyHeading: "Riwayat analisa kamu",
-    historyEmpty: "Belum ada riwayat. Hasil analisa kamu akan muncul di sini.",
+    historyHeading: "Riwayat & tren MCU kamu",
+    historyEmpty: "Belum ada riwayat. Tiap kali kamu scan MCU, hasilnya akan muncul di sini supaya bisa kamu pantau dari waktu ke waktu.",
     signOut: "Keluar",
     signedInAs: "Masuk sebagai",
 
@@ -176,11 +182,11 @@ const STRINGS = {
     nav: { education: "Features", example: "Marker Guide", analyze: "Upload Now" },
 
     heroBadge: "MCU Guide",
-    heroKicker: "Health Literacy",
-    heroTitle: "Upload your MCU results, see the explanation",
+    heroKicker: "Continuous Health Tracking",
+    heroTitle: "Scan your MCU, every time you get checked",
     heroSubtitle:
-      "Every marker's explanation is fully open, no account needed. An account is only needed for the follow-up plan and period-over-period comparison.",
-    heroPrimaryCta: "Analyze my MCU results",
+      "This isn't a one-time read. Scan your MCU every time you get checked — you'll see a glimpse of the result right away. Create a 20FIT account to unlock the full result and track the change over time.",
+    heroPrimaryCta: "Scan my MCU results now",
     heroSecondaryCta: "See an example",
     heroDownloadCta: "Download the app",
     appStoreLine1: "Download on the",
@@ -188,8 +194,10 @@ const STRINGS = {
     playStoreLine1: "Get it on",
     playStoreLine2: "Google Play",
     socialProofText: "Used by the 20FIT community",
-    heroNote: "No account needed. The analysis is fully open. A tool to UNDERSTAND, not a diagnosis.",
+    heroNote: "Scan with no account needed. Create one afterward to see and save the full result. A tool to UNDERSTAND, not a diagnosis.",
+    heroScanCta: "I Want To Scan Now",
     heroMediaCaption: "Photo of your lab report / consultation",
+    gradeLabelShort: "Score",
     heroDisclaimer:
       "This page is a tool to understand lab results, not a diagnosis. Reference ranges differ between labs. For health decisions, consult a doctor.",
 
@@ -198,9 +206,13 @@ const STRINGS = {
     uploadCardHint: "Photo or PDF of your lab report",
     uploadSampleLink: "Or use a sample lab result",
     consentLabel:
-      "I understand this file will be processed by AI for analysis, and the result is not stored anywhere.",
+      "I understand this file will be processed by AI for analysis. The result is held for up to 24 hours while I create an account — otherwise it's automatically deleted.",
     errConsent: "Please check the consent box above first.",
-    ephemeralNote: "This result is shown once and is not stored. Create a 20FIT account to save your history.",
+    teaserHeading: "Your Scan Result",
+    teaserParamsLabel: "Markers detected",
+    teaserLockedNote: "Create a 20FIT account to unlock the full values & explanations. This result is held for up to 24 hours — if it's not unlocked, it's automatically deleted.",
+    teaserUnlockCta: "Create Account / Login to Unlock",
+    teaserUnlockedNote: "Your previous scan was successfully unlocked and saved to your account.",
     step1Title: "Upload your report",
     step1Desc: "Photo or PDF from any laboratory.",
     step2Title: "Markers recognized",
@@ -208,30 +220,30 @@ const STRINGS = {
     step3Title: "Read the explanation",
     step3Desc: "Each marker is explained in plain language, with no diagnostic conclusion.",
 
-    whyHeading: "Why Use 20FIT's MCU Guide",
-    whySubtitle: "What you can read without an account, and what needs one because it requires history.",
-    whyMediaCaption: "Screenshot of an MCU analysis result",
+    whyHeading: "Not Just a One-Time Check — Keep Tracking",
+    whySubtitle: "Scan every time you get an MCU. Read the explanation right away, no account needed — create one so every result connects into a single history you can track.",
+    whyMediaCaption: "Screenshot of your MCU history & trends",
     lockedBadge: "Account needed",
     callouts: [
+      {
+        title: "Track the change period over period",
+        desc: "Every new MCU scan is compared with your previous ones, so you see the direction your health is trending, not just today's number.",
+        locked: true,
+      },
+      {
+        title: "Every MCU result in one place",
+        desc: "Every MCU result you've ever scanned is saved neatly in your account, ready to open anytime.",
+        locked: true,
+      },
       {
         title: "Read lab markers without a dictionary",
         desc: "Upload your report and each marker is explained in plain language, along with your own lab's reference range.",
         locked: false,
       },
       {
-        title: "Period-over-period comparison",
-        desc: "This year's MCU is compared with previous ones, so you see the direction of change, not just today's number.",
-        locked: true,
-      },
-      {
         title: "Eating plan from your lab results",
         desc: "A diet adjustment that weighs which markers are above range.",
         locked: false,
-      },
-      {
-        title: "Health history in one place",
-        desc: "MCU results, workout data, and food logs live in the same account.",
-        locked: true,
       },
     ],
 
@@ -283,7 +295,7 @@ const STRINGS = {
 
     eduHeading: "What common lab markers mean",
     eduIntro:
-      "An MCU report usually shows your value next to a normal range. Here is a short explanation of markers you'll often see. This is general education — not an assessment of your results.",
+      "To make every MCU scan easier to understand, here is a short explanation of markers you'll often see on a lab report. This is general education — not an assessment of your results.",
     rangeLabel: "Typical reference range",
     meaningLabel: "What it means",
 
@@ -301,8 +313,8 @@ const STRINGS = {
     uploadHint: "Photo (JPG/PNG) or PDF, max 8MB. Files are not stored.",
     analyzeButton: "Analyze now",
     analyzing: "Analyzing… this can take up to ~1.5 minutes.",
-    historyHeading: "Your analysis history",
-    historyEmpty: "No history yet. Your analyses will appear here.",
+    historyHeading: "Your MCU history & trends",
+    historyEmpty: "No history yet. Every time you scan an MCU, the result will appear here so you can track it over time.",
     signOut: "Sign out",
     signedInAs: "Signed in as",
 

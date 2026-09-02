@@ -12,6 +12,8 @@
 // - Any error degrades to empty list / null (→ empty state / 404), never a 500.
 // Dependency-free ESM (Node built-in fetch).
 
+import { LOCAL_ARTICLES } from "../shared/localArticles.js";
+
 const LIST_COLS = "title,slug,excerpt,category,persona,meta_description,published_at,published_url";
 const ONE_COLS =
   "title,slug,body_html,meta_title,meta_description,excerpt,category,tags,author_name,published_at,published_url";
@@ -41,7 +43,14 @@ export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60
     return res.json();
   }
 
+  // mcu-original drafts are listed FIRST, then the media_articles rows.
   async function listPublished({ limit = 30, category = null } = {}) {
+    const local = LOCAL_ARTICLES.filter((a) => !category || a.category === category);
+    const media = await listMedia({ limit, category });
+    return [...local, ...media].slice(0, limit);
+  }
+
+  async function listMedia({ limit = 30, category = null } = {}) {
     const key = `list:${category || "all"}:${limit}`;
     const hit = getCached(key);
     if (hit !== undefined) return hit;
@@ -51,13 +60,15 @@ export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60
       const rows = await rest(q);
       return setCached(key, Array.isArray(rows) ? rows : []);
     } catch (e) {
-      console.error("articles.listPublished failed:", e.message);
+      console.error("articles.listMedia failed:", e.message);
       return []; // graceful empty — never 500 the page
     }
   }
 
   async function getBySlug(slug) {
     if (typeof slug !== "string" || slug.length === 0) return null;
+    const local = LOCAL_ARTICLES.find((a) => a.slug === slug);
+    if (local) return local;
     const key = `slug:${slug}`;
     const hit = getCached(key);
     if (hit !== undefined) return hit;

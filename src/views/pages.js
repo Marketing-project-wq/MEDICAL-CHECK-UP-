@@ -89,30 +89,6 @@ function howItWorksSection(s) {
   </section>`;
 }
 
-function ecosystemSection(s) {
-  const colors = { K: "#d81f0f", M: "#1f8a4c", C: "#2952e3", "20": "#16170f" };
-  const cards = s.ecosystemProducts
-    .map((p) => {
-      const bg = colors[p.code] || "#16170f";
-      const tag = p.current ? "div" : "a";
-      const hrefAttr = p.current ? "" : ` href="${escapeHtml(p.url)}"`;
-      return `<${tag} class="ecosystem-card${p.current ? " current" : ""}"${hrefAttr}>
-        <div class="ecosystem-icon" style="background:${bg}">${escapeHtml(p.code)}</div>
-        <h3>${escapeHtml(p.name)}</h3>
-        <p>${escapeHtml(p.desc)}</p>
-        <div class="ecosystem-url">${escapeHtml(p.url.replace(/^https?:\/\//, ""))}</div>
-      </${tag}>`;
-    })
-    .join("");
-  return `<section id="ecosystem" class="section section-alt">
-    <div class="wrap">
-      <h2>${escapeHtml(s.ecosystemHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.ecosystemSubtitle)}</p>
-      <div class="ecosystem-grid">${cards}</div>
-    </div>
-  </section>`;
-}
-
 function faqSection(s) {
   const items = s.faq
     .map((f) => `<div class="faq-item"><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></div>`)
@@ -347,7 +323,6 @@ export function renderLandingPage({ lang, publicOrigin, loginUrl, canonicalPath 
     heroSection(s, hubHref),
     sampleSection(s, lang),
     howItWorksSection(s),
-    ecosystemSection(s),
     faqSection(s),
     testimonialsSection(s),
     landingCta(s, hubHref),

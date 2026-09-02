@@ -82,6 +82,29 @@ Browser (medicalcheckup.20fit.id)
   `{error: "not_mcu", ...}` or `{error: "incomplete_mcu", missing, message}`
   for a bad upload — this app surfaces `message` as the error status.
 
+## Health articles (Tahap 1)
+
+`/articles` (+ `/id/articles`) list and `/articles/<slug>` detail pages render
+20FIT's published health articles **server-side** (good for SEO), read from
+`public.media_articles` where `status='published'` via the service-role key
+(server-only). Highlights:
+
+- **No duplication / stays fresh** — content comes straight from your media
+  pipeline; nothing is copied by hand.
+- **No SEO cannibalization** — every article already lives on media.20fit.id,
+  so each mcu detail page sets `<link rel="canonical">` to that `published_url`.
+  mcu shows the article (read without leaving) while media.20fit keeps ranking.
+  Only the article *list* pages are in mcu's sitemap.
+- **First-party HTML is sanitized** (`sanitizeArticleHtml`) as defense-in-depth
+  on top of the strict CSP; article pages widen `img-src` to `https:` for
+  embedded images (images only — scripts stay locked to `'self'`+nonce).
+- **Always safe** — every page carries the shared health disclaimer
+  ("education/awareness, not a formal diagnosis") and the escalation CTA
+  ("Consult a 20FIT Doctor" → `DOCTOR_BOOKING_URL`, the in-app Book Doctor
+  flow). These components (`src/shared/health.js`) are reused by every tool.
+- **Graceful** — if Supabase is unreachable the list shows an empty state and a
+  bad slug 404s; never a 500.
+
 ## Run locally
 
 ```bash

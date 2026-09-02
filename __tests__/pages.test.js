@@ -27,12 +27,14 @@ test("hub: pillars + scan widget (§0.1 gate) + quiz coming-soon + featured + do
     canonicalPath: "/home",
     featuredArticles: featured,
     bookingUrl: "https://my.20fit.id/book-doctor",
+    trainingLinks: { home: "https://my.20fit.id", ems: "https://my.20fit.id", arena: "https://arena.example", clinic: "https://my.20fit.id", my: "https://my.20fit.id" },
     ...CTX,
   });
-  // Pillar nav
+  // Pillar nav (4 pillars)
   assert.match(p.bodyHtml, /pillar-card/);
   assert.match(p.bodyHtml, /href="#scan"/);
   assert.match(p.bodyHtml, /href="#quiz"/);
+  assert.match(p.bodyHtml, /href="#program"/);
   assert.match(p.bodyHtml, /href="#artikel"/);
   // Scan section = the §0.1 widget: login gate present, uploader hidden by default, one file input.
   assert.match(p.bodyHtml, /id="scan"/);
@@ -46,6 +48,11 @@ test("hub: pillars + scan widget (§0.1 gate) + quiz coming-soon + featured + do
   assert.match(p.bodyHtml, /data-role="q-height"/);
   assert.match(p.bodyHtml, /data-role="q-weight"/);
   assert.match(p.bodyHtml, /data-role="quiz-result"/);
+  // Program & training (Tahap 3+4): real options + configurable link + save handoff
+  assert.match(p.bodyHtml, /id="program"/);
+  assert.match(p.bodyHtml, /train-card/);
+  assert.match(p.bodyHtml, /href="https:\/\/arena\.example"/, "uses the configured arena link");
+  assert.match(p.bodyHtml, /program-save/);
   // Featured article + view-all link
   assert.match(p.bodyHtml, /href="\/articles\/a"/);
   assert.match(p.bodyHtml, /href="\/articles"/);

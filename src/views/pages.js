@@ -155,6 +155,7 @@ function pillarNav(s) {
   const pillars = [
     { href: "#scan", icon: "🩺", title: s.pillarScanTitle, desc: s.pillarScanDesc },
     { href: "#quiz", icon: "❓", title: s.pillarQuizTitle, desc: s.pillarQuizDesc },
+    { href: "#program", icon: "🏋️", title: s.pillarProgramTitle, desc: s.pillarProgramDesc },
     { href: "#artikel", icon: "📰", title: s.pillarArticleTitle, desc: s.pillarArticleDesc },
   ];
   const cards = pillars
@@ -292,6 +293,41 @@ function featuredArticlesSection(s, lang, articles) {
   </section>`;
 }
 
+// Program & Training (Tahap 3+4). Presents 20FIT's REAL service lines (home
+// workout / EMS studio / HYROX arena / physio clinic) grouped home vs
+// outside, each linking to a configurable booking URL — no invented programs,
+// packages, or prices. "Save" is a handoff to my.20fit (login), not a fake
+// mcu-side store.
+function trainingCard(title, desc, href, cta) {
+  return `<a class="train-card" href="${escapeHtml(href)}">
+    <h4>${escapeHtml(title)}</h4>
+    <p>${escapeHtml(desc)}</p>
+    <span class="train-link">${escapeHtml(cta)} →</span>
+  </a>`;
+}
+
+function programSection(s, links) {
+  const l = links || {};
+  const home = trainingCard(s.optHomeTitle, s.optHomeDesc, l.home || "#", s.programLinkCta);
+  const outside = [
+    trainingCard(s.optEmsTitle, s.optEmsDesc, l.ems || "#", s.programLinkCta),
+    trainingCard(s.optArenaTitle, s.optArenaDesc, l.arena || "#", s.programLinkCta),
+    trainingCard(s.optClinicTitle, s.optClinicDesc, l.clinic || "#", s.programLinkCta),
+  ].join("");
+  return `<section id="program" class="section">
+    <div class="wrap">
+      <h2>${escapeHtml(s.programHeading)}</h2>
+      <p class="section-intro">${escapeHtml(s.programIntro)}</p>
+      <h3 class="train-group">${escapeHtml(s.programGroupHome)}</h3>
+      <div class="train-grid">${home}</div>
+      <h3 class="train-group">${escapeHtml(s.programGroupOutside)}</h3>
+      <div class="train-grid">${outside}</div>
+      <p class="program-save">${escapeHtml(s.programSaveNote)}
+        <a href="${escapeHtml(l.my || "#")}">${escapeHtml(s.programSaveCta)} →</a></p>
+    </div>
+  </section>`;
+}
+
 function escalationSection(s, bookingUrl) {
   return `<section class="section section-alt">
     <div class="wrap wrap-narrow">
@@ -320,13 +356,14 @@ export function renderLandingPage({ lang, publicOrigin, loginUrl, canonicalPath 
 }
 
 /** @returns {{ title:string, description:string, bodyHtml:string }} */
-export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath, featuredArticles, bookingUrl }) {
+export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath, featuredArticles, bookingUrl, trainingLinks }) {
   const s = getStrings(lang);
   const returnToUrl = publicOrigin + canonicalPath;
   const bodyHtml = [
     pillarNav(s),
     scanSection(s, loginUrl, returnToUrl),
     quizSection(s),
+    programSection(s, trainingLinks),
     featuredArticlesSection(s, lang, featuredArticles),
     escalationSection(s, bookingUrl),
   ].join("\n");

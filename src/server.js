@@ -32,6 +32,17 @@ const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fi
 // route "want more? consult a doctor" to the real in-app Book Doctor flow).
 // Override once the exact my.20fit.id route is confirmed.
 const DOCTOR_BOOKING_URL = process.env.DOCTOR_BOOKING_URL || MY20FIT_ORIGIN + "/book-doctor";
+// Booking/info destinations for the "Program & Training" section (Tahap 3+4).
+// Real 20FIT service lines; no packages/prices are invented here. Each defaults
+// to my.20fit.id (a safe real destination) — override with the exact booking
+// pages (studio / arena / clinic / home-workout) once confirmed.
+const TRAINING_LINKS = {
+  home: process.env.TRAIN_HOME_URL || MY20FIT_ORIGIN,
+  ems: process.env.TRAIN_EMS_URL || MY20FIT_ORIGIN,
+  arena: process.env.TRAIN_ARENA_URL || MY20FIT_ORIGIN,
+  clinic: process.env.TRAIN_CLINIC_URL || MY20FIT_ORIGIN,
+  my: MY20FIT_ORIGIN,
+};
 // Hotlinked from media.20fit.id at the user's explicit direction (this
 // sandbox cannot fetch the source files itself to re-host them — see PR
 // #10/#8 — and the user has no other way to hand them over). If that host
@@ -197,6 +208,7 @@ async function renderHomeHub(lang, canonicalPath) {
     canonicalPath,
     featuredArticles,
     bookingUrl: DOCTOR_BOOKING_URL,
+    trainingLinks: TRAINING_LINKS,
   });
   return wrapPage(lang, canonicalPath, page);
 }

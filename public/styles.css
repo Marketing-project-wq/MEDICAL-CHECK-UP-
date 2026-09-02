@@ -542,3 +542,30 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 @media (min-width: 720px) {
   .pillar-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ── BMI quiz ── */
+.quiz-form { margin-top: 18px; }
+.quiz-fields { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }
+.quiz-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; font-weight: 600; color: var(--ink); }
+.quiz-field em { color: var(--muted-2); font-weight: 400; font-style: normal; }
+.quiz-field input {
+  padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--card); color: var(--ink); font-size: 1rem; font-family: inherit;
+}
+.quiz-field input:focus { outline: 2px solid var(--red); outline-offset: 1px; border-color: var(--red); }
+.quiz-result { margin-top: 22px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); }
+.quiz-result h3 { margin: 14px 0 10px; }
+.quiz-bmi { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.quiz-bmi-value { font-family: var(--font-display); font-size: 2.6rem; line-height: 1; color: var(--ink); }
+.quiz-bmi-meta { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+.quiz-bmi-label { font-size: 0.82rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.quiz-context { font-size: 0.92rem; color: var(--muted); line-height: 1.6; margin: 8px 0; }
+.quiz-context.quiz-asia { font-size: 0.85rem; color: var(--muted-2); }
+.quiz-metric { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
+.quiz-metric-label { font-weight: 600; }
+.quiz-doctor-line { margin-top: 16px; font-weight: 600; }
+.quiz-doctor-line a { color: var(--red-text); font-family: var(--font-mono); white-space: nowrap; }
+
+@media (min-width: 560px) {
+  .quiz-fields { grid-template-columns: repeat(3, 1fr); }
+}

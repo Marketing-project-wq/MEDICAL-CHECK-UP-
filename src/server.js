@@ -151,6 +151,7 @@ function clientConfig(lang) {
     publicOrigin: PUBLIC_ORIGIN,
     logoLightUrl: LOGO_LIGHT_URL,
     logoDarkUrl: LOGO_DARK_URL,
+    doctorBookingUrl: DOCTOR_BOOKING_URL,
   };
 }
 

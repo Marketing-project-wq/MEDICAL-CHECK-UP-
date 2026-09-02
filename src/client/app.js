@@ -433,6 +433,15 @@ async function boot() {
   wireLangToggleButtons();
   wireThemeToggle();
   updateLoginCta();
+
+  // BMI quiz (home hub only) — lazy-loaded so its code isn't fetched on pages
+  // that don't have it, and independent of the scan widget / Supabase.
+  if (document.querySelector('[data-role="quiz-form"]')) {
+    import("./quiz.js")
+      .then((m) => m.setupQuiz(document, CFG))
+      .catch((e) => console.error("quiz module failed to load:", e));
+  }
+
   supabase = await initSupabase();
   await consumeSsoFragment();
 

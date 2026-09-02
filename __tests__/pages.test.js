@@ -40,9 +40,12 @@ test("hub: pillars + scan widget (§0.1 gate) + quiz coming-soon + featured + do
   assert.match(p.bodyHtml, /data-role="login-gate">/);
   assert.match(p.bodyHtml, /data-role="uploader" hidden>/);
   assert.equal((p.bodyHtml.match(/data-role="file"/g) || []).length, 1);
-  // Quiz — coming soon
+  // Quiz — BMI form (Tahap 2)
   assert.match(p.bodyHtml, /id="quiz"/);
-  assert.match(p.bodyHtml, /coming-soon-card/);
+  assert.match(p.bodyHtml, /data-role="quiz-form"/);
+  assert.match(p.bodyHtml, /data-role="q-height"/);
+  assert.match(p.bodyHtml, /data-role="q-weight"/);
+  assert.match(p.bodyHtml, /data-role="quiz-result"/);
   // Featured article + view-all link
   assert.match(p.bodyHtml, /href="\/articles\/a"/);
   assert.match(p.bodyHtml, /href="\/articles"/);

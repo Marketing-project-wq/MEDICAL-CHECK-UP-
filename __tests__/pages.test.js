@@ -10,7 +10,7 @@ test("landing: hero/sample/how/ecosystem/faq + CTA to hub, and NO uploader", () 
     assert.match(p.bodyHtml, /class="hero"/, `${lang}: hero`);
     assert.match(p.bodyHtml, /id="example"/, `${lang}: sample`);
     assert.match(p.bodyHtml, /id="how"/, `${lang}: how-it-works`);
-    assert.match(p.bodyHtml, /id="ecosystem"/);
+    assert.doesNotMatch(p.bodyHtml, /id="ecosystem"/, `${lang}: ecosystem removed`);
     assert.match(p.bodyHtml, /id="faq"/);
     // The uploader lives on the hub, NOT the landing.
     assert.doesNotMatch(p.bodyHtml, /id="member-app"/, `${lang}: no uploader on landing`);

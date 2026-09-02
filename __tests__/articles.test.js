@@ -17,12 +17,13 @@ const ok = (data) => ({ ok: true, status: 200, json: async () => data });
 test("listPublished queries only published rows via service-role auth", async () => {
   const fetchImpl = fakeFetch(() => ok([{ title: "A", slug: "a" }, { title: "B", slug: "b" }]));
   const store = createArticleStore({ supabaseUrl: "https://x.supabase.co", serviceRoleKey: "svc", fetchImpl });
-  const rows = await store.listPublished({ limit: 30 });
+  // limit above the local-article count so media rows survive the local-first slice
+  const rows = await store.listPublished({ limit: 100 });
   assert.ok(rows.some((r) => r.slug === "a") && rows.some((r) => r.slug === "b"), "media rows queried & included");
   const { url, opts } = fetchImpl.calls[0];
   assert.match(url, /\/rest\/v1\/media_articles\?/);
   assert.match(url, /status=eq\.published/);
-  assert.match(url, /limit=30/);
+  assert.match(url, /limit=100/);
   assert.equal(opts.headers.apikey, "svc");
   assert.equal(opts.headers.Authorization, "Bearer svc");
 });
@@ -38,7 +39,7 @@ test("listPublished caches within TTL (second call makes no network request)", a
 test("listPublished degrades to local-only when media upstream errors (never throws)", async () => {
   const fetchImpl = fakeFetch(() => ({ ok: false, status: 500, json: async () => ({}) }));
   const store = createArticleStore({ supabaseUrl: "https://x.supabase.co", serviceRoleKey: "svc", fetchImpl });
-  const rows = await store.listPublished();
+  const rows = await store.listPublished({ limit: 100 });
   assert.deepEqual(
     rows.map((r) => r.slug),
     LOCAL_ARTICLES.map((a) => a.slug),
@@ -68,7 +69,7 @@ test("getBySlug returns null for empty slug without a network call", async () =>
 test("mcu-original (local) articles are listed FIRST, then media rows", async () => {
   const fetchImpl = fakeFetch(() => ok([{ title: "Media", slug: "media-1" }]));
   const store = createArticleStore({ supabaseUrl: "https://x.supabase.co", serviceRoleKey: "svc", fetchImpl });
-  const rows = await store.listPublished({ limit: 30 });
+  const rows = await store.listPublished({ limit: 100 });
   assert.equal(rows[0].slug, LOCAL_ARTICLES[0].slug, "a local article is first");
   assert.ok(rows.some((r) => r.slug === "media-1"), "media rows are included after");
   assert.ok(rows.length >= LOCAL_ARTICLES.length + 1);
@@ -77,7 +78,7 @@ test("mcu-original (local) articles are listed FIRST, then media rows", async ()
 test("serves mcu-original articles with NO service-role key (no network call)", async () => {
   const fetchImpl = fakeFetch(() => ok([]));
   const store = createArticleStore({ supabaseUrl: "https://x.supabase.co", serviceRoleKey: "", fetchImpl });
-  const rows = await store.listPublished({ limit: 30 });
+  const rows = await store.listPublished({ limit: 100 });
   assert.deepEqual(
     rows.map((r) => r.slug),
     LOCAL_ARTICLES.map((a) => a.slug),

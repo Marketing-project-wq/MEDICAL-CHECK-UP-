@@ -71,12 +71,16 @@ export async function callAnalyzeMcu({ my20fitOrigin, dataUrl, mime, timeoutMs =
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      // The upstream message (body.message/body.error) is dynamic, upstream-
-      // controlled text we cannot guarantee is translated — log it for
-      // diagnosis but never forward it as the user-facing error; the client
-      // always renders a fully-localized string for this fixed code instead.
-      console.error(`analyze-mcu upstream error ${res.status}:`, body.message || body.error || "(no message)");
-      return { ok: false, status: res.status, code: "analyze_failed" };
+      // body.error is a STABLE, well-known value on these two specific
+      // cases (verified against the real my.20fit.id source) — safe to
+      // translate ourselves, unlike the free-text body.message, which
+      // stays log-only. Distinguishing these matters: before this, any
+      // validation rejection (wrong document, missing fields) looked
+      // identical to a generic "analysis failed", which is a much less
+      // useful thing for someone to see after uploading a real document.
+      const code = body.error === "not_mcu" ? "not_mcu" : body.error === "incomplete_mcu" ? "incomplete_mcu" : "analyze_failed";
+      console.error(`analyze-mcu upstream error ${res.status} (${body.error || "?"}):`, body.message || "(no message)");
+      return { ok: false, status: res.status, code };
     }
     return { ok: true, result: body };
   } catch (err) {

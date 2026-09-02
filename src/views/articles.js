@@ -7,6 +7,7 @@
 import { escapeHtml } from "../shared/escape.js";
 import { sanitizeArticleHtml } from "../shared/sanitizeHtml.js";
 import { healthDisclaimer, doctorCta } from "../shared/health.js";
+import { articleCover } from "../shared/articleCover.js";
 
 function fmtDate(v, lang) {
   if (!v) return "";
@@ -39,10 +40,13 @@ export function articleListPage({ s, lang, articles }) {
     .map((a) => {
       const desc = a.excerpt || a.meta_description || "";
       return `<a class="article-card" href="${escapeHtml(articlePath(lang, a.slug))}">
-        <div class="article-card-meta">${metaRow(a, lang)}</div>
-        <h2 class="article-card-title">${escapeHtml(a.title || "")}</h2>
-        ${desc ? `<p class="article-card-excerpt">${escapeHtml(String(desc).slice(0, 160))}</p>` : ""}
-        <span class="article-card-more">${escapeHtml(s.articleReadMore)} →</span>
+        ${articleCover(a)}
+        <div class="article-card-body">
+          <div class="article-card-meta">${metaRow(a, lang)}</div>
+          <h2 class="article-card-title">${escapeHtml(a.title || "")}</h2>
+          ${desc ? `<p class="article-card-excerpt">${escapeHtml(String(desc).slice(0, 160))}</p>` : ""}
+          <span class="article-card-more">${escapeHtml(s.articleReadMore)} →</span>
+        </div>
       </a>`;
     })
     .join("");
@@ -71,6 +75,7 @@ export function articleDetailPage({ s, lang, article, bookingUrl }) {
   const bodyHtml = `<article class="section article-detail">
     <div class="wrap wrap-narrow">
       <p class="article-back"><a href="${escapeHtml(articlePath(lang))}">${escapeHtml(s.articleBackToList)}</a></p>
+      ${articleCover(a, { hero: true })}
       <div class="article-card-meta">${metaRow(a, lang)}${author}</div>
       <h1 class="article-title">${escapeHtml(a.title || "")}</h1>
       ${healthDisclaimer(s)}

@@ -75,13 +75,14 @@ function getScanHandlers() {
   return scanHandlers;
 }
 
-// Article store (Tahap 1): reads published media_articles server-side. Lazily
-// constructed; a missing service-role key just yields an empty list / 404
-// rather than crashing the page.
+// Article store (Tahap 1): serves the mcu-original (local) health articles
+// always, plus published media_articles when a service-role key is present.
+// Constructed unconditionally so the mcu-original articles render even without
+// Supabase env; a missing key just skips the media_articles fetch (empty media
+// list) rather than hiding every article.
 let articleStore = null;
 function getArticleStore() {
   if (articleStore) return articleStore;
-  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
   articleStore = createArticleStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
   return articleStore;
 }

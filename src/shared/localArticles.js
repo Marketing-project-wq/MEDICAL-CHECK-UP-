@@ -129,4 +129,74 @@ export const LOCAL_ARTICLES = [
 <h2>Intinya</h2>
 <p>Setiap penanda hanyalah satu potong gambaran. Yang penting adalah <strong>keseluruhan pola</strong>, riwayat kesehatanmu, dan interpretasi dari tenaga medis. Kalau ada hasil yang membuatmu khawatir, jangan menyimpulkan sendiri — <strong>konsultasikan ke dokter 20FIT</strong> untuk penjelasan yang sesuai dengan kondisimu.</p>`,
   },
+  {
+    title: "Kenapa Medical Check-Up Rutin Itu Penting",
+    slug: "kenapa-medical-check-up-rutin-itu-penting",
+    category: "edukasi",
+    author_name: "Tim 20FIT",
+    published_at: "2026-09-02T09:00:00Z",
+    published_url: null,
+    excerpt:
+      "MCU bukan cuma buat yang sudah sakit. Ini alasan pemeriksaan rutin berguna, dan bagaimana menyikapinya secara sehat.",
+    meta_description:
+      "Kenapa medical check-up (MCU) rutin penting: memantau tren kesehatan, membaca hasil dari waktu ke waktu, dan kapan berkonsultasi dengan dokter.",
+    body_html: `<p>Banyak orang baru memeriksakan kesehatan saat sudah merasa ada yang tidak beres. Medical check-up (MCU) rutin punya sudut pandang berbeda: memberi <em>gambaran berkala</em> tentang tubuhmu, bahkan saat kamu merasa baik-baik saja. Artikel ini menjelaskan mengapa itu berguna — tanpa menakut-nakuti, dan tanpa menggantikan penilaian dokter.</p>
+
+<h2>Tren lebih berbicara daripada satu angka</h2>
+<p>Nilai kesehatan bisa berubah perlahan dari tahun ke tahun. Dengan memeriksa secara berkala, kamu dan dokter bisa melihat <strong>arah perubahan</strong> — apakah suatu angka cenderung naik, turun, atau stabil. Satu hasil tunggal hanya potret sesaat; rangkaian hasil dari waktu ke waktu memberi konteks yang jauh lebih berarti.</p>
+
+<h2>Membantu percakapan dengan dokter</h2>
+<p>Hasil MCU yang tercatat rapi memudahkan dokter memahami kondisimu: apa yang biasa untukmu, apa yang berubah, dan apa yang perlu diperhatikan. Ini bukan soal mendiagnosis diri sendiri, melainkan menyediakan bahan yang baik untuk <strong>dibicarakan bersama tenaga medis</strong>.</p>
+
+<h2>Seberapa sering perlu MCU?</h2>
+<p>Tidak ada satu jawaban yang cocok untuk semua orang. Frekuensi yang tepat bergantung pada usia, riwayat kesehatan, gaya hidup, dan faktor risiko masing-masing. Karena itu, <strong>jadwal yang sesuai untukmu sebaiknya ditentukan bersama dokter</strong>, bukan mengikuti angka umum dari internet.</p>
+
+<h2>Menyikapi hasil dengan tenang</h2>
+<p>MCU rutin bukan alat untuk membuat cemas. Hasil yang di luar rentang belum tentu berarti penyakit, dan hasil "normal" bukan jaminan mutlak. Tujuannya adalah <strong>kesadaran</strong> — mengenali tubuhmu lebih baik dan tahu kapan perlu bertindak.</p>
+
+<h2>Langkah sederhana</h2>
+<ul>
+<li>Simpan hasil MCU-mu supaya bisa dibandingkan dari waktu ke waktu.</li>
+<li>Catat hal yang ingin kamu tanyakan sebelum bertemu dokter.</li>
+<li>Jangan tunggu sampai ada keluhan untuk mulai memantau kesehatan.</li>
+<li>Kalau ada hasil yang membuatmu ragu, <strong>tanyakan ke dokter</strong> daripada menebak sendiri.</li>
+</ul>
+
+<p>Alat di 20FIT dibuat untuk membantumu <em>memahami dan memantau</em> hasil MCU dari waktu ke waktu — sebagai bahan edukasi, bukan diagnosis. Untuk keputusan kesehatan, dokter tetap sumber yang tepat.</p>`,
+  },
+  {
+    title: "Cara Menyiapkan Diri Sebelum Medical Check-Up",
+    slug: "cara-menyiapkan-diri-sebelum-medical-check-up",
+    category: "edukasi",
+    author_name: "Tim 20FIT",
+    published_at: "2026-08-20T09:00:00Z",
+    published_url: null,
+    excerpt:
+      "Persiapan sederhana sebelum MCU bisa membuat hasilnya lebih menggambarkan kondisimu. Ini hal-hal yang umum diperhatikan.",
+    meta_description:
+      "Persiapan sebelum medical check-up (MCU): soal puasa, istirahat, obat rutin, dan dokumen — plus kenapa instruksi dari penyelenggara tetap yang utama.",
+    body_html: `<p>Sedikit persiapan sebelum medical check-up (MCU) bisa membantu hasilnya lebih mencerminkan kondisimu sehari-hari. Yang perlu diingat: <strong>instruksi resmi dari penyelenggara MCU atau doktermu selalu yang utama</strong> — poin di bawah hanyalah gambaran umum, bukan aturan pasti yang berlaku untuk semua paket pemeriksaan.</p>
+
+<h2>Soal puasa</h2>
+<p>Beberapa pemeriksaan (misalnya gula darah atau profil lemak) kadang meminta puasa selama beberapa jam sebelumnya. Namun ketentuannya berbeda-beda antar paket dan laboratorium. Jadi <strong>ikuti petunjuk yang diberikan penyelenggara</strong>; kalau tidak ada petunjuk, tanyakan lebih dulu apakah kamu perlu puasa dan berapa lama.</p>
+
+<h2>Istirahat yang cukup</h2>
+<p>Tidur yang cukup dan menghindari aktivitas yang terlalu berat tepat sebelum pemeriksaan bisa membantu beberapa pengukuran (seperti tekanan darah) lebih menggambarkan kondisi biasamu. Rasa lelah, begadang, atau stres berlebihan kadang memengaruhi hasil sesaat.</p>
+
+<h2>Obat dan kondisi rutin</h2>
+<p>Kalau kamu rutin minum obat atau punya kondisi kesehatan tertentu, <strong>jangan menghentikan obat sendiri</strong> hanya karena akan MCU. Tanyakan lebih dulu ke dokter atau penyelenggara apakah ada yang perlu disesuaikan. Sampaikan juga riwayat kesehatanmu agar hasil bisa ditafsirkan dengan konteks yang benar.</p>
+
+<h2>Hal praktis yang berguna</h2>
+<ul>
+<li>Bawa <strong>hasil MCU sebelumnya</strong> bila ada, supaya bisa dibandingkan.</li>
+<li>Catat keluhan atau pertanyaan yang ingin kamu sampaikan ke dokter.</li>
+<li>Kenakan pakaian yang nyaman dan mudah untuk pemeriksaan fisik.</li>
+<li>Minum air secukupnya sesuai anjuran — sebagian pemeriksaan lebih mudah bila kamu cukup terhidrasi, kecuali diminta lain.</li>
+</ul>
+
+<h2>Setelah pemeriksaan</h2>
+<p>Simpan hasilmu dengan rapi dan baca bagian kesimpulannya. Kalau ada yang belum jelas atau membuatmu khawatir, itulah saat yang tepat untuk <strong>berkonsultasi dengan dokter</strong> — bukan menyimpulkan sendiri dari satu angka.</p>
+
+<p>Ingat, persiapan yang baik membantu kualitas hasil, tapi penilaian akhir tetap milik tenaga medis. Alat 20FIT hadir untuk membantumu memahami hasilnya, sebagai edukasi, bukan pengganti pemeriksaan dokter.</p>`,
+  },
 ];

@@ -14,8 +14,8 @@
 import crypto from "node:crypto";
 import { callAnalyzeMcu, deriveTeaser } from "./mcuAnalyze.js";
 
-const MAX_BODY_BYTES = 12 * 1024 * 1024; // ~8MB file base64-encoded + JSON overhead
-const MAX_DECODED_BYTES = 8 * 1024 * 1024; // spec §3 limit
+const MAX_BODY_BYTES = 14 * 1024 * 1024; // ~10MB file base64-encoded + JSON overhead
+const MAX_DECODED_BYTES = 10 * 1024 * 1024; // matches the real my.20fit.id backend's multer limit (verified against its source)
 const ANON_LIFETIME_SCAN_CAP = 3; // free scans per anon_id before an account is required — adjust as needed
 const IP_NEW_SESSION_CAP_PER_DAY = 8; // new anon_ids per ip_hash per rolling 24h — anti reset-by-clearing-localStorage
 const MEMBER_WINDOW_MS = 10 * 60 * 1000;

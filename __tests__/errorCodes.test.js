@@ -26,6 +26,8 @@ test("every server-emitted error code translates to a real message in both langu
     ...extractCodes("src/server/mcuAnalyze.js"),
     "invalid_request", // readJsonBody rejection fallback (err.code || "invalid_request")
     "service_unavailable", // src/server.js: /api/scan when scan handlers aren't configured
+    "not_mcu", // mcuAnalyze.js: built via a ternary, not a `code: "..."` literal the regex above catches
+    "incomplete_mcu", // same as above
   ]);
   assert.ok(codes.size > 10, "sanity check: expected to find a good number of error codes");
   for (const code of codes) {

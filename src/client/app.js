@@ -149,7 +149,7 @@ async function applyLanguage(newLang) {
 }
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
-const MAX_INPUT_BYTES = 8 * 1024 * 1024;
+const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const ANON_ID_KEY = "mcu20fit-anon-id";
 const PENDING_SCAN_KEY = "mcu20fit-pending-scan";
 

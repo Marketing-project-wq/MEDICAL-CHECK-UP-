@@ -24,7 +24,7 @@ const PDF_PAGE_WIDTH = 1240;
 const JPEG_QUALITY = 0.8;
 
 export const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
-export const MAX_INPUT_BYTES = 8 * 1024 * 1024;
+export const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 
 function readAsArrayBuffer(file) {
   return new Promise((resolve, reject) => {

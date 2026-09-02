@@ -90,7 +90,7 @@ const STRINGS = {
       },
       {
         q: "Format file apa saja yang didukung?",
-        a: "Foto (JPG/PNG) atau PDF, maksimal 8MB.",
+        a: "Foto (JPG/PNG) atau PDF, maksimal 10MB.",
       },
     ],
 
@@ -115,7 +115,7 @@ const STRINGS = {
       "Unggah foto atau PDF hasil MCU kamu. File diproses di browser lalu dianalisa — file aslinya tidak disimpan, hanya ringkasannya.",
     loginCta: "Masuk / Daftar untuk analisa",
     uploadCta: "Pilih file hasil MCU",
-    uploadHint: "Foto (JPG/PNG) atau PDF, maks 8MB. File tidak disimpan.",
+    uploadHint: "Foto (JPG/PNG) atau PDF, maks 10MB. File tidak disimpan.",
     analyzeButton: "Analisa sekarang",
     analyzing: "Menganalisa… ini bisa sampai ~1,5 menit.",
     historyHeading: "Riwayat & tren MCU kamu",
@@ -124,7 +124,7 @@ const STRINGS = {
     signedInAs: "Masuk sebagai",
 
     errFile: "Pilih file dulu ya.",
-    errTooLarge: "File terlalu besar (maks 8MB). Perkecil dulu ya.",
+    errTooLarge: "File terlalu besar (maks 10MB). Perkecil dulu ya.",
     errType: "Tipe file tidak didukung. Gunakan JPG, PNG, atau PDF.",
     errPreprocess: "Gagal membaca file ini di browser. Coba file lain, atau foto langsung hasil labnya (JPG/PNG).",
     errNetwork: "Gagal terhubung. Cek koneksi lalu coba lagi.",
@@ -142,6 +142,8 @@ const STRINGS = {
     errClaimSaveFailed: "Hasil ditemukan tapi gagal disimpan ke akunmu. Coba lagi ya.",
     errAnalyzeFailed: "Gagal menganalisa hasil MCU. Coba lagi.",
     errAnalyzeTimeout: "Analisa memakan waktu lebih lama dari biasanya. Coba lagi ya.",
+    errNotMcu: "Dokumen ini sepertinya bukan hasil medical check-up. Coba upload lembar hasil lab dari klinik atau rumah sakit.",
+    errIncompleteMcu: "Dokumen ini terbaca sebagai MCU, tapi beberapa data penting belum lengkap (nama pasien, tanggal periksa, atau nilai lab). Coba upload lembar yang lebih lengkap.",
 
     footerDisclaimer:
       "medicalcheckup.20fit.id membantu kamu MEMAHAMI hasil lab. Ini bukan diagnosis dan bukan pengganti nasihat dokter.",
@@ -229,7 +231,7 @@ const STRINGS = {
       },
       {
         q: "Which file formats are supported?",
-        a: "Photo (JPG/PNG) or PDF, up to 8MB.",
+        a: "Photo (JPG/PNG) or PDF, up to 10MB.",
       },
     ],
 
@@ -254,7 +256,7 @@ const STRINGS = {
       "Upload a photo or PDF of your MCU. It is processed in your browser then analyzed — the original file is not stored, only the summary.",
     loginCta: "Sign in / Register to analyze",
     uploadCta: "Choose your MCU file",
-    uploadHint: "Photo (JPG/PNG) or PDF, max 8MB. Files are not stored.",
+    uploadHint: "Photo (JPG/PNG) or PDF, max 10MB. Files are not stored.",
     analyzeButton: "Analyze now",
     analyzing: "Analyzing… this can take up to ~1.5 minutes.",
     historyHeading: "Your MCU history & trends",
@@ -263,7 +265,7 @@ const STRINGS = {
     signedInAs: "Signed in as",
 
     errFile: "Please choose a file first.",
-    errTooLarge: "File is too large (max 8MB). Please shrink it first.",
+    errTooLarge: "File is too large (max 10MB). Please shrink it first.",
     errType: "File type not supported. Use JPG, PNG, or PDF.",
     errPreprocess: "Couldn't read this file in the browser. Try another file, or take a direct photo of the lab result (JPG/PNG).",
     errNetwork: "Couldn't connect. Check your connection and try again.",
@@ -281,6 +283,8 @@ const STRINGS = {
     errClaimSaveFailed: "Result found but couldn't be saved to your account. Please try again.",
     errAnalyzeFailed: "Couldn't analyze your MCU results. Please try again.",
     errAnalyzeTimeout: "The analysis is taking longer than usual. Please try again.",
+    errNotMcu: "This doesn't look like a medical check-up result. Try uploading the lab report from your clinic or hospital.",
+    errIncompleteMcu: "This was read as an MCU, but some key details are missing (patient name, exam date, or lab values). Try uploading a more complete report.",
 
     footerDisclaimer:
       "medicalcheckup.20fit.id helps you UNDERSTAND lab results. It is not a diagnosis and not a substitute for a doctor's advice.",
@@ -387,6 +391,8 @@ const ERROR_CODE_KEYS = {
   claim_save_failed: "errClaimSaveFailed",
   analyze_failed: "errAnalyzeFailed",
   analyze_timeout: "errAnalyzeTimeout",
+  not_mcu: "errNotMcu",
+  incomplete_mcu: "errIncompleteMcu",
   service_unavailable: "serviceUnavailable",
 };
 

@@ -16,6 +16,7 @@ import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
 import { createArticleStore } from "./server/articles.js";
+import { LOCAL_ARTICLES } from "./shared/localArticles.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -280,7 +281,9 @@ async function handleArticles(res, lang, slug) {
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
-  const articles = store ? await store.listPublished({ limit: 30 }) : [];
+  // High limit so the full mcu-original library renders on the list page
+  // (local articles are always returned first, then media rows fill any room).
+  const articles = store ? await store.listPublished({ limit: 200 }) : [];
   const page = articleListPage({ s, lang, articles });
   const { html, nonce } = renderArticleLayout(lang, listPath, page);
   sendHtml(res, 200, html, nonce);
@@ -357,16 +360,25 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === "/sitemap.xml") {
     const now = new Date().toISOString().slice(0, 10);
+    // mcu-ORIGINAL articles are self-canonical (published_url === null), so they
+    // belong in this sitemap (both languages). media_articles rows are excluded:
+    // they canonical-point back to media.20fit.id and must not be indexed here.
+    const articleUrls = LOCAL_ARTICLES.filter((a) => a.published_url == null)
+      .map(
+        (a) =>
+          `<url><loc>${PUBLIC_ORIGIN}/articles/${encodeURIComponent(a.slug)}</loc><lastmod>${now}</lastmod></url>\n` +
+          `<url><loc>${PUBLIC_ORIGIN}/id/articles/${encodeURIComponent(a.slug)}</loc><lastmod>${now}</lastmod></url>\n`,
+      )
+      .join("");
     res.writeHead(200, { "Content-Type": MIME[".xml"] }).end(
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         `<url><loc>${PUBLIC_ORIGIN}/</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/home</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id/home</loc><lastmod>${now}</lastmod></url>\n` +
-        // Article LIST pages only. Individual articles canonical-point to
-        // media.20fit.id, so they're intentionally kept out of this sitemap.
         `<url><loc>${PUBLIC_ORIGIN}/articles</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id/articles</loc><lastmod>${now}</lastmod></url>\n` +
+        articleUrls +
         `</urlset>\n`,
     );
     return;

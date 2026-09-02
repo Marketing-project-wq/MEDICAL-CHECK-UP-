@@ -235,14 +235,35 @@ function scanSection(s, loginUrl, returnToUrl) {
   </section>`;
 }
 
+// Quiz — BMI (+ optional waist-to-height). Pure client-side math on
+// self-entered numbers (no upload, no AI, no server), so it is safe for anon
+// and needs no §0.1 gate. The result is rendered by client/quiz.js; the copy
+// (standard WHO thresholds + honest "BMI is a rough indicator" context + the
+// doctor escalation) all lives in i18n.
 function quizSection(s) {
   return `<section id="quiz" class="section section-alt">
-    <div class="wrap">
+    <div class="wrap wrap-narrow">
       <h2>${escapeHtml(s.pillarQuizTitle)}</h2>
-      <div class="coming-soon-card">
-        <span class="coming-soon-badge">${escapeHtml(s.comingSoonBadge)}</span>
-        <p>${escapeHtml(s.quizComingSoonText)}</p>
-      </div>
+      <p class="section-intro">${escapeHtml(s.quizIntro)}</p>
+      <form class="quiz-form" data-role="quiz-form" novalidate>
+        <div class="quiz-fields">
+          <label class="quiz-field">
+            <span>${escapeHtml(s.quizHeightLabel)}</span>
+            <input type="number" inputmode="decimal" min="80" max="250" step="0.1" placeholder="170" data-role="q-height">
+          </label>
+          <label class="quiz-field">
+            <span>${escapeHtml(s.quizWeightLabel)}</span>
+            <input type="number" inputmode="decimal" min="25" max="400" step="0.1" placeholder="65" data-role="q-weight">
+          </label>
+          <label class="quiz-field">
+            <span>${escapeHtml(s.quizWaistLabel)} <em>(${escapeHtml(s.quizOptional)})</em></span>
+            <input type="number" inputmode="decimal" min="40" max="250" step="0.1" placeholder="80" data-role="q-waist">
+          </label>
+        </div>
+        <button class="btn btn-primary" type="submit" data-role="q-submit">${escapeHtml(s.quizSubmit)}</button>
+        <span class="status-msg" data-role="q-status" role="status" aria-live="polite"></span>
+      </form>
+      <div class="quiz-result" data-role="quiz-result" hidden></div>
     </div>
   </section>`;
 }

@@ -185,6 +185,29 @@ const STRINGS = {
     comingSoonBadge: "SEGERA HADIR",
     quizComingSoonText: "Quiz BMI & cek kondisi tubuh lagi disiapkan. Sebentar lagi kamu bisa dapat gambaran singkat di sini — tetap dengan catatan: bukan diagnosa, dan ada jalur ke dokter 20FIT.",
     viewAllArticles: "Lihat semua artikel",
+
+    // Quiz BMI (Tahap 2) — ambang standar WHO, dengan konteks jujur
+    quizIntro: "Masukkan tinggi & berat kamu untuk lihat BMI dan gambaran kondisi tubuh. Ini perkiraan kasar untuk awareness — bukan diagnosa.",
+    quizHeightLabel: "Tinggi badan (cm)",
+    quizWeightLabel: "Berat badan (kg)",
+    quizWaistLabel: "Lingkar pinggang (cm)",
+    quizOptional: "opsional",
+    quizSubmit: "Hitung",
+    quizErrInputs: "Isi tinggi & berat dengan angka yang wajar dulu ya.",
+    quizResultHeading: "Hasil perkiraan kamu",
+    bmiLabel: "BMI kamu",
+    bmiCatUnder: "Berat kurang",
+    bmiCatNormal: "Normal",
+    bmiCatOver: "Berat berlebih",
+    bmiCatObese: "Obesitas",
+    bmiContext:
+      "BMI cuma membandingkan berat dengan tinggi — nggak bisa bedain otot dan lemak. Orang berotot bisa BMI tinggi tapi tetap sehat; sebaliknya BMI 'normal' belum tentu bebas risiko. Anggap ini gambaran kasar, bukan penilaian medis.",
+    bmiAsiaNote:
+      "Untuk populasi Asia, ambangnya sering lebih rendah (mis. berlebih mulai BMI 23). Angka pastinya sebaiknya dibahas dengan dokter.",
+    whtrLabel: "Rasio pinggang–tinggi",
+    whtrOk: "Di bawah 0,5 — umumnya dianggap kisaran sehat.",
+    whtrHigh: "0,5 atau lebih — sering dikaitkan dengan risiko lebih tinggi. Pertimbangkan diskusi dengan dokter.",
+    quizDoctorLine: "Mau lebih pasti soal kondisimu?",
   },
 
   en: {
@@ -363,6 +386,29 @@ const STRINGS = {
     comingSoonBadge: "COMING SOON",
     quizComingSoonText: "The BMI & body-condition quiz is on its way. Soon you'll get a quick picture here — still with the same note: not a diagnosis, and there's a path to a 20FIT doctor.",
     viewAllArticles: "View all articles",
+
+    // BMI quiz (Tahap 2) — standard WHO thresholds, with honest context
+    quizIntro: "Enter your height & weight to see your BMI and a picture of your body condition. This is a rough estimate for awareness — not a diagnosis.",
+    quizHeightLabel: "Height (cm)",
+    quizWeightLabel: "Weight (kg)",
+    quizWaistLabel: "Waist circumference (cm)",
+    quizOptional: "optional",
+    quizSubmit: "Calculate",
+    quizErrInputs: "Please enter a sensible height & weight first.",
+    quizResultHeading: "Your estimate",
+    bmiLabel: "Your BMI",
+    bmiCatUnder: "Underweight",
+    bmiCatNormal: "Normal",
+    bmiCatOver: "Overweight",
+    bmiCatObese: "Obese",
+    bmiContext:
+      "BMI only compares weight to height — it can't tell muscle from fat. A muscular person can have a high BMI yet be healthy; a 'normal' BMI isn't automatically risk-free. Treat this as a rough picture, not a medical assessment.",
+    bmiAsiaNote:
+      "For Asian populations the thresholds are often lower (e.g. overweight from BMI 23). Discuss the exact number with a doctor.",
+    whtrLabel: "Waist-to-height ratio",
+    whtrOk: "Below 0.5 — generally considered a healthy range.",
+    whtrHigh: "0.5 or above — often linked to higher risk. Consider discussing it with a doctor.",
+    quizDoctorLine: "Want to be sure about your condition?",
   },
 };
 

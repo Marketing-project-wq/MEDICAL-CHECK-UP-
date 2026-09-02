@@ -51,6 +51,10 @@ export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60
   }
 
   async function listMedia({ limit = 30, category = null } = {}) {
+    // No service-role key → skip the media_articles fetch entirely (the
+    // mcu-original local articles still render). Avoids a doomed request with
+    // an empty apikey when Supabase env isn't configured.
+    if (!serviceRoleKey) return [];
     const key = `list:${category || "all"}:${limit}`;
     const hit = getCached(key);
     if (hit !== undefined) return hit;

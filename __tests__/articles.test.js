@@ -74,6 +74,20 @@ test("mcu-original (local) articles are listed FIRST, then media rows", async ()
   assert.ok(rows.length >= LOCAL_ARTICLES.length + 1);
 });
 
+test("serves mcu-original articles with NO service-role key (no network call)", async () => {
+  const fetchImpl = fakeFetch(() => ok([]));
+  const store = createArticleStore({ supabaseUrl: "https://x.supabase.co", serviceRoleKey: "", fetchImpl });
+  const rows = await store.listPublished({ limit: 30 });
+  assert.deepEqual(
+    rows.map((r) => r.slug),
+    LOCAL_ARTICLES.map((a) => a.slug),
+    "without a key, the local articles still render",
+  );
+  const one = await store.getBySlug(LOCAL_ARTICLES[0].slug);
+  assert.equal(one.slug, LOCAL_ARTICLES[0].slug, "detail also served without a key");
+  assert.equal(fetchImpl.calls.length, 0, "no Supabase request is made without a key");
+});
+
 test("getBySlug serves a local article without any network call, self-canonical", async () => {
   const fetchImpl = fakeFetch(() => ok([]));
   const store = createArticleStore({ supabaseUrl: "https://x.supabase.co", serviceRoleKey: "svc", fetchImpl });

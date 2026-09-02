@@ -286,7 +286,9 @@ async function handleArticles(res, lang, slug) {
   const articles = store ? await store.listPublished({ limit: 200 }) : [];
   const page = articleListPage({ s, lang, articles });
   const { html, nonce } = renderArticleLayout(lang, listPath, page);
-  sendHtml(res, 200, html, nonce);
+  // relaxImg: article cards carry cover photos (article `image` or the stock
+  // fallback) that may be served from other https hosts.
+  sendHtml(res, 200, html, nonce, { relaxImg: true });
 }
 
 async function serveStatic(req, res, pathname) {
@@ -430,12 +432,13 @@ const server = http.createServer(async (req, res) => {
   // too so the SSO fragment is consumed on the page the member returned to.
   if (pathname === "/home" || pathname === "/home/" || pathname === "/home/auth/callback") {
     const { html, nonce } = await renderHomeHub("en", "/home");
-    sendHtml(res, 200, html, nonce);
+    // relaxImg: featured-article cards carry cover photos from other https hosts.
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
   if (pathname === "/id/home" || pathname === "/id/home/" || pathname === "/id/home/auth/callback") {
     const { html, nonce } = await renderHomeHub("id", "/id/home");
-    sendHtml(res, 200, html, nonce);
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
   if (pathname === "/en" || pathname === "/en/" || pathname === "/en/auth/callback") {

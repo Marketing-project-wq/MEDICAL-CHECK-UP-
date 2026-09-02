@@ -65,13 +65,28 @@ export function articleCoverSvg(theme) {
   );
 }
 
-// Cover block for a card (default) or a detail hero. Uses `image` (a URL) when
-// set, else the generated cover.
+// Only allow a plain https URL with no characters that could break out of the
+// CSS url('...') / HTML attribute context.
+const CSS_URL_OK = /^https:\/\/[^\s'"()<>\\]+$/;
+
+// The photo shown over the cover. An explicit `image` (e.g. a 20FIT brand photo)
+// wins; otherwise a deterministic, brand-safe stock photograph per article so a
+// real photo always appears. Returns "" when nothing safe is available (the
+// generated SVG cover then shows on its own).
+function photoUrl(a) {
+  const explicit = a && typeof a.image === "string" ? a.image.trim() : "";
+  if (explicit) return CSS_URL_OK.test(explicit) ? explicit : "";
+  const seed = encodeURIComponent(((a && a.slug) || "mcu").slice(0, 60));
+  return `https://picsum.photos/seed/${seed}/1200/675`;
+}
+
+// Cover block for a card (default) or a detail hero: the generated SVG sits at
+// the base, and a photo layers over it. If the photo can't load, the SVG shows
+// through — so the cover is never broken.
 export function articleCover(a, { hero = false } = {}) {
   const cls = hero ? "article-cover article-cover-hero" : "article-cover";
-  const img = a && typeof a.image === "string" && a.image.trim() ? a.image.trim() : null;
-  const inner = img
-    ? `<img class="cover-img" src="${escapeHtml(img)}" alt="" loading="lazy">`
-    : articleCoverSvg(coverTheme(a || {}));
-  return `<div class="${cls}">${inner}</div>`;
+  const svg = articleCoverSvg(coverTheme(a || {}));
+  const url = photoUrl(a || {});
+  const photo = url ? `<div class="cover-photo" style="background-image:url('${escapeHtml(url)}')"></div>` : "";
+  return `<div class="${cls}">${svg}${photo}</div>`;
 }

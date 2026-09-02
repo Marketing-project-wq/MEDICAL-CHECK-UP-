@@ -2,12 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { renderResult } from "../src/shared/renderResult.js";
 import { getRenderLabels } from "../src/shared/i18n.js";
+import { getSampleResult } from "../src/shared/sampleData.js";
 
 const tId = getRenderLabels("id");
 const tEn = getRenderLabels("en");
 
 // Fixture matching the real my.20fit.id POST /api/analyze-mcu response shape,
-// used only to exercise renderResult in tests (no sample data is shipped to users).
+// used to exercise renderResult in tests. The fictional example that IS shipped
+// to the page (getSampleResult) is covered by its own test at the bottom.
 function fixture(lang) {
   const isEn = lang === "en";
   return {
@@ -88,4 +90,21 @@ test("does not throw on empty / partial input", () => {
   assert.doesNotThrow(() => renderResult({}, tId));
   assert.doesNotThrow(() => renderResult(null, tEn));
   assert.doesNotThrow(() => renderResult({ metrics: null, checklist: undefined }, tId));
+});
+
+test("the shipped example (getSampleResult) is fictional and renders in both languages", () => {
+  for (const [lang, t] of [["id", tId], ["en", tEn]]) {
+    const sample = getSampleResult(lang);
+    // Obviously fictional patient name so it can never be mistaken for a real person.
+    assert.match(sample.patient_name, /Contoh|Sample/, `${lang}: fictional patient name`);
+    // Valid analyze-mcu shape.
+    assert.ok(["A", "B", "C", "D"].includes(sample.grade), `${lang}: valid grade`);
+    assert.ok(Array.isArray(sample.metrics) && sample.metrics.length > 0, `${lang}: has metrics`);
+    for (const m of sample.metrics) assert.ok(["ok", "high", "low", "warning"].includes(m.status), `${lang}: valid metric status`);
+    for (const c of sample.checklist) assert.ok(["high", "med", "low"].includes(c.priority), `${lang}: valid checklist priority`);
+    // Renders through the SAME renderer as a real result, disclaimer included.
+    const html = renderResult(sample, t);
+    assert.match(html, /class="mcu-result"/, `${lang}: wrapper`);
+    assert.match(html, /mcu-disclaimer/, `${lang}: disclaimer always shown`);
+  }
 });

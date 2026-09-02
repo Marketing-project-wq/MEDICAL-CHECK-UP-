@@ -1,8 +1,10 @@
 // Home page composition (server-rendered). Dependency-free ESM.
 
 import { escapeHtml } from "../shared/escape.js";
-import { getStrings } from "../shared/i18n.js";
+import { getStrings, getRenderLabels } from "../shared/i18n.js";
 import { buildLoginUrl } from "../shared/returnTo.js";
+import { renderResult } from "../shared/renderResult.js";
+import { getSampleResult } from "../shared/sampleData.js";
 
 function heroSection(s) {
   return `<section class="hero">
@@ -42,20 +44,47 @@ function heroSection(s) {
 }
 
 /**
- * Universal upload widget — server-rendered for EVERYONE (anon + member).
- * Anonymous visitors can upload and get a fully open, one-time analysis
- * (no login gate on the upload/analyze action itself), but the result is
- * never persisted for them (no history row is possible without an account)
- * and a consent checkbox must be ticked before the analyze button enables —
- * client-side gate for calling the AI on someone's health document without
- * an account. Logged-in members get the same widget plus history/signed-in
- * UI, revealed by the client once a session is confirmed.
+ * Fictional example result, shown to EVERYONE (anon included) so they can see
+ * what a real analysis looks like without uploading anything — the §0.1-safe
+ * way to preview the product (spec §1). Rendered by the exact same
+ * renderResult() the real member flow uses, and clearly badged as an example
+ * so it can never be mistaken for a real person's result.
+ */
+function sampleSection(s, lang) {
+  const t = getRenderLabels(lang);
+  const resultHtml = renderResult(getSampleResult(lang), t);
+  return `<section id="example" class="section section-alt">
+    <div class="wrap">
+      <div class="sample-head">
+        <h2>${escapeHtml(s.sampleHeading)}</h2>
+        <span class="sample-badge">${escapeHtml(s.sampleBadge)}</span>
+      </div>
+      <p class="section-intro">${escapeHtml(s.sampleNote)}</p>
+      <div class="sample-result" aria-hidden="false">${resultHtml}</div>
+    </div>
+  </section>`;
+}
+
+/**
+ * Upload widget — spec §0.1: the gate is at UPLOAD, not at the result.
+ *
+ * The uploader (file input, analyze, result, history) is MEMBER-ONLY and is
+ * rendered `hidden` by default. The default state anyone gets — anonymous
+ * visitor, or before/without JS — is the login gate: an explanation plus a
+ * "sign in / register to analyze" button pointing at my.20fit.id/login with
+ * a validated return_to. So a health document can never be uploaded or sent
+ * to the AI without an account: there is simply no file input to use until
+ * the client has confirmed a real member session and revealed the uploader.
+ *
+ * This is the fail-safe direction on purpose (uploader hidden unless proven
+ * member), matching the server-side gate in scanHandlers.js which refuses
+ * any /api/scan request that isn't authenticated.
  */
 function uploadSection(s, loginUrl, returnToUrl) {
   const loginHref = buildLoginUrl(loginUrl, returnToUrl);
   return `<section id="upload" class="section">
     <div class="wrap">
-      <h2>${escapeHtml(s.uploadHeading)}</h2>
+      <h2>${escapeHtml(s.memberHeading)}</h2>
       <hr class="rule">
       <div
         id="member-app"
@@ -68,39 +97,38 @@ function uploadSection(s, loginUrl, returnToUrl) {
           <button class="btn btn-ghost" data-act="signout" type="button">${escapeHtml(s.signOut)}</button>
         </div>
 
-        <div class="upload-card" data-role="dropzone">
-          <div class="upload-plus" aria-hidden="true">+</div>
-          <div class="upload-title">${escapeHtml(s.uploadCardTitle)}</div>
-          <div class="upload-hint">${escapeHtml(s.uploadCardHint)}</div>
-          <input type="file" accept="image/jpeg,image/png,application/pdf" hidden data-role="file">
-          <div class="file-name" data-role="filename" hidden></div>
-          <div class="upload-actions">
-            <button class="btn btn-ghost" data-act="choose" type="button">${escapeHtml(s.uploadCta)}</button>
+        <div class="login-gate" data-role="login-gate">
+          <p class="login-gate-intro">${escapeHtml(s.memberIntroAnon)}</p>
+          <a class="btn btn-primary btn-block" data-role="login-cta" href="${escapeHtml(loginHref)}">${escapeHtml(s.loginCta)}</a>
+        </div>
+
+        <div class="uploader" data-role="uploader" hidden>
+          <p class="uploader-intro">${escapeHtml(s.memberIntroMember)}</p>
+          <div class="upload-card" data-role="dropzone">
+            <div class="upload-plus" aria-hidden="true">+</div>
+            <div class="upload-title">${escapeHtml(s.uploadCardTitle)}</div>
+            <div class="upload-hint">${escapeHtml(s.uploadCardHint)}</div>
+            <input type="file" accept="image/jpeg,image/png,application/pdf" hidden data-role="file">
+            <div class="file-name" data-role="filename" hidden></div>
+            <div class="upload-actions">
+              <button class="btn btn-ghost" data-act="choose" type="button">${escapeHtml(s.uploadCta)}</button>
+            </div>
+          </div>
+
+          <div class="member-actions">
+            <button class="btn btn-primary btn-block" data-act="analyze" type="button" disabled>${escapeHtml(s.analyzeButton)}</button>
+          </div>
+          <span class="status-msg" data-role="status" role="status" aria-live="polite"></span>
+
+          <div class="result-slot" data-role="result-slot" hidden>
+            <div data-role="result-body"></div>
+          </div>
+
+          <div class="history" data-role="history-wrap" hidden>
+            <h3>${escapeHtml(s.historyHeading)}</h3>
+            <div data-role="history"></div>
           </div>
         </div>
-
-        <div class="consent-row" data-role="consent-row">
-          <input type="checkbox" id="mcu-consent" data-role="consent">
-          <label for="mcu-consent">${escapeHtml(s.consentLabel)}</label>
-        </div>
-
-        <div class="member-actions">
-          <button class="btn btn-primary btn-block" data-act="analyze" type="button" disabled>${escapeHtml(s.analyzeButton)}</button>
-        </div>
-        <span class="status-msg" data-role="status" role="status" aria-live="polite"></span>
-
-        <div class="result-slot" data-role="result-slot" hidden>
-          <div data-role="result-body"></div>
-        </div>
-
-        <div class="history" data-role="history-wrap" hidden>
-          <h3>${escapeHtml(s.historyHeading)}</h3>
-          <div data-role="history"></div>
-        </div>
-
-        <p class="hero-note" data-role="anon-login-hint">
-          <a data-role="login-cta" href="${escapeHtml(loginHref)}">${escapeHtml(s.loginCta)}</a>
-        </p>
       </div>
 
       <div class="steps-grid">
@@ -182,6 +210,7 @@ export function renderHomePage({ lang, publicOrigin, loginUrl, canonicalPath }) 
   const myOrigin = loginUrl.replace(/\/login\/?$/, "");
   const bodyHtml = [
     heroSection(s),
+    sampleSection(s, lang),
     uploadSection(s, loginUrl, returnToUrl),
     testimonialsSection(s),
     ecosystemSection(s),

@@ -1,42 +1,9 @@
 // Proxies to the REAL my.20fit.id analysis endpoint (verified against the
-// my20fit-dashboard source: POST /api/analyze-mcu, multipart, no auth check
-// today) and derives the safe "teaser" shown to anonymous visitors before
-// they have an account. AI is only ever called from here (the server) —
-// never from the browser, and no AI key lives in this app either way,
-// since my20fit-dashboard holds its own key.
-
-const CATEGORY_RULES = [
-  { match: /kolesterol|ldl|hdl|trigliserida|lipid/i, id: "Profil Lipid", en: "Lipid Profile" },
-  { match: /gula|glukosa|gds|hba1c|diabetes/i, id: "Gula Darah", en: "Blood Sugar" },
-  { match: /tekanan darah|sistol|diastol/i, id: "Tekanan Darah", en: "Blood Pressure" },
-  { match: /hemoglobin|leukosit|eritrosit|trombosit|darah lengkap/i, id: "Darah Lengkap", en: "Complete Blood Count" },
-  { match: /sgot|sgpt|hati|liver/i, id: "Fungsi Hati", en: "Liver Function" },
-  { match: /ureum|kreatinin|ginjal/i, id: "Fungsi Ginjal", en: "Kidney Function" },
-  { match: /asam urat|urat/i, id: "Asam Urat", en: "Uric Acid" },
-  { match: /bmi|berat|imt/i, id: "Indeks Tubuh", en: "Body Index" },
-];
-
-function categoryFor(label, lang) {
-  const rule = CATEGORY_RULES.find((r) => r.match.test(label || ""));
-  if (rule) return lang === "en" ? rule.en : rule.id;
-  return lang === "en" ? "Other Markers" : "Penanda Lain";
-}
-
-/**
- * Derives ONLY safe, non-sensitive fields from a real analysis result —
- * counts and category names, never a value/status/explanation pair. This is
- * what an anonymous visitor's browser receives; the full `result` never
- * reaches them until they claim it post-signup.
- */
-export function deriveTeaser(result, lang) {
-  const metrics = Array.isArray(result?.metrics) ? result.metrics : [];
-  const categories = [...new Set(metrics.map((m) => categoryFor(m?.label, lang)))];
-  return {
-    parameters_detected: metrics.length,
-    categories,
-    scanned_at: new Date().toISOString(),
-  };
-}
+// my20fit-dashboard source: POST /api/analyze-mcu, multipart). AI is only
+// ever called from here (the server) — never from the browser — and no AI
+// key lives in this app either way, since my20fit-dashboard holds its own
+// key. Per spec §0.1, /api/scan only ever calls this for an authenticated
+// member (see scanHandlers.js); an anonymous document is never analyzed.
 
 function dataUrlToBuffer(dataUrl) {
   const match = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(dataUrl);

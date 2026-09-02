@@ -208,6 +208,27 @@ const STRINGS = {
     whtrOk: "Di bawah 0,5 — umumnya dianggap kisaran sehat.",
     whtrHigh: "0,5 atau lebih — sering dikaitkan dengan risiko lebih tinggi. Pertimbangkan diskusi dengan dokter.",
     quizDoctorLine: "Mau lebih pasti soal kondisimu?",
+
+    // Program & Latihan (Tahap 3+4) — kategori layanan ASLI 20FIT, tanpa
+    // mengarang paket/harga; link booking bisa dikonfigurasi.
+    pillarProgramTitle: "Program & Latihan",
+    pillarProgramDesc: "Pilihan latihan 20FIT: rumah, studio EMS, HYROX, fisio.",
+    programHeading: "Program & Latihan 20FIT",
+    programIntro:
+      "Ini pilihan latihan di 20FIT untuk dipertimbangkan — bukan resep medis. Belum yakin yang mana? Konsultasi ke dokter 20FIT dulu.",
+    programGroupHome: "Latihan di rumah",
+    programGroupOutside: "Latihan di studio / luar",
+    programLinkCta: "Pelajari / Booking",
+    programSaveNote: "Mau simpan pilihan & lanjut? Login ke akun my.20fit — semua tersambung di sana.",
+    programSaveCta: "Lanjutkan di my.20fit",
+    optHomeTitle: "Latihan di Rumah",
+    optHomeDesc: "Panduan workout mandiri lewat aplikasi my.20fit. Cocok buat mulai dari rumah dengan jadwal fleksibel.",
+    optEmsTitle: "EMS Training (Studio)",
+    optEmsDesc: "Latihan 20 menit dengan stimulasi otot (EMS) di studio 20FIT. Cocok buat yang mau efisien waktu.",
+    optArenaTitle: "HYROX / Arena",
+    optArenaDesc: "Latihan fungsional & kompetisi HYROX di arena 20FIT. Cocok buat tantangan dan kebugaran fungsional.",
+    optClinicTitle: "Fisioterapi / Klinik",
+    optClinicDesc: "Pemulihan, penanganan cedera, dan mobilitas bareng tim klinik 20FIT. Cocok kalau ada keluhan fisik.",
   },
 
   en: {
@@ -409,6 +430,27 @@ const STRINGS = {
     whtrOk: "Below 0.5 — generally considered a healthy range.",
     whtrHigh: "0.5 or above — often linked to higher risk. Consider discussing it with a doctor.",
     quizDoctorLine: "Want to be sure about your condition?",
+
+    // Programs & Training (Tahap 3+4) — REAL 20FIT service lines, no invented
+    // packages/prices; booking links are configurable.
+    pillarProgramTitle: "Programs & Training",
+    pillarProgramDesc: "20FIT training options: home, EMS studio, HYROX, physio.",
+    programHeading: "20FIT Programs & Training",
+    programIntro:
+      "These are training options at 20FIT to consider — not a medical prescription. Not sure which one? Consult a 20FIT doctor first.",
+    programGroupHome: "Train at home",
+    programGroupOutside: "Train at the studio / outside",
+    programLinkCta: "Learn more / Book",
+    programSaveNote: "Want to save your choice & continue? Sign in to my.20fit — it's all connected there.",
+    programSaveCta: "Continue on my.20fit",
+    optHomeTitle: "Train at Home",
+    optHomeDesc: "Self-guided workouts via the my.20fit app. Good for starting from home on a flexible schedule.",
+    optEmsTitle: "EMS Training (Studio)",
+    optEmsDesc: "20-minute EMS-assisted sessions at the 20FIT studio. Good if you want to be time-efficient.",
+    optArenaTitle: "HYROX / Arena",
+    optArenaDesc: "Functional training & HYROX competition at the 20FIT arena. Good for a challenge and functional fitness.",
+    optClinicTitle: "Physiotherapy / Clinic",
+    optClinicDesc: "Recovery, injury care, and mobility with the 20FIT clinic team. Good if you have a physical complaint.",
   },
 };
 

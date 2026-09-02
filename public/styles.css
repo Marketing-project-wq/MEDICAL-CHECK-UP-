@@ -539,8 +539,28 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 .section-head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .link-more { font-family: var(--font-mono); font-weight: 700; font-size: 0.85rem; color: var(--red-text); white-space: nowrap; }
 
+@media (min-width: 560px) {
+  .pillar-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 960px) {
+  .pillar-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ── Program & Training (Tahap 3+4) ── */
+.train-group { font-size: 0.95rem; margin: 24px 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700; }
+.train-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.train-card {
+  display: block; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; color: inherit; transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.train-card:hover { border-color: var(--red); box-shadow: var(--shadow); transform: translateY(-2px); text-decoration: none; }
+.train-card h4 { font-size: 1.05rem; margin: 0 0 5px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.train-card p { margin: 0 0 10px; color: var(--muted); font-size: 0.9rem; }
+.train-link { font-family: var(--font-mono); font-weight: 700; font-size: 0.8rem; color: var(--red-text); }
+.program-save { margin-top: 22px; font-weight: 600; }
+.program-save a { color: var(--red-text); font-family: var(--font-mono); white-space: nowrap; }
 @media (min-width: 720px) {
-  .pillar-grid { grid-template-columns: repeat(3, 1fr); }
+  .train-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* ── BMI quiz ── */

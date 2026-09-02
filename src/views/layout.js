@@ -98,12 +98,20 @@ export function renderLayout(opts) {
     bodyClass = "",
     logoLightUrl,
     logoDarkUrl,
+    canonicalOverride = null,
+    suppressAlternates = false,
   } = opts;
 
-  const canonical = publicOrigin + canonicalPath;
+  // Article detail pages pass canonicalOverride = the media.20fit published_url
+  // so mcu shows the content without competing with media.20fit for SEO;
+  // suppressAlternates drops the home-page hreflang links that don't apply
+  // off the home route.
+  const canonical = canonicalOverride || publicOrigin + canonicalPath;
   const altId = publicOrigin + "/id";
   const altEn = publicOrigin + "/";
   const myOrigin = clientConfig.apiBase;
+  const homeHref = lang === "id" ? "/id" : "/";
+  const articlesHref = lang === "id" ? "/id/articles" : "/articles";
 
   return `<!doctype html>
 <html lang="${escapeHtml(s.htmlLang)}">
@@ -115,9 +123,9 @@ export function renderLayout(opts) {
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
-<link rel="alternate" hreflang="id" href="${escapeHtml(altId)}">
+${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeHtml(altId)}">
 <link rel="alternate" hreflang="en" href="${escapeHtml(altEn)}">
-<link rel="alternate" hreflang="x-default" href="${escapeHtml(altEn)}">
+<link rel="alternate" hreflang="x-default" href="${escapeHtml(altEn)}">`}
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeHtml(title)}">
 <link rel="preload" as="image" href="${escapeHtml(logoLightUrl)}">
@@ -142,9 +150,10 @@ export function renderLayout(opts) {
       <span class="brand-sub">${escapeHtml(s.headerTagline)}</span>
     </a>
     <nav class="site-nav" aria-label="primary">
-      <a href="#ecosystem" class="nav-secondary">${escapeHtml(s.nav.education)}</a>
-      <a href="#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
-      <a href="#upload" class="nav-cta">${escapeHtml(s.nav.analyze)}</a>
+      <a href="${escapeHtml(articlesHref)}" class="nav-secondary">${escapeHtml(s.nav.articles)}</a>
+      <a href="${escapeHtml(homeHref)}#ecosystem" class="nav-secondary">${escapeHtml(s.nav.education)}</a>
+      <a href="${escapeHtml(homeHref)}#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
+      <a href="${escapeHtml(homeHref)}#upload" class="nav-cta">${escapeHtml(s.nav.analyze)}</a>
       ${langToggleMarkup(lang, s)}
       <button type="button" class="theme-toggle" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>
@@ -170,6 +179,7 @@ ${bodyHtml}
           <li><a href="https://menu.20fit.id">${escapeHtml(s.ecosystemProducts[1].name)}</a></li>
           <li><a href="${escapeHtml(publicOrigin)}">${escapeHtml(s.ecosystemProducts[2].name)}</a></li>
           <li><a href="${escapeHtml(myOrigin)}">${escapeHtml(s.ecosystemProducts[3].name)}</a></li>
+          <li><a href="${escapeHtml(articlesHref)}">${escapeHtml(s.nav.articles)}</a></li>
         </ul>
       </div>
       <div class="footer-col">

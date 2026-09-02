@@ -10,10 +10,12 @@ import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
 import { renderHomePage } from "./views/pages.js";
+import { articleListPage, articleDetailPage } from "./views/articles.js";
 import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
+import { createArticleStore } from "./server/articles.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -26,6 +28,10 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || "https://cpvzwqptzcxnwzfzgrmt.
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fit.id").replace(/\/$/, "");
+// Official escalation target for every health tool (spec: awareness tools must
+// route "want more? consult a doctor" to the real in-app Book Doctor flow).
+// Override once the exact my.20fit.id route is confirmed.
+const DOCTOR_BOOKING_URL = process.env.DOCTOR_BOOKING_URL || MY20FIT_ORIGIN + "/book-doctor";
 // Hotlinked from media.20fit.id at the user's explicit direction (this
 // sandbox cannot fetch the source files itself to re-host them — see PR
 // #10/#8 — and the user has no other way to hand them over). If that host
@@ -56,6 +62,17 @@ function getScanHandlers() {
   });
   scanHandlers = createScanHandlers({ supabaseAdmin, my20fitOrigin: MY20FIT_ORIGIN });
   return scanHandlers;
+}
+
+// Article store (Tahap 1): reads published media_articles server-side. Lazily
+// constructed; a missing service-role key just yields an empty list / 404
+// rather than crashing the page.
+let articleStore = null;
+function getArticleStore() {
+  if (articleStore) return articleStore;
+  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+  articleStore = createArticleStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
+  return articleStore;
 }
 
 function safeOrigin(u) {
@@ -94,14 +111,21 @@ const STATIC_ROOTS = [
   { prefix: "/public/", dir: PUBLIC_DIR },
 ];
 
-function securityHeaders(nonce) {
+function securityHeaders(nonce, { relaxImg = false } = {}) {
+  // Article bodies embed images from the WordPress media library (and
+  // occasionally other hosts). Those are images only — they can't execute —
+  // so article pages widen img-src to any https host; scripts stay locked to
+  // 'self' + nonce everywhere.
+  const imgSrc = relaxImg
+    ? "img-src 'self' data: blob: https:"
+    : `img-src 'self' data: blob: ${supabaseOrigin} https://media.20fit.id`;
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self' " + MY20FIT_ORIGIN,
-    `img-src 'self' data: blob: ${supabaseOrigin} https://media.20fit.id`,
+    imgSrc,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     `script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`,
@@ -130,11 +154,11 @@ function clientConfig(lang) {
   };
 }
 
-function sendHtml(res, status, html, nonce) {
+function sendHtml(res, status, html, nonce, opts = {}) {
   res.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "public, max-age=300",
-    ...securityHeaders(nonce),
+    ...securityHeaders(nonce, opts),
   });
   res.end(html);
 }
@@ -165,6 +189,74 @@ function renderPage(lang, canonicalPath) {
 
 function strings(lang) {
   return getStrings(lang);
+}
+
+function render404(lang) {
+  const nonce = crypto.randomBytes(16).toString("base64");
+  const s = strings(lang);
+  const homePath = lang === "id" ? "/id" : "/";
+  const body = `<section class="section"><div class="wrap"><h1>${escapeHtml(s.notFoundTitle)}</h1><p>${escapeHtml(
+    s.notFoundBody,
+  )}</p><p><a href="${escapeHtml(homePath)}">${escapeHtml(s.notFoundBackHome)}</a></p></div></section>`;
+  const html = renderLayout({
+    lang,
+    strings: s,
+    title: "404 — " + s.brand,
+    description: "",
+    canonicalPath: homePath,
+    publicOrigin: PUBLIC_ORIGIN,
+    bodyHtml: body,
+    clientConfig: clientConfig(lang),
+    nonce,
+    logoLightUrl: LOGO_LIGHT_URL,
+    logoDarkUrl: LOGO_DARK_URL,
+  });
+  return { html, nonce };
+}
+
+// Article pages carry a per-page canonical (detail → the media.20fit original)
+// and drop the home-only hreflang alternates.
+function renderArticleLayout(lang, canonicalPath, page) {
+  const nonce = crypto.randomBytes(16).toString("base64");
+  const html = renderLayout({
+    lang,
+    strings: strings(lang),
+    title: page.title,
+    description: page.description,
+    canonicalPath,
+    canonicalOverride: page.canonical || null,
+    suppressAlternates: true,
+    publicOrigin: PUBLIC_ORIGIN,
+    bodyHtml: page.bodyHtml,
+    clientConfig: clientConfig(lang),
+    nonce,
+    logoLightUrl: LOGO_LIGHT_URL,
+    logoDarkUrl: LOGO_DARK_URL,
+  });
+  return { html, nonce };
+}
+
+async function handleArticles(res, lang, slug) {
+  const s = strings(lang);
+  const store = getArticleStore();
+  const listPath = lang === "id" ? "/id/articles" : "/articles";
+  if (slug) {
+    const article = store ? await store.getBySlug(slug) : null;
+    if (!article) {
+      const { html, nonce } = render404(lang);
+      sendHtml(res, 404, html, nonce);
+      return;
+    }
+    const page = articleDetailPage({ s, lang, article, bookingUrl: DOCTOR_BOOKING_URL });
+    const { html, nonce } = renderArticleLayout(lang, `${listPath}/${slug}`, page);
+    // relaxImg: article bodies embed WordPress/media images from various hosts.
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+  const articles = store ? await store.listPublished({ limit: 30 }) : [];
+  const page = articleListPage({ s, lang, articles });
+  const { html, nonce } = renderArticleLayout(lang, listPath, page);
+  sendHtml(res, 200, html, nonce);
 }
 
 async function serveStatic(req, res, pathname) {
@@ -242,6 +334,10 @@ const server = http.createServer(async (req, res) => {
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         `<url><loc>${PUBLIC_ORIGIN}/</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id</loc><lastmod>${now}</lastmod></url>\n` +
+        // Article LIST pages only. Individual articles canonical-point to
+        // media.20fit.id, so they're intentionally kept out of this sitemap.
+        `<url><loc>${PUBLIC_ORIGIN}/articles</loc><lastmod>${now}</lastmod></url>\n` +
+        `<url><loc>${PUBLIC_ORIGIN}/id/articles</loc><lastmod>${now}</lastmod></url>\n` +
         `</urlset>\n`,
     );
     return;
@@ -293,27 +389,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Articles (Tahap 1): /articles + /articles/<slug> (EN),
+  // /id/articles + /id/articles/<slug> (ID).
+  const artMatch = pathname.match(/^\/(?:(id)\/)?articles(?:\/([^/]+))?\/?$/);
+  if (artMatch) {
+    const artLang = artMatch[1] === "id" ? "id" : "en";
+    const slug = artMatch[2] ? decodeURIComponent(artMatch[2]) : null;
+    await handleArticles(res, artLang, slug);
+    return;
+  }
+
   // 404
   const lang = pathname.startsWith("/id") ? "id" : "en";
-  const nonce = crypto.randomBytes(16).toString("base64");
-  const s = strings(lang);
-  const homePath = lang === "id" ? "/id" : "/";
-  const body = `<section class="section"><div class="wrap"><h1>${escapeHtml(s.notFoundTitle)}</h1><p>${escapeHtml(
-    s.notFoundBody,
-  )}</p><p><a href="${escapeHtml(homePath)}">${escapeHtml(s.notFoundBackHome)}</a></p></div></section>`;
-  const html = renderLayout({
-    lang,
-    strings: s,
-    title: "404 — " + s.brand,
-    description: "",
-    canonicalPath: homePath,
-    publicOrigin: PUBLIC_ORIGIN,
-    bodyHtml: body,
-    clientConfig: clientConfig(lang),
-    nonce,
-    logoLightUrl: LOGO_LIGHT_URL,
-    logoDarkUrl: LOGO_DARK_URL,
-  });
+  const { html, nonce } = render404(lang);
   sendHtml(res, 404, html, nonce);
 });
 

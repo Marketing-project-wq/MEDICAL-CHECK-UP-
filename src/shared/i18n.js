@@ -24,7 +24,7 @@ const STRINGS = {
     serviceUnavailable: "Fitur scan belum dikonfigurasi di server ini.",
     themeToggleLabel: "Ganti tema terang/gelap",
     langToggleAriaLabel: "Bahasa",
-    nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang" },
+    nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang", articles: "Artikel" },
 
     heroBadge: "Panduan MCU",
     heroKicker: "Pantau Kesehatan Berkelanjutan",
@@ -152,6 +152,20 @@ const STRINGS = {
     footerDisclaimer:
       "medicalcheckup.20fit.id membantu kamu MEMAHAMI hasil lab. Ini bukan diagnosis dan bukan pengganti nasihat dokter.",
     footerBackToApp: "Buka my.20fit.id",
+
+    // Artikel kesehatan (Tahap 1) + komponen alat kesehatan bersama
+    articlesHeading: "Artikel Kesehatan 20FIT",
+    articlesIntro: "Insight kebugaran, EMS, HYROX, fisioterapi, dan gaya hidup sehat dari tim 20FIT.",
+    articlesEmpty: "Belum ada artikel untuk ditampilkan.",
+    articleReadMore: "Baca selengkapnya",
+    articleBackToList: "← Semua artikel",
+    articleSourcePrefix: "Artikel ini juga tayang di",
+    healthDisclaimerTitle: "Catatan",
+    healthDisclaimerText:
+      "Konten & alat di sini bersifat edukasi dan awareness — BUKAN diagnosa resmi. Untuk kondisi kesehatanmu, konsultasikan ke dokter.",
+    doctorCtaTitle: "Mau lebih pasti?",
+    doctorCtaText: "Diskusikan kondisimu langsung dengan dokter 20FIT.",
+    doctorCtaButton: "Konsultasi ke Dokter 20FIT",
   },
 
   en: {
@@ -169,7 +183,7 @@ const STRINGS = {
     serviceUnavailable: "Scanning isn't configured on this server yet.",
     themeToggleLabel: "Toggle light/dark theme",
     langToggleAriaLabel: "Language",
-    nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now" },
+    nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now", articles: "Articles" },
 
     heroBadge: "MCU Guide",
     heroKicker: "Continuous Health Tracking",
@@ -297,6 +311,20 @@ const STRINGS = {
     footerDisclaimer:
       "medicalcheckup.20fit.id helps you UNDERSTAND lab results. It is not a diagnosis and not a substitute for a doctor's advice.",
     footerBackToApp: "Open my.20fit.id",
+
+    // Health articles (Tahap 1) + shared health-tool components
+    articlesHeading: "20FIT Health Articles",
+    articlesIntro: "Fitness, EMS, HYROX, physiotherapy, and healthy-lifestyle insights from the 20FIT team.",
+    articlesEmpty: "No articles to show yet.",
+    articleReadMore: "Read more",
+    articleBackToList: "← All articles",
+    articleSourcePrefix: "This article is also published on",
+    healthDisclaimerTitle: "Note",
+    healthDisclaimerText:
+      "Content & tools here are for education and awareness — NOT a formal diagnosis. For your health condition, consult a doctor.",
+    doctorCtaTitle: "Want to be sure?",
+    doctorCtaText: "Discuss your condition directly with a 20FIT doctor.",
+    doctorCtaButton: "Consult a 20FIT Doctor",
   },
 };
 

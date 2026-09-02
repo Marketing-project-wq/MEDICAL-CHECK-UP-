@@ -45,6 +45,9 @@ const STRINGS = {
       "Halaman ini alat bantu memahami hasil lab, bukan diagnosis. Rentang rujukan berbeda antar laboratorium. Untuk keputusan kesehatan, konsultasikan dengan dokter.",
 
     uploadHeading: "Upload Hasil Kamu",
+    sampleHeading: "Contoh hasil analisa",
+    sampleBadge: "CONTOH",
+    sampleNote: "Ini data fiktif untuk menunjukkan tampilan hasil — bukan hasil MCU asli.",
     uploadCardTitle: "Upload hasil MCU kamu",
     uploadCardHint: "Foto atau PDF lembar hasil laboratorium",
     consentLabel:
@@ -136,6 +139,7 @@ const STRINGS = {
     errRateLimitedNetwork: "Terlalu banyak percobaan dari jaringan ini. Coba lagi besok, atau buat akun.",
     errScanLimitReached: "Kamu sudah mencapai batas scan gratis. Buat akun 20FIT untuk terus scan & simpan riwayatmu.",
     errSavePendingFailed: "Terjadi kesalahan menyimpan hasil sementara. Coba lagi ya.",
+    errAuthRequired: "Masuk dulu ke akun 20FIT untuk menganalisa hasil MCU kamu.",
     errAuthSessionExpired: "Sesi kamu sudah habis. Silakan login lagi.",
     errIncompleteScanData: "Data scan tidak lengkap.",
     errPendingScanExpired: "Waktu penyimpanan hasil sudah habis atau tidak ditemukan. Silakan scan ulang — sekarang hasilnya langsung tersimpan ke akunmu.",
@@ -186,6 +190,9 @@ const STRINGS = {
       "This page is a tool to understand lab results, not a diagnosis. Reference ranges differ between labs. For health decisions, consult a doctor.",
 
     uploadHeading: "Upload Your Results",
+    sampleHeading: "Example analysis result",
+    sampleBadge: "EXAMPLE",
+    sampleNote: "This is fictional data to show how a result looks — not a real MCU result.",
     uploadCardTitle: "Upload your MCU results",
     uploadCardHint: "Photo or PDF of your lab report",
     consentLabel:
@@ -277,6 +284,7 @@ const STRINGS = {
     errRateLimitedNetwork: "Too many attempts from this network. Try again tomorrow, or create an account.",
     errScanLimitReached: "You've reached the free scan limit. Create a 20FIT account to keep scanning & save your history.",
     errSavePendingFailed: "Something went wrong saving your result temporarily. Please try again.",
+    errAuthRequired: "Please sign in to your 20FIT account to analyze your MCU results.",
     errAuthSessionExpired: "Your session has expired. Please sign in again.",
     errIncompleteScanData: "Incomplete scan data.",
     errPendingScanExpired: "The held result has expired or wasn't found. Please scan again — it will now be saved to your account right away.",
@@ -379,6 +387,7 @@ const ERROR_CODE_KEYS = {
   no_file: "errFile",
   unsupported_type: "errType",
   rate_limited_member: "errRateLimitedMember",
+  auth_required: "errAuthRequired",
   invalid_session: "errInvalidSession",
   rate_limited_device: "errRateLimitedDevice",
   rate_limited_network: "errRateLimitedNetwork",

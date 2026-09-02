@@ -25,7 +25,6 @@ const MY20FIT_ORIGIN = (process.env.MY20FIT_ORIGIN || "https://my.20fit.id").rep
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://cpvzwqptzcxnwzfzgrmt.supabase.co").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const IP_HASH_SALT = process.env.IP_HASH_SALT || "";
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fit.id").replace(/\/$/, "");
 // Hotlinked from media.20fit.id at the user's explicit direction (this
 // sandbox cannot fetch the source files itself to re-host them — see PR
@@ -41,20 +40,21 @@ const LOGO_DARK_URL =
 
 const supabaseOrigin = safeOrigin(SUPABASE_URL);
 
-// Service-role client: server-only, used for the scan-hold/claim flow (Tahap
-// 3-4). Lazily constructed so a missing key doesn't crash page rendering —
-// /api/scan itself fails clearly if it's actually invoked without one.
+// Service-role client: server-only, used by /api/scan to verify the member's
+// token and write the AI-access audit log. Lazily constructed so a missing
+// key doesn't crash page rendering — /api/scan itself fails clearly if it's
+// actually invoked without one.
 let supabaseAdmin = null;
 let scanHandlers = null;
 function getScanHandlers() {
   if (scanHandlers) return scanHandlers;
-  if (!SUPABASE_SERVICE_ROLE_KEY || !IP_HASH_SALT) return null;
+  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
   supabaseAdmin = createSupabaseAdmin({
     url: SUPABASE_URL,
     serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
     anonKey: SUPABASE_ANON_KEY,
   });
-  scanHandlers = createScanHandlers({ supabaseAdmin, my20fitOrigin: MY20FIT_ORIGIN, ipHashSalt: IP_HASH_SALT, lang: "en" });
+  scanHandlers = createScanHandlers({ supabaseAdmin, my20fitOrigin: MY20FIT_ORIGIN });
   return scanHandlers;
 }
 
@@ -202,10 +202,11 @@ const server = http.createServer(async (req, res) => {
   }
   const pathname = url.pathname;
 
-  // Scan endpoints (Tahap 3-4): the only POST routes this app serves. AI is
-  // still only ever called server-side; no AI key or service-role key ships
-  // to the browser.
-  if (req.method === "POST" && (pathname === "/api/scan" || pathname === "/api/scan/claim")) {
+  // /api/scan: the only POST route this app serves. Members-only per spec
+  // §0.1 (the gate is at upload — an anonymous request is rejected before any
+  // analysis). AI is still only ever called server-side; no AI key or
+  // service-role key ships to the browser.
+  if (req.method === "POST" && pathname === "/api/scan") {
     const handlers = getScanHandlers();
     if (!handlers) {
       res.writeHead(503, { "Content-Type": "application/json" }).end(
@@ -213,8 +214,7 @@ const server = http.createServer(async (req, res) => {
       );
       return;
     }
-    if (pathname === "/api/scan") await handlers.handleScan(req, res);
-    else await handlers.handleClaim(req, res);
+    await handlers.handleScan(req, res);
     return;
   }
 

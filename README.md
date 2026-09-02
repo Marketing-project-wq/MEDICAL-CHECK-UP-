@@ -1,8 +1,9 @@
 # medicalcheckup.20fit.id
 
 Public subdomain that helps people **understand** medical check-up (MCU) / lab
-results, and lets anyone analyze an MCU document by calling the real AI
-backend on `my.20fit.id`.
+results. Anyone can read the education and see a worked example; **members**
+(logged in) analyze their own MCU document via the real AI backend on
+`my.20fit.id`. Anonymous visitors never upload — the gate is at upload (spec §0.1).
 
 **Zero runtime dependencies** — the server uses only Node's built-in `http`;
 browser libraries (`@supabase/supabase-js`, `pdf.js`) are loaded from a CDN by
@@ -20,50 +21,54 @@ the client.
 | | Anonymous | Member (logged in) |
 |---|---|---|
 | Education (server-rendered, SEO) | ✅ | ✅ |
-| Example analysis (sample data) | ✅ | ✅ |
-| Upload form | ✅ (own widget, consent-gated) | ✅ |
-| Calls AI (`/api/analyze-mcu`) | ✅ | ✅ |
-| Result shown | ✅ once, in-page, never saved | ✅ + saved to history |
-| Saves result (`my20fit_mcu_result`, RLS) | ❌ (no account to attach it to) | ✅ |
+| Example analysis (fictional sample) | ✅ | ✅ |
+| Upload form | ❌ — login CTA instead | ✅ |
+| Calls AI (`/api/analyze-mcu`) | ❌ | ✅ |
+| Result shown | ❌ (see the example instead) | ✅ + saved to history |
+| Saves result (`my20fit_mcu_result`, RLS) | ❌ | ✅ |
 | Compare across periods / history | ❌ — CTA to login | ✅ |
 
-> **Explicit product decision:** anonymous visitors can upload and get a
-> fully-open, one-time analysis with no account — only saving/history/period
-> comparison stays behind login. This app gates the anonymous path with a
-> **consent checkbox** ("this file will be processed by AI, the result is not
-> stored") before the analyze button enables, and never persists an
-> anonymous result anywhere.
+> **Spec §0.1 — the gate is at UPLOAD, not at the result.** Anonymous visitors
+> never upload or process a health document: they see the full educational
+> page, a clearly-marked **fictional example** result (so they know what they'll
+> get), and a single **"sign in / register to analyze"** button that sends them
+> to `my.20fit.id/login` with a validated `return_to`. The uploader is
+> revealed only after a real member session is confirmed. This is enforced in
+> two independent places: the browser hides the uploader for anyone who isn't a
+> confirmed member (fail-safe: hidden by default, so no JS = no upload), and the
+> server (`POST /api/scan`) rejects any request without a valid member token
+> (`auth_required`) — so a health document is never sent to the AI without an
+> account, even if the client is bypassed.
 >
-> ⚠️ **The real `my.20fit.id` backend applies no authentication or rate
-> limiting to `POST /api/analyze-mcu` at all** — this was true before this
-> app's anonymous-upload feature existed, and it is true for logged-in
-> members too (the Bearer token this app sends is not actually checked
-> server-side today). This app has no way to enforce rate limiting on a
-> backend it doesn't own; that has to live on `my.20fit.id`/`my20fit-dashboard`
-> if abuse becomes a problem. The backend's own Claude pre-check (rejecting
-> documents that don't look like an MCU) is a partial, incidental mitigation,
-> not a real one — it still costs one AI call per attempt.
+> ⚠️ **The real `my.20fit.id` backend applies no rate limiting to
+> `POST /api/analyze-mcu` itself.** This app adds a per-member in-memory limiter
+> in `/api/scan`, but a hard backstop still has to live on
+> `my.20fit.id`/`my20fit-dashboard` if abuse becomes a problem, since this app
+> doesn't own that backend.
 
 ## How it fits together
 
 ```
 Browser (medicalcheckup.20fit.id)
-  ├─ Anonymous: SSR education + sample (shared renderer) + upload widget
-  │    (consent checkbox required)
-  │    → POST https://my.20fit.id/api/analyze-mcu  (multipart, no auth header)
-  │    → render result (SAME renderer as the sample) — shown once, never saved
+  ├─ Anonymous: SSR education + fictional example (shared renderer) + login CTA
+  │    → "sign in / register to analyze" → my.20fit.id/login?return_to=<validated>
+  │    (NO uploader, NO AI call — spec §0.1)
   └─ Member (after SSO fragment-token handoff):
        pick file → preprocess in-browser (downscale ≤1500px / pdf.js ≤3 pages → 1 JPEG)
-       → POST https://my.20fit.id/api/analyze-mcu  (multipart, Authorization: Bearer <token>)
-       → render result (SAME renderer as the sample)
-       → insert into my20fit_mcu_result { auth_user_id, result, analyzed_at }  (RLS)
+       → POST /api/scan  (this app's server; JSON data-URL, Authorization: Bearer <token>)
+            └─ server verifies the member token, then proxies to
+               my.20fit.id/api/analyze-mcu (multipart) and returns the result
+       → render result (SAME renderer as the example)
+       → insert into my20fit_mcu_result { auth_user_id, result, analyzed_at }  (RLS, client-side)
        → history reads the member's own rows (RLS)
 ```
 
-- **AI is only ever called from the browser to `my.20fit.id`.** No AI key
-  ships here, and this app's own server never proxies the analysis call.
+- **AI is only ever called server-side, and only for a member.** The browser
+  posts to this app's own `/api/scan`, which authenticates the caller before
+  proxying to `my.20fit.id`. No AI key ships to the browser; an anonymous
+  request never reaches the AI.
 - **Files are never stored** — only the JSON result, and only for logged-in
-  members (`file_path` is left null). Anonymous results are not stored at all.
+  members. The example on the page is invented, not a real document.
 - **The backend always responds in Bahasa Indonesia** (its prompts are
   hardcoded) regardless of this app's `lang` — there is no translate
   endpoint, so an English-language visitor's analysis text will still come
@@ -80,7 +85,7 @@ Browser (medicalcheckup.20fit.id)
 ## Run locally
 
 ```bash
-cp .env.example .env   # fill SUPABASE_ANON_KEY
+cp .env.example .env   # fill SUPABASE_ANON_KEY (+ SUPABASE_SERVICE_ROLE_KEY for the member scan path)
 npm start              # node src/server.js  (no install needed)
 npm test               # node --test (pure-logic unit tests)
 ```

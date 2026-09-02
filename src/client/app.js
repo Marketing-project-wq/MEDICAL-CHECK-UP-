@@ -1,19 +1,19 @@
 // medicalcheckup.20fit.id browser client.
 // - Consumes the SSO fragment token (setSession + scrub).
-// - A single upload widget serves BOTH anonymous visitors and members, but
-//   they now go through THIS APP'S OWN SERVER (POST /api/scan), not
-//   my.20fit.id directly:
-//     member  → server proxies to my.20fit.id/api/analyze-mcu and returns
-//               the full result immediately (unchanged from the visitor's
-//               perspective); this client still saves it via Supabase (RLS).
-//     anon    → server runs the SAME analysis, but HOLDS the full result
-//               server-side and returns only a safe teaser (parameter count,
-//               categories, timestamp) + a scan_id. The full result is never
-//               sent to an anonymous browser. Creating an account and
-//               claiming the scan_id (POST /api/scan/claim) is the only way
-//               to see it — it's held up to 24h, then auto-deleted.
+// - Enforces spec §0.1 in the browser: the gate is at UPLOAD, not the result.
+//   Anonymous visitors get NO uploader at all — only a login CTA that sends
+//   them to my.20fit.id/login with a validated return_to. The uploader
+//   (file input, analyze, result, history) is revealed ONLY once a real
+//   member session is confirmed. A health document is therefore never
+//   uploaded or sent for analysis without an account.
+//   member  → preprocess in the browser, POST /api/scan with a Bearer token;
+//             THIS APP'S OWN SERVER proxies to my.20fit.id/api/analyze-mcu
+//             and returns the full result, which the client saves via
+//             Supabase (RLS, my20fit_mcu_result).
 // AI is only ever called from THIS APP'S SERVER — never the browser, and no
-// AI key or Supabase service-role key ships here either way.
+// AI key or Supabase service-role key ships here either way. The server
+// (scanHandlers.js) independently refuses any anonymous /api/scan request,
+// so the gate holds even if this client is bypassed.
 
 import { renderResult } from "/shared/renderResult.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
@@ -92,7 +92,6 @@ async function applyLanguage(newLang) {
   T = getRenderLabels(newLang);
 
   const canonicalPath = newLang === "id" ? "/id" : "/";
-  const returnToUrl = currentReturnTo();
   const page = renderHomePage({
     lang: newLang,
     publicOrigin: CFG.publicOrigin,
@@ -150,8 +149,6 @@ async function applyLanguage(newLang) {
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
-const ANON_ID_KEY = "mcu20fit-anon-id";
-const PENDING_SCAN_KEY = "mcu20fit-pending-scan";
 
 // Loaded lazily (not a static top-level import) and guarded: a static
 // `import ... from "https://cdn.jsdelivr.net/..."` would fail this ENTIRE
@@ -182,36 +179,6 @@ async function initSupabase() {
 let selectedFile = null;
 let currentSession = null;
 let currentWidget = null;
-
-function getAnonId() {
-  try {
-    let id = localStorage.getItem(ANON_ID_KEY);
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem(ANON_ID_KEY, id);
-    }
-    return id;
-  } catch {
-    return crypto.randomUUID(); // storage unavailable (private mode etc.) — best effort
-  }
-}
-
-function getPendingScan() {
-  try {
-    const raw = localStorage.getItem(PENDING_SCAN_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-function setPendingScan(value) {
-  try {
-    if (value) localStorage.setItem(PENDING_SCAN_KEY, JSON.stringify(value));
-    else localStorage.removeItem(PENDING_SCAN_KEY);
-  } catch {
-    /* best effort */
-  }
-}
 
 function currentReturnTo() {
   return window.location.origin + window.location.pathname + window.location.search;
@@ -265,70 +232,21 @@ function el(tag, props = {}, children = []) {
   return node;
 }
 
-/** Builds the locked/blurred teaser view from server-safe fields only — no
- * real value ever passes through here, so there is nothing for DevTools to
- * reveal beyond what's already visibly rendered. */
-function buildLockedTeaser(teaser, loginHref) {
-  const wrap = el("article", { className: "mcu-result locked-teaser" });
-  wrap.appendChild(
-    el("div", { className: "mcu-disclaimer" }, [
-      el("strong", { text: `${T.disclaimerTitle}: ` }),
-      document.createTextNode(T.disclaimerText),
-    ]),
-  );
-  wrap.appendChild(el("h3", { text: S.teaserHeading }));
-  const stats = el("div", { className: "teaser-stats" });
-  stats.appendChild(
-    el("div", { className: "teaser-stat" }, [
-      el("strong", { text: String(teaser.parameters_detected ?? 0) }),
-      el("span", { text: S.teaserParamsLabel }),
-    ]),
-  );
-  if (teaser.scanned_at) {
-    stats.appendChild(el("div", { className: "teaser-stat teaser-stat-time", text: formatDate(teaser.scanned_at) }));
-  }
-  wrap.appendChild(stats);
-
-  if (Array.isArray(teaser.categories) && teaser.categories.length > 0) {
-    const chips = el("div", { className: "teaser-categories" });
-    for (const cat of teaser.categories) chips.appendChild(el("span", { className: "teaser-chip", text: cat }));
-    wrap.appendChild(chips);
-  }
-
-  const lockedPanel = el("div", { className: "locked-panel" });
-  const placeholderCount = Math.max(3, Math.min(teaser.parameters_detected || 3, 6));
-  for (let i = 0; i < placeholderCount; i++) {
-    lockedPanel.appendChild(
-      el("div", { className: "locked-row" }, [el("span", { className: "locked-row-fake" }), el("span", { className: "locked-row-fake short" })]),
-    );
-  }
-  const overlay = el("div", { className: "locked-overlay" }, [
-    el("p", { text: S.teaserLockedNote }),
-    el("a", { className: "btn btn-primary", href: loginHref, text: S.teaserUnlockCta }),
-  ]);
-  lockedPanel.appendChild(overlay);
-  wrap.appendChild(lockedPanel);
-  return wrap;
-}
-
 /**
  * @param {HTMLElement} root
- * @param {{fileName?: string, consentChecked?: boolean, display?: {type: "result"|"teaser", data: object}}} [restoreState]
+ * @param {{fileName?: string, display?: {type: "result", data: object}}} [restoreState]
  *   Carries state across a language switch's full re-render of #member-app
  *   (which otherwise would silently drop the file the visitor had already
- *   picked, or the result/teaser they were already looking at). A
- *   currently-shown *status* message (an error, "analyzing…") is
- *   deliberately NOT restored — it's transient and about to be stale by
- *   definition; anything shown from this point on already uses the new
- *   language.
+ *   picked, or the result they were already looking at). A currently-shown
+ *   *status* message (an error, "analyzing…") is deliberately NOT restored —
+ *   it's transient and about to be stale by definition; anything shown from
+ *   this point on already uses the new language.
  */
 function setupUploadWidget(root, restoreState) {
   const q = (sel) => root.querySelector(sel);
   const fileInput = q('[data-role="file"]');
   const dropzone = q('[data-role="dropzone"]');
   const fileNameEl = q('[data-role="filename"]');
-  const consentBox = q('[data-role="consent"]');
-  const consentRow = q('[data-role="consent-row"]');
   const analyzeBtn = q('[data-act="analyze"]');
   const statusEl = q('[data-role="status"]');
   const resultSlot = q('[data-role="result-slot"]');
@@ -336,7 +254,8 @@ function setupUploadWidget(root, restoreState) {
   const historyWrap = q('[data-role="history-wrap"]');
   const historyEl = q('[data-role="history"]');
   const signedinEl = q('[data-role="signedin"]');
-  const anonHintEl = q('[data-role="anon-login-hint"]');
+  const loginGateEl = q('[data-role="login-gate"]');
+  const uploaderEl = q('[data-role="uploader"]');
   const whoEl = q('[data-role="who"]');
   const loginHref = root.dataset.loginHref || "#";
 
@@ -344,8 +263,10 @@ function setupUploadWidget(root, restoreState) {
     return Boolean(currentSession && currentSession.user);
   }
 
+  // §0.1: only a confirmed member can ever analyze. No consent-checkbox path
+  // for anonymous visitors — there is no anonymous upload at all.
   function canAnalyze() {
-    return Boolean(selectedFile) && (isMember() || consentBox.checked);
+    return Boolean(selectedFile) && isMember();
   }
 
   function setStatus(msg, isError) {
@@ -358,24 +279,23 @@ function setupUploadWidget(root, restoreState) {
     else setStatus(msg || "");
   }
 
+  // Reveal the uploader ONLY for a confirmed member; everyone else (anon, or
+  // before the session check resolves) sees the login gate and no file input.
   async function applySessionState(session) {
     currentSession = session;
     const member = isMember();
     signedinEl.hidden = !member;
-    consentRow.hidden = member;
-    anonHintEl.hidden = member;
+    uploaderEl.hidden = !member;
+    loginGateEl.hidden = member;
     historyWrap.hidden = !member;
     if (member) whoEl.textContent = session.user.email || session.user.id;
     analyzeBtn.disabled = !canAnalyze();
-    // Tahap 5: a logged-in member must never see a "create an account" pitch
-    // anywhere on the page, not just inside this widget.
+    // A logged-in member must never see a "create an account" pitch anywhere
+    // on the page, not just inside this widget.
     document.querySelectorAll('[data-role="cta-banner"]').forEach((banner) => {
       banner.hidden = member;
     });
-    if (member) {
-      await tryClaimPendingScan();
-      loadHistory();
-    }
+    if (member) loadHistory();
   }
 
   function pickFile(file) {
@@ -407,9 +327,6 @@ function setupUploadWidget(root, restoreState) {
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) pickFile(f);
   });
-  consentBox.addEventListener("change", () => {
-    analyzeBtn.disabled = !canAnalyze();
-  });
 
   q('[data-act="signout"]').addEventListener("click", async () => {
     try {
@@ -419,7 +336,7 @@ function setupUploadWidget(root, restoreState) {
     }
   });
 
-  let lastDisplay = null; // tracked so a language switch can re-render this same result/teaser in the new language, instead of it silently vanishing
+  let lastDisplay = null; // tracked so a language switch can re-render this same result in the new language, instead of it silently vanishing
 
   function showResult(result, { scroll = true } = {}) {
     lastDisplay = { type: "result", data: result };
@@ -428,19 +345,17 @@ function setupUploadWidget(root, restoreState) {
     if (scroll) resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function showLockedTeaser(teaser, { scroll = true } = {}) {
-    lastDisplay = { type: "teaser", data: teaser };
-    resultBody.innerHTML = "";
-    resultBody.appendChild(buildLockedTeaser(teaser, loginHref));
-    resultSlot.hidden = false;
-    if (scroll) resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   analyzeBtn.addEventListener("click", () => runAnalyze());
 
   async function runAnalyze() {
+    // §0.1 defense-in-depth: the analyze button isn't shown to anon, but
+    // never preprocess or upload a health document without a member session —
+    // send them to login instead.
+    if (!isMember()) {
+      window.location.href = loginHref;
+      return;
+    }
     if (!selectedFile) return setStatus(S.errFile, true);
-    if (!isMember() && !consentBox.checked) return setStatus(S.errConsent, true);
     setBusy(true, S.analyzing);
     resultSlot.hidden = true;
 
@@ -460,12 +375,17 @@ function setupUploadWidget(root, restoreState) {
       return;
     }
 
-    // Step 2: send to our own server, which proxies to my.20fit.id.
+    // Step 2: send to our own server (members only), which proxies to
+    // my.20fit.id. The Bearer token is required — without it the server
+    // rejects the request (auth_required), so we bail to login first.
     try {
       const token = await accessToken();
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers.Authorization = `Bearer ${token}`;
-      else headers["X-Anon-Id"] = getAnonId();
+      if (!token) {
+        setBusy(false);
+        window.location.href = loginHref;
+        return;
+      }
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 95000);
@@ -488,49 +408,14 @@ function setupUploadWidget(root, restoreState) {
       }
 
       setBusy(false);
-
-      if (data.mode === "member") {
-        showResult(data.result);
-        await saveResult(data.result, setStatus);
-        await loadHistory();
-        return;
-      }
-
-      // mode === "anon"
-      if (data.limit_reached) {
-        setStatus(getErrorMessage(LANG, data.code), true);
-        return;
-      }
-      setPendingScan({ anon_id: getAnonId(), scan_id: data.scan_id });
-      showLockedTeaser(data.teaser);
+      showResult(data.result);
+      await saveResult(data.result, setStatus);
+      await loadHistory();
     } catch (e) {
       console.error("MCU scan request failed:", e);
       setBusy(false);
       if (e && e.name === "AbortError") setStatus(S.errGeneric, true);
       else setStatus(S.errNetwork, true);
-    }
-  }
-
-  /** After signup/login, unlock a scan that was held while anonymous. */
-  async function tryClaimPendingScan() {
-    const pending = getPendingScan();
-    if (!pending) return;
-    const token = await accessToken();
-    if (!token) return;
-    try {
-      const res = await fetch("/api/scan/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(pending),
-      });
-      const data = await res.json().catch(() => ({}));
-      setPendingScan(null); // one attempt only, whatever the outcome
-      if (res.ok && data.ok) {
-        showResult(data.result);
-        setStatus(S.teaserUnlockedNote);
-      }
-    } catch {
-      setPendingScan(null);
     }
   }
 
@@ -587,10 +472,8 @@ function setupUploadWidget(root, restoreState) {
       fileNameEl.hidden = false;
       fileNameEl.textContent = restoreState.fileName;
     }
-    if (restoreState.consentChecked) consentBox.checked = true;
-    if (restoreState.display) {
-      if (restoreState.display.type === "result") showResult(restoreState.display.data, { scroll: false });
-      else if (restoreState.display.type === "teaser") showLockedTeaser(restoreState.display.data, { scroll: false });
+    if (restoreState.display && restoreState.display.type === "result") {
+      showResult(restoreState.display.data, { scroll: false });
     }
     analyzeBtn.disabled = !canAnalyze();
   }
@@ -600,7 +483,6 @@ function setupUploadWidget(root, restoreState) {
     applySessionState,
     captureState: () => ({
       fileName: selectedFile ? fileNameEl.textContent : null,
-      consentChecked: consentBox.checked,
       display: lastDisplay,
     }),
   };

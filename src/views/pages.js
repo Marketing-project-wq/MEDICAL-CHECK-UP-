@@ -10,6 +10,7 @@ import { buildLoginUrl } from "../shared/returnTo.js";
 import { renderResult } from "../shared/renderResult.js";
 import { getSampleResult } from "../shared/sampleData.js";
 import { healthDisclaimer, doctorCta } from "../shared/health.js";
+import { iconSvg } from "../shared/icons.js";
 import { articlePath } from "./articles.js";
 
 function hubHrefFor(lang) {
@@ -129,15 +130,15 @@ function landingCta(s, hubHref) {
 
 function pillarNav(s) {
   const pillars = [
-    { href: "#scan", icon: "🩺", title: s.pillarScanTitle, desc: s.pillarScanDesc },
-    { href: "#quiz", icon: "❓", title: s.pillarQuizTitle, desc: s.pillarQuizDesc },
-    { href: "#program", icon: "🏋️", title: s.pillarProgramTitle, desc: s.pillarProgramDesc },
-    { href: "#artikel", icon: "📰", title: s.pillarArticleTitle, desc: s.pillarArticleDesc },
+    { href: "#scan", icon: "scan", title: s.pillarScanTitle, desc: s.pillarScanDesc },
+    { href: "#quiz", icon: "quiz", title: s.pillarQuizTitle, desc: s.pillarQuizDesc },
+    { href: "#program", icon: "program", title: s.pillarProgramTitle, desc: s.pillarProgramDesc },
+    { href: "#artikel", icon: "article", title: s.pillarArticleTitle, desc: s.pillarArticleDesc },
   ];
   const cards = pillars
     .map(
       (p) => `<a class="pillar-card" href="${p.href}">
-        <span class="pillar-icon" aria-hidden="true">${p.icon}</span>
+        <span class="pillar-icon" aria-hidden="true">${iconSvg(p.icon) || ""}</span>
         <h3>${escapeHtml(p.title)}</h3>
         <p>${escapeHtml(p.desc)}</p>
       </a>`,

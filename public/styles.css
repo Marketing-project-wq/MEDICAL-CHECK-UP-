@@ -522,7 +522,10 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
   padding: 22px; color: inherit; transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .pillar-card:hover { border-color: var(--red); box-shadow: var(--shadow); transform: translateY(-2px); text-decoration: none; }
-.pillar-icon { font-size: 1.8rem; line-height: 1; display: block; margin-bottom: 10px; }
+.pillar-icon { font-size: 1.9rem; line-height: 1; display: block; margin-bottom: 12px; color: var(--red); }
+.pillar-icon svg { display: block; }
+.chk-icon { color: var(--red); }
+.chk-icon svg { vertical-align: -0.14em; }
 .pillar-card h3 { font-size: 1.15rem; margin: 0 0 6px; }
 .pillar-card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
 

@@ -65,7 +65,7 @@ export function getSampleResult(lang) {
         ],
     checklist: [
       {
-        icon: "🥗",
+        icon: "diet",
         title: en ? "Swap one fried meal a day" : "Ganti satu menu gorengan per hari",
         reason: en ? "Helps bring cholesterol down gradually." : "Membantu menurunkan kolesterol perlahan.",
         priority: "high",
@@ -73,7 +73,7 @@ export function getSampleResult(lang) {
         location: "home",
       },
       {
-        icon: "🚶",
+        icon: "walk",
         title: en ? "Brisk 30-minute walk" : "Jalan cepat 30 menit",
         reason: en ? "Supports blood sugar and heart health." : "Membantu gula darah dan kesehatan jantung.",
         priority: "med",
@@ -81,7 +81,7 @@ export function getSampleResult(lang) {
         location: "gym",
       },
       {
-        icon: "🩺",
+        icon: "clinic",
         title: en ? "Follow-up lab in 3 months" : "Kontrol lab dalam 3 bulan",
         reason: en ? "Confirm the numbers are trending the right way." : "Memastikan angka bergerak ke arah yang benar.",
         priority: "low",

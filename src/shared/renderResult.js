@@ -16,6 +16,15 @@
 // Dependency-free ESM.
 
 import { escapeHtml } from "./escape.js";
+import { iconSvg } from "./icons.js";
+
+// Known icon KEYS render as trusted inline SVG; any other value (e.g. an emoji
+// or arbitrary string from the upstream API) stays escaped — never rendered raw.
+function checklistIcon(icon) {
+  if (!icon) return "";
+  const svg = iconSvg(icon);
+  return svg ? `<span class="chk-icon" aria-hidden="true">${svg}</span> ` : escapeHtml(icon) + " ";
+}
 
 const STATUS_CLASS = { ok: "ok", high: "attn", low: "attn", warning: "attn" };
 const PRIORITY_CLASS = { high: "attn", med: "unk", low: "ok" };
@@ -133,7 +142,7 @@ export function renderResult(result, t) {
               const extras = [c && c.duration, loc].filter(Boolean).map(escapeHtml).join(" · ");
               return `<div class="mcu-card sev-${cls === "attn" ? "high" : cls === "ok" ? "low" : "mid"}">
                 <div class="mcu-card-top">
-                  <span class="mcu-card-label">${c && c.icon ? escapeHtml(c.icon) + " " : ""}${escapeHtml(c && c.title)}</span>
+                  <span class="mcu-card-label">${checklistIcon(c && c.icon)}${escapeHtml(c && c.title)}</span>
                   <span class="mcu-badge">${escapeHtml(priorityLabel(c && c.priority, t))}</span>
                 </div>
                 <p class="mcu-why">${escapeHtml(c && c.reason)}</p>

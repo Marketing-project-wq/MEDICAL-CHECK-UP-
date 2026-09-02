@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
-import { renderHomePage } from "./views/pages.js";
+import { renderLandingPage, renderHomeHubPage } from "./views/pages.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
 import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
@@ -163,14 +163,8 @@ function sendHtml(res, status, html, nonce, opts = {}) {
   res.end(html);
 }
 
-function renderPage(lang, canonicalPath) {
+function wrapPage(lang, canonicalPath, page) {
   const nonce = crypto.randomBytes(16).toString("base64");
-  const page = renderHomePage({
-    lang,
-    publicOrigin: PUBLIC_ORIGIN,
-    loginUrl: MY20FIT_ORIGIN + "/login",
-    canonicalPath,
-  });
   const html = renderLayout({
     lang,
     strings: strings(lang),
@@ -185,6 +179,25 @@ function renderPage(lang, canonicalPath) {
     logoDarkUrl: LOGO_DARK_URL,
   });
   return { html, nonce };
+}
+
+function renderLanding(lang, canonicalPath) {
+  const page = renderLandingPage({ lang, publicOrigin: PUBLIC_ORIGIN, loginUrl: MY20FIT_ORIGIN + "/login", canonicalPath });
+  return wrapPage(lang, canonicalPath, page);
+}
+
+async function renderHomeHub(lang, canonicalPath) {
+  const store = getArticleStore();
+  const featuredArticles = store ? await store.listPublished({ limit: 3 }) : [];
+  const page = renderHomeHubPage({
+    lang,
+    publicOrigin: PUBLIC_ORIGIN,
+    loginUrl: MY20FIT_ORIGIN + "/login",
+    canonicalPath,
+    featuredArticles,
+    bookingUrl: DOCTOR_BOOKING_URL,
+  });
+  return wrapPage(lang, canonicalPath, page);
 }
 
 function strings(lang) {
@@ -334,6 +347,8 @@ const server = http.createServer(async (req, res) => {
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         `<url><loc>${PUBLIC_ORIGIN}/</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id</loc><lastmod>${now}</lastmod></url>\n` +
+        `<url><loc>${PUBLIC_ORIGIN}/home</loc><lastmod>${now}</lastmod></url>\n` +
+        `<url><loc>${PUBLIC_ORIGIN}/id/home</loc><lastmod>${now}</lastmod></url>\n` +
         // Article LIST pages only. Individual articles canonical-point to
         // media.20fit.id, so they're intentionally kept out of this sitemap.
         `<url><loc>${PUBLIC_ORIGIN}/articles</loc><lastmod>${now}</lastmod></url>\n` +
@@ -375,12 +390,25 @@ const server = http.createServer(async (req, res) => {
   // default — redirected to / rather than served twice, so there's a
   // single canonical URL per language.
   if (pathname === "/" || pathname === "/auth/callback") {
-    const { html, nonce } = renderPage("en", "/");
+    const { html, nonce } = renderLanding("en", "/");
     sendHtml(res, 200, html, nonce);
     return;
   }
   if (pathname === "/id" || pathname === "/id/" || pathname === "/id/auth/callback") {
-    const { html, nonce } = renderPage("id", "/id");
+    const { html, nonce } = renderLanding("id", "/id");
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  // Home hub — the app (Scan MCU, Quiz, Articles). Public; only the scan
+  // upload itself requires login (§0.1). /auth/callback for the hub lands here
+  // too so the SSO fragment is consumed on the page the member returned to.
+  if (pathname === "/home" || pathname === "/home/" || pathname === "/home/auth/callback") {
+    const { html, nonce } = await renderHomeHub("en", "/home");
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/home" || pathname === "/id/home/" || pathname === "/id/home/auth/callback") {
+    const { html, nonce } = await renderHomeHub("id", "/id/home");
     sendHtml(res, 200, html, nonce);
     return;
   }

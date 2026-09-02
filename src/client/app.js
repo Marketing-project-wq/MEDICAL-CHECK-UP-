@@ -18,10 +18,8 @@
 import { renderResult } from "/shared/renderResult.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
-import { LANG_STORAGE_KEY } from "/shared/langPref.js";
+import { LANG_STORAGE_KEY, equivalentLangPath } from "/shared/langPref.js";
 import { THEME_STORAGE_KEY } from "/shared/themePref.js";
-import { renderHomePage } from "/views/pages.js";
-import { renderLayout } from "/views/layout.js";
 
 const CFG = window.__MCU_CONFIG__ || {};
 let LANG = CFG.lang === "id" ? "id" : "en";
@@ -73,78 +71,21 @@ function wireLangToggleButtons() {
 }
 
 /**
- * Switches the entire page's language in place — no navigation, no reload
- * (per spec: the toggle must not lose scroll position, focus, or whatever
- * the visitor was in the middle of). Re-renders <main>, the header, and the
- * footer using the EXACT SAME render functions the server uses
- * (renderHomePage / renderLayout, both dependency-free and browser-safe —
- * see the /views/ static route in server.js) rather than a hand-maintained
- * list of "translatable" DOM nodes, so there is no way for a spot to be
- * missed independently of what the server itself would have rendered for
- * that language.
+ * Language toggle: navigate to the SAME page in the other language. A full
+ * load is the robust choice now the site spans several page types (landing,
+ * home hub, article list, article detail) — the pre-paint redirect script in
+ * layout.js applies the stored preference before first paint, so the switch
+ * still feels instant, and there's no per-page in-place re-render to keep
+ * correct (which previously mis-rendered non-home pages as the home page).
+ * The hash is dropped so a returning SSO fragment is never re-processed.
  */
-async function applyLanguage(newLang) {
-  const root = document.getElementById("member-app");
-  const captured = root && currentWidget ? currentWidget.captureState() : null;
-
-  LANG = newLang;
-  S = getStrings(newLang);
-  T = getRenderLabels(newLang);
-
-  const canonicalPath = newLang === "id" ? "/id" : "/";
-  const page = renderHomePage({
-    lang: newLang,
-    publicOrigin: CFG.publicOrigin,
-    loginUrl: CFG.loginUrl,
-    canonicalPath,
-  });
-  const fullHtml = renderLayout({
-    lang: newLang,
-    strings: S,
-    title: page.title,
-    description: page.description,
-    canonicalPath,
-    publicOrigin: CFG.publicOrigin,
-    bodyHtml: "",
-    clientConfig: CFG,
-    nonce: "x", // parsed only, never executed — DOMParser never runs scripts
-  });
-  const parsed = new DOMParser().parseFromString(fullHtml, "text/html");
-
-  document.title = page.title;
-  const metaDesc = document.querySelector('meta[name="description"]');
-  if (metaDesc) metaDesc.setAttribute("content", page.description);
-  document.documentElement.lang = S.htmlLang;
-
-  const newHeader = parsed.querySelector(".site-header");
-  const oldHeader = document.querySelector(".site-header");
-  if (newHeader && oldHeader) oldHeader.replaceWith(newHeader);
-
-  const newFooter = parsed.querySelector(".site-footer");
-  const oldFooter = document.querySelector(".site-footer");
-  if (newFooter && oldFooter) oldFooter.replaceWith(newFooter);
-
-  const main = document.querySelector("main");
-  if (main) main.innerHTML = page.bodyHtml;
-
-  // Re-wire everything the innerHTML/replaceWith swaps above just tore out
-  // the listeners for.
-  setLogosForTheme(currentTheme());
-  wireThemeToggle();
-  wireLangToggleButtons();
-  updateLoginCta();
-  const newRoot = document.getElementById("member-app");
-  if (newRoot) {
-    currentWidget = setupUploadWidget(newRoot, captured);
-    await currentWidget.applySessionState(currentSession);
-  }
-
+function applyLanguage(newLang) {
   try {
     localStorage.setItem(LANG_STORAGE_KEY, newLang);
   } catch {
     /* best effort */
   }
-  history.replaceState(null, "", canonicalPath + location.search + location.hash);
+  location.assign(equivalentLangPath(location.pathname, newLang) + location.search);
 }
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];

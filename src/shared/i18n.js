@@ -24,7 +24,7 @@ const STRINGS = {
     serviceUnavailable: "Fitur scan belum dikonfigurasi di server ini.",
     themeToggleLabel: "Ganti tema terang/gelap",
     langToggleAriaLabel: "Bahasa",
-    nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang", articles: "Artikel" },
+    nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang", articles: "Artikel", home: "Cek MCU" },
 
     heroBadge: "Panduan MCU",
     heroKicker: "Pantau Kesehatan Berkelanjutan",
@@ -166,6 +166,25 @@ const STRINGS = {
     doctorCtaTitle: "Mau lebih pasti?",
     doctorCtaText: "Diskusikan kondisimu langsung dengan dokter 20FIT.",
     doctorCtaButton: "Konsultasi ke Dokter 20FIT",
+
+    // Landing + Home hub (2-tier)
+    heroSeeExample: "Lihat contoh hasil",
+    howHeading: "Cara kerjanya",
+    landingCtaText: "Siap pahami hasil MCU kamu? Masuk ke hub 20FIT MCU — scan hasil, ikut quiz, dan baca artikel kesehatan.",
+    landingCtaButton: "Masuk — Cek MCU kamu",
+    hubMetaTitle: "Hub Kesehatan 20FIT — Cek MCU, Quiz, Artikel | 20FIT",
+    hubMetaDescription: "Satu tempat untuk scan & pahami hasil medical check-up kamu, ikut quiz kesehatan, dan baca artikel dari tim 20FIT.",
+    hubHeading: "Selamat datang di Hub Kesehatan 20FIT",
+    hubIntro: "Pilih apa yang mau kamu lakukan. Semua alat di sini bersifat edukasi — untuk keputusan kesehatan, ada jalur ke dokter 20FIT.",
+    pillarScanTitle: "Cek & Scan MCU",
+    pillarScanDesc: "Upload hasil lab kamu, biar tiap penanda dijelaskan dengan bahasa yang gampang.",
+    pillarQuizTitle: "Quiz Kesehatan",
+    pillarQuizDesc: "Cek BMI & gambaran kondisi tubuh kamu lewat kuis singkat.",
+    pillarArticleTitle: "Artikel Kesehatan",
+    pillarArticleDesc: "Insight kebugaran, EMS, HYROX, dan gaya hidup sehat dari tim 20FIT.",
+    comingSoonBadge: "SEGERA HADIR",
+    quizComingSoonText: "Quiz BMI & cek kondisi tubuh lagi disiapkan. Sebentar lagi kamu bisa dapat gambaran singkat di sini — tetap dengan catatan: bukan diagnosa, dan ada jalur ke dokter 20FIT.",
+    viewAllArticles: "Lihat semua artikel",
   },
 
   en: {
@@ -183,7 +202,7 @@ const STRINGS = {
     serviceUnavailable: "Scanning isn't configured on this server yet.",
     themeToggleLabel: "Toggle light/dark theme",
     langToggleAriaLabel: "Language",
-    nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now", articles: "Articles" },
+    nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now", articles: "Articles", home: "Check MCU" },
 
     heroBadge: "MCU Guide",
     heroKicker: "Continuous Health Tracking",
@@ -325,6 +344,25 @@ const STRINGS = {
     doctorCtaTitle: "Want to be sure?",
     doctorCtaText: "Discuss your condition directly with a 20FIT doctor.",
     doctorCtaButton: "Consult a 20FIT Doctor",
+
+    // Landing + Home hub (2-tier)
+    heroSeeExample: "See an example result",
+    howHeading: "How it works",
+    landingCtaText: "Ready to understand your MCU results? Enter the 20FIT MCU hub — scan results, take a quiz, and read health articles.",
+    landingCtaButton: "Enter — Check your MCU",
+    hubMetaTitle: "20FIT Health Hub — Check MCU, Quiz, Articles | 20FIT",
+    hubMetaDescription: "One place to scan & understand your medical check-up, take a health quiz, and read articles from the 20FIT team.",
+    hubHeading: "Welcome to the 20FIT Health Hub",
+    hubIntro: "Pick what you'd like to do. Every tool here is for education — for health decisions, there's a path to a 20FIT doctor.",
+    pillarScanTitle: "Check & Scan MCU",
+    pillarScanDesc: "Upload your lab results and get each marker explained in plain language.",
+    pillarQuizTitle: "Health Quiz",
+    pillarQuizDesc: "Check your BMI & a picture of your body condition with a short quiz.",
+    pillarArticleTitle: "Health Articles",
+    pillarArticleDesc: "Fitness, EMS, HYROX, and healthy-lifestyle insights from the 20FIT team.",
+    comingSoonBadge: "COMING SOON",
+    quizComingSoonText: "The BMI & body-condition quiz is on its way. Soon you'll get a quick picture here — still with the same note: not a diagnosis, and there's a path to a 20FIT doctor.",
+    viewAllArticles: "View all articles",
   },
 };
 

@@ -24,6 +24,21 @@ const THEMES = {
   mcu: { bg: "#c53030", icon: "article", kw: "health" }, // general MCU / catch-all
 };
 
+// Theme -> i18n string key for the human-readable topic label.
+const TOPIC_KEY = {
+  lab: "topicLab",
+  nutrition: "topicNutrition",
+  activity: "topicActivity",
+  consult: "topicConsult",
+  lifestyle: "topicLifestyle",
+  mcu: "topicMcu",
+};
+
+// i18n key for an article's topic label (derived from its theme).
+export function topicKey(a) {
+  return TOPIC_KEY[coverTheme(a)] || "topicMcu";
+}
+
 export function coverTheme(a) {
   if (a && a.coverTheme && THEMES[a.coverTheme]) return a.coverTheme;
   const k = (((a && a.slug) || "") + " " + ((a && a.title) || "")).toLowerCase();

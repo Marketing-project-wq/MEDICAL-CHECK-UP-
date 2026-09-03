@@ -7,7 +7,7 @@
 import { escapeHtml } from "../shared/escape.js";
 import { sanitizeArticleHtml } from "../shared/sanitizeHtml.js";
 import { healthDisclaimer, doctorCta } from "../shared/health.js";
-import { articleCover } from "../shared/articleCover.js";
+import { articleCover, topicKey } from "../shared/articleCover.js";
 
 function fmtDate(v, lang) {
   if (!v) return "";
@@ -27,8 +27,11 @@ export function articlePath(lang, slug) {
   return slug ? `${base}/${encodeURIComponent(slug)}` : base;
 }
 
-function metaRow(a, lang) {
-  const cat = a.category ? `<span class="article-cat">${escapeHtml(a.category)}</span>` : "";
+function metaRow(a, lang, s) {
+  // mcu-original articles (self-canonical) show their derived topic; media
+  // articles keep their real WordPress category.
+  const label = a.published_url == null ? (s && s[topicKey(a)]) || "" : a.category || "";
+  const cat = label ? `<span class="article-cat">${escapeHtml(label)}</span>` : "";
   const date = a.published_at ? `<span class="article-date">${escapeHtml(fmtDate(a.published_at, lang))}</span>` : "";
   return cat + date;
 }
@@ -42,7 +45,7 @@ export function articleListPage({ s, lang, articles }) {
       return `<a class="article-card" href="${escapeHtml(articlePath(lang, a.slug))}">
         ${articleCover(a)}
         <div class="article-card-body">
-          <div class="article-card-meta">${metaRow(a, lang)}</div>
+          <div class="article-card-meta">${metaRow(a, lang, s)}</div>
           <h2 class="article-card-title">${escapeHtml(a.title || "")}</h2>
           ${desc ? `<p class="article-card-excerpt">${escapeHtml(String(desc).slice(0, 160))}</p>` : ""}
           <span class="article-card-more">${escapeHtml(s.articleReadMore)} →</span>
@@ -76,7 +79,7 @@ export function articleDetailPage({ s, lang, article, bookingUrl }) {
     <div class="wrap wrap-narrow">
       <p class="article-back"><a href="${escapeHtml(articlePath(lang))}">${escapeHtml(s.articleBackToList)}</a></p>
       ${articleCover(a, { hero: true })}
-      <div class="article-card-meta">${metaRow(a, lang)}${author}</div>
+      <div class="article-card-meta">${metaRow(a, lang, s)}${author}</div>
       <h1 class="article-title">${escapeHtml(a.title || "")}</h1>
       ${healthDisclaimer(s)}
       <div class="article-body">${sanitizeArticleHtml(a.body_html || "")}</div>

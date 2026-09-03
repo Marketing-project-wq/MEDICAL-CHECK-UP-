@@ -11,7 +11,7 @@ import { renderResult } from "../shared/renderResult.js";
 import { getSampleResult } from "../shared/sampleData.js";
 import { healthDisclaimer, doctorCta } from "../shared/health.js";
 import { iconSvg } from "../shared/icons.js";
-import { articleCover } from "../shared/articleCover.js";
+import { articleCover, topicKey } from "../shared/articleCover.js";
 import { articlePath } from "./articles.js";
 
 function hubHrefFor(lang) {
@@ -252,7 +252,8 @@ function featuredArticlesSection(s, lang, articles) {
   const cards = rows
     .map((a) => {
       const desc = a.excerpt || a.meta_description || "";
-      const cat = a.category ? `<span class="article-cat">${escapeHtml(a.category)}</span>` : "";
+      const catLabel = a.published_url == null ? s[topicKey(a)] || "" : a.category || "";
+      const cat = catLabel ? `<span class="article-cat">${escapeHtml(catLabel)}</span>` : "";
       return `<a class="article-card" href="${escapeHtml(articlePath(lang, a.slug))}">
         ${articleCover(a)}
         <div class="article-card-body">

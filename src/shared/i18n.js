@@ -30,7 +30,7 @@ const STRINGS = {
     heroKicker: "Pantau Kesehatan Berkelanjutan",
     heroTitle: "Scan MCU kamu, tiap kali kamu periksa",
     heroSubtitle:
-      "Ini bukan cuma bacaan sekali selesai. Scan hasil MCU tiap kali kamu periksa — langsung kelihatan gambaran hasilnya. Bikin akun 20FIT untuk buka hasil lengkapnya dan pantau perubahannya dari waktu ke waktu.",
+      "Ini bukan cuma bacaan sekali selesai. Scan hasil MCU-mu tiap kali kamu periksa, baca penjelasannya dengan bahasa yang gampang dipahami, dan pantau perubahannya dari waktu ke waktu. Masuk ke akun 20FIT dulu untuk mulai scan.",
     heroPrimaryCta: "Scan hasil MCU sekarang",
     heroDownloadCta: "Download aplikasi",
     appStoreLine1: "Download di",
@@ -38,7 +38,7 @@ const STRINGS = {
     playStoreLine1: "Tersedia di",
     playStoreLine2: "Google Play",
     socialProofText: "Dipakai oleh komunitas 20FIT",
-    heroNote: "Scan tanpa akun. Untuk lihat & simpan hasil lengkapnya, bikin akun setelahnya. Alat bantu MEMAHAMI, bukan diagnosis.",
+    heroNote: "Perlu akun 20FIT untuk scan — filenya diproses aman dan tidak disimpan. Alat bantu MEMAHAMI, bukan diagnosis.",
     heroScanCta: "Aku Mau Scan Sekarang",
     heroMediaCaption: "Foto lembar hasil lab / konsultasi",
     heroDisclaimer:
@@ -50,14 +50,6 @@ const STRINGS = {
     sampleNote: "Ini data fiktif untuk menunjukkan tampilan hasil — bukan hasil MCU asli.",
     uploadCardTitle: "Upload hasil MCU kamu",
     uploadCardHint: "Foto atau PDF lembar hasil laboratorium",
-    consentLabel:
-      "Saya mengerti file ini akan diproses oleh AI untuk dianalisis. Hasilnya ditahan sampai 24 jam menunggu saya membuat akun — kalau tidak, otomatis dihapus.",
-    errConsent: "Centang dulu kotak persetujuan di atas ya.",
-    teaserHeading: "Hasil Scan Kamu",
-    teaserParamsLabel: "Penanda terbaca",
-    teaserLockedNote: "Buat akun 20FIT untuk buka nilai & penjelasan lengkapnya. Hasil ini ditahan sampai 24 jam — kalau tidak dibuka, otomatis terhapus.",
-    teaserUnlockCta: "Buat Akun / Login untuk Buka Hasil",
-    teaserUnlockedNote: "Hasil scan sebelumnya berhasil dibuka dan disimpan ke akunmu.",
     step1Title: "Upload lembar hasil",
     step1Desc: "Foto atau PDF dari laboratorium mana pun.",
     step2Title: "Penanda dikenali",
@@ -81,11 +73,11 @@ const STRINGS = {
     faq: [
       {
         q: "Apakah saya harus punya akun untuk menganalisa hasil MCU?",
-        a: "Tidak. Penjelasan tiap penanda bisa dibaca tanpa akun. Akun cuma dibutuhkan untuk menyimpan riwayat dan melihat perbandingan antar periode.",
+        a: "Ya. Untuk menjaga data kesehatanmu, dokumen MCU cuma diproses AI setelah kamu masuk ke akun 20FIT — tidak ada yang dianalisa secara anonim.",
       },
       {
         q: "Apakah file hasil lab saya disimpan?",
-        a: "Kalau kamu belum login, file dan hasil analisisnya tidak disimpan sama sekali. Kalau sudah login, hanya ringkasan hasilnya yang disimpan ke akunmu — bukan file aslinya.",
+        a: "File aslinya tidak pernah disimpan — hanya diproses sebentar untuk dianalisa. Yang disimpan ke akunmu cuma ringkasan hasilnya.",
       },
       {
         q: "Apakah ini pengganti diagnosis dokter?",
@@ -252,7 +244,7 @@ const STRINGS = {
     heroKicker: "Continuous Health Tracking",
     heroTitle: "Scan your MCU, every time you get checked",
     heroSubtitle:
-      "This isn't a one-time read. Scan your MCU every time you get checked — you'll see a glimpse of the result right away. Create a 20FIT account to unlock the full result and track the change over time.",
+      "This isn't a one-time read. Scan your MCU every time you get checked, read the explanation in plain language, and track the change over time. Sign in to your 20FIT account first to start scanning.",
     heroPrimaryCta: "Scan my MCU results now",
     heroDownloadCta: "Download the app",
     appStoreLine1: "Download on the",
@@ -260,7 +252,7 @@ const STRINGS = {
     playStoreLine1: "Get it on",
     playStoreLine2: "Google Play",
     socialProofText: "Used by the 20FIT community",
-    heroNote: "Scan with no account needed. Create one afterward to see and save the full result. A tool to UNDERSTAND, not a diagnosis.",
+    heroNote: "A 20FIT account is required to scan — your file is processed securely and never stored. A tool to UNDERSTAND, not a diagnosis.",
     heroScanCta: "I Want To Scan Now",
     heroMediaCaption: "Photo of your lab report / consultation",
     heroDisclaimer:
@@ -272,14 +264,6 @@ const STRINGS = {
     sampleNote: "This is fictional data to show how a result looks — not a real MCU result.",
     uploadCardTitle: "Upload your MCU results",
     uploadCardHint: "Photo or PDF of your lab report",
-    consentLabel:
-      "I understand this file will be processed by AI for analysis. The result is held for up to 24 hours while I create an account — otherwise it's automatically deleted.",
-    errConsent: "Please check the consent box above first.",
-    teaserHeading: "Your Scan Result",
-    teaserParamsLabel: "Markers detected",
-    teaserLockedNote: "Create a 20FIT account to unlock the full values & explanations. This result is held for up to 24 hours — if it's not unlocked, it's automatically deleted.",
-    teaserUnlockCta: "Create Account / Login to Unlock",
-    teaserUnlockedNote: "Your previous scan was successfully unlocked and saved to your account.",
     step1Title: "Upload your report",
     step1Desc: "Photo or PDF from any laboratory.",
     step2Title: "Markers recognized",
@@ -303,11 +287,11 @@ const STRINGS = {
     faq: [
       {
         q: "Do I need an account to analyze my MCU results?",
-        a: "No. The explanation for each marker can be read without an account. An account is only needed to save your history and see period-over-period comparisons.",
+        a: "Yes. To protect your health data, a document is only ever analyzed by AI after you sign in to your 20FIT account — nothing is analyzed anonymously.",
       },
       {
         q: "Is my lab file stored?",
-        a: "If you're not logged in, the file and its analysis are not stored at all. If you're logged in, only the result summary is saved to your account — not the original file.",
+        a: "The original file is never stored — it's only processed briefly to run the analysis. Only the result summary is saved to your account.",
       },
       {
         q: "Is this a substitute for a doctor's diagnosis?",

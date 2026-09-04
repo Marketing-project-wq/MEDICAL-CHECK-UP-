@@ -1,7 +1,9 @@
-// Page composition (server-rendered). Two tiers:
-//   Landing  (/, /id)      — marketing + education, CTA "enter" → the hub.
-//   Home hub (/home, …)    — the app: three pillars (Scan MCU, Quiz, Articles),
-//                            each with the shared disclaimer + doctor escalation.
+// Page composition (server-rendered). One homepage:
+//   Homepage (/, /id) — the MCU experience itself: hero, quiz choices (BMI +
+//     exercise router), the members-only Scan MCU widget (§0.1 gate), a real
+//     20FIT program handoff, "Top 5 Articles to Read Today", a §0.1-safe sample
+//     result, how-it-works, FAQ, and the doctor escalation. /home and /id/home
+//     301-redirect here (see server.js) so there is one canonical URL per lang.
 // Dependency-free ESM.
 
 import { escapeHtml } from "../shared/escape.js";
@@ -15,13 +17,9 @@ import { articleCover, topicKey } from "../shared/articleCover.js";
 import { localizeArticle } from "../shared/localizeArticle.js";
 import { articlePath } from "./articles.js";
 
-function hubHrefFor(lang) {
-  return lang === "id" ? "/id/home" : "/home";
-}
+// ── Homepage sections ───────────────────────────────────────────────────────
 
-// ── Landing sections ────────────────────────────────────────────────────────
-
-function heroSection(s, hubHref) {
+function heroSection(s, primaryHref) {
   return `<section class="hero">
     <div class="wrap hero-grid">
       <div class="hero-copy">
@@ -29,7 +27,7 @@ function heroSection(s, hubHref) {
         <h1>${escapeHtml(s.heroTitle)}</h1>
         <p class="hero-sub">${escapeHtml(s.heroSubtitle)}</p>
         <div class="hero-cta">
-          <a class="btn btn-primary" href="${escapeHtml(hubHref)}">${escapeHtml(s.heroPrimaryCta)}</a>
+          <a class="btn btn-primary" href="${escapeHtml(primaryHref)}">${escapeHtml(s.heroPrimaryCta)}</a>
           <a class="btn btn-ghost" href="#example">${escapeHtml(s.heroSeeExample)}</a>
         </div>
         <div class="app-badges">
@@ -43,7 +41,7 @@ function heroSection(s, hubHref) {
         <p class="hero-note">${escapeHtml(s.heroNote)}</p>
       </div>
       <div class="hero-media">
-        <a class="hero-scan-cta" href="${escapeHtml(hubHref)}">
+        <a class="hero-scan-cta" href="${escapeHtml(primaryHref)}">
           <span class="hero-scan-cta-icon" aria-hidden="true">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7V5a1 1 0 0 1 1-1h2M20 7V5a1 1 0 0 0-1-1h-2M4 17v2a1 1 0 0 0 1 1h2M20 17v2a1 1 0 0 1-1 1h-2"></path><line x1="4" y1="12" x2="20" y2="12"></line></svg>
           </span>
@@ -104,32 +102,6 @@ function faqSection(s) {
   </section>`;
 }
 
-/**
- * Testimonial slots are intentionally an honest empty state, not fabricated
- * reviews — do not replace testimonialsEmptyState with invented quotes.
- */
-function testimonialsSection(s) {
-  return `<section id="testimonials" class="section section-alt">
-    <div class="wrap">
-      <h2>${escapeHtml(s.testimonialsHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.testimonialsEmptyState)}</p>
-    </div>
-  </section>`;
-}
-
-function landingCta(s, hubHref) {
-  return `<div class="cta-banner">
-    <div class="wrap cta-banner-inner">
-      <p>${escapeHtml(s.landingCtaText)}</p>
-      <div class="hero-cta">
-        <a class="btn btn-primary" href="${escapeHtml(hubHref)}">${escapeHtml(s.landingCtaButton)}</a>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ── Home hub sections ───────────────────────────────────────────────────────
-
 function pillarNav(s) {
   const pillars = [
     { href: "#scan", icon: "scan", title: s.pillarScanTitle, desc: s.pillarScanDesc },
@@ -148,7 +120,7 @@ function pillarNav(s) {
     .join("");
   return `<section class="section hub-intro">
     <div class="wrap">
-      <h1>${escapeHtml(s.hubHeading)}</h1>
+      <h2>${escapeHtml(s.hubHeading)}</h2>
       <p class="section-intro">${escapeHtml(s.hubIntro)}</p>
       <div class="pillar-grid">${cards}</div>
     </div>
@@ -376,26 +348,18 @@ function escalationSection(s, bookingUrl) {
 
 // ── Page composers ──────────────────────────────────────────────────────────
 
-/** @returns {{ title:string, description:string, bodyHtml:string }} */
-export function renderLandingPage({ lang, publicOrigin, loginUrl, canonicalPath }) {
-  const s = getStrings(lang);
-  const hubHref = hubHrefFor(lang);
-  const bodyHtml = [
-    heroSection(s, hubHref),
-    sampleSection(s, lang),
-    howItWorksSection(s),
-    faqSection(s),
-    testimonialsSection(s),
-    landingCta(s, hubHref),
-  ].join("\n");
-  return { title: s.metaTitle, description: s.metaDescription, bodyHtml };
-}
-
-/** @returns {{ title:string, description:string, bodyHtml:string }} */
+/**
+ * The MCU experience IS the homepage ("Jadikan mcu.20fit.id sebagai HOMEPAGE").
+ * Served at / (EN) and /id (ID); /home and /id/home 301-redirect here so there
+ * is one canonical URL per language. The hero owns the single <h1> and its CTAs
+ * jump to on-page anchors (#scan, #example); pillarNav is a quick-jump strip.
+ * @returns {{ title:string, description:string, bodyHtml:string }}
+ */
 export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath, featuredArticles, bookingUrl, trainingLinks }) {
   const s = getStrings(lang);
   const returnToUrl = publicOrigin + canonicalPath;
   const bodyHtml = [
+    heroSection(s, "#scan"),
     pillarNav(s),
     scanSection(s, loginUrl, returnToUrl),
     quizChoicesSection(s),
@@ -403,7 +367,10 @@ export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath,
     exerciseQuizSection(s, trainingLinks),
     programSection(s, trainingLinks),
     topArticlesSection(s, lang, featuredArticles),
+    sampleSection(s, lang),
+    howItWorksSection(s),
+    faqSection(s),
     escalationSection(s, bookingUrl),
   ].join("\n");
-  return { title: s.hubMetaTitle, description: s.hubMetaDescription, bodyHtml };
+  return { title: s.metaTitle, description: s.metaDescription, bodyHtml };
 }

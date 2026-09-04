@@ -111,7 +111,6 @@ export function renderLayout(opts) {
   const altEn = publicOrigin + "/";
   const myOrigin = clientConfig.apiBase;
   const homeHref = lang === "id" ? "/id" : "/";
-  const hubHref = lang === "id" ? "/id/home" : "/home";
   const articlesHref = lang === "id" ? "/id/articles" : "/articles";
 
   return `<!doctype html>
@@ -151,7 +150,7 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
       <span class="brand-sub">${escapeHtml(s.headerTagline)}</span>
     </a>
     <nav class="site-nav" aria-label="primary">
-      <a href="${escapeHtml(hubHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>
+      <a href="${escapeHtml(homeHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>
       <a href="${escapeHtml(articlesHref)}" class="nav-secondary">${escapeHtml(s.nav.articles)}</a>
       <a href="${escapeHtml(homeHref)}#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
       ${langToggleMarkup(lang, s)}

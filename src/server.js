@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
-import { renderLandingPage, renderHomeHubPage } from "./views/pages.js";
+import { renderHomeHubPage } from "./views/pages.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
 import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
@@ -195,11 +195,6 @@ function wrapPage(lang, canonicalPath, page) {
   return { html, nonce };
 }
 
-function renderLanding(lang, canonicalPath) {
-  const page = renderLandingPage({ lang, publicOrigin: PUBLIC_ORIGIN, loginUrl: MY20FIT_ORIGIN + "/login", canonicalPath });
-  return wrapPage(lang, canonicalPath, page);
-}
-
 async function renderHomeHub(lang, canonicalPath) {
   const store = getArticleStore();
   // Pass a broad set so the hub's "Top 5" can pick the 5 most recent by date.
@@ -377,8 +372,6 @@ const server = http.createServer(async (req, res) => {
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         `<url><loc>${PUBLIC_ORIGIN}/</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id</loc><lastmod>${now}</lastmod></url>\n` +
-        `<url><loc>${PUBLIC_ORIGIN}/home</loc><lastmod>${now}</lastmod></url>\n` +
-        `<url><loc>${PUBLIC_ORIGIN}/id/home</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/articles</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id/articles</loc><lastmod>${now}</lastmod></url>\n` +
         articleUrls +
@@ -413,33 +406,42 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Pages (English default, Indonesian at /id). /auth/callback shares the
-  // English page — the client handles the SSO fragment on load, then
-  // continues here. /en is a legacy alias from before English became the
-  // default — redirected to / rather than served twice, so there's a
-  // single canonical URL per language.
+  // Homepage — the MCU experience itself (hero, quiz choices, the Scan MCU
+  // widget behind the §0.1 login gate, real-program handoff, "Top 5 Articles",
+  // a §0.1-safe sample result, FAQ, doctor escalation). English at /,
+  // Indonesian at /id. Public; only the scan upload requires login (§0.1).
+  // /auth/callback shares the homepage so the client consumes the SSO fragment
+  // on the page the member returned to.
   if (pathname === "/" || pathname === "/auth/callback") {
-    const { html, nonce } = renderLanding("en", "/");
-    sendHtml(res, 200, html, nonce);
+    const { html, nonce } = await renderHomeHub("en", "/");
+    // relaxImg: Top-5 article cards carry cover photos from other https hosts.
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
   if (pathname === "/id" || pathname === "/id/" || pathname === "/id/auth/callback") {
-    const { html, nonce } = renderLanding("id", "/id");
-    sendHtml(res, 200, html, nonce);
-    return;
-  }
-  // Home hub — the app (Scan MCU, Quiz, Articles). Public; only the scan
-  // upload itself requires login (§0.1). /auth/callback for the hub lands here
-  // too so the SSO fragment is consumed on the page the member returned to.
-  if (pathname === "/home" || pathname === "/home/" || pathname === "/home/auth/callback") {
-    const { html, nonce } = await renderHomeHub("en", "/home");
-    // relaxImg: featured-article cards carry cover photos from other https hosts.
+    const { html, nonce } = await renderHomeHub("id", "/id");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
-  if (pathname === "/id/home" || pathname === "/id/home/" || pathname === "/id/home/auth/callback") {
-    const { html, nonce } = await renderHomeHub("id", "/id/home");
+  // Legacy /home — the homepage moved to /. The SSO callback variants keep
+  // RENDERING (a redirect could drop the URL fragment carrying the SSO token);
+  // plain /home 301-redirects so there is one canonical URL per language.
+  if (pathname === "/home/auth/callback") {
+    const { html, nonce } = await renderHomeHub("en", "/");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+  if (pathname === "/id/home/auth/callback") {
+    const { html, nonce } = await renderHomeHub("id", "/id");
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+  if (pathname === "/home" || pathname === "/home/") {
+    res.writeHead(301, { Location: "/" }).end();
+    return;
+  }
+  if (pathname === "/id/home" || pathname === "/id/home/") {
+    res.writeHead(301, { Location: "/id" }).end();
     return;
   }
   if (pathname === "/en" || pathname === "/en/" || pathname === "/en/auth/callback") {

@@ -573,6 +573,35 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
   .train-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* ── Quiz choices + exercise-program chooser ── */
+.quiz-choice-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 22px; }
+.quiz-choice {
+  display: block; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 22px; color: inherit; transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.quiz-choice:hover { border-color: var(--red); box-shadow: var(--shadow); transform: translateY(-2px); text-decoration: none; }
+.quiz-choice-title { font-size: 1.1rem; margin: 0 0 6px; color: var(--ink); }
+.quiz-choice-desc { margin: 0 0 12px; color: var(--muted); font-size: 0.92rem; }
+.quiz-choice-cta { font-family: var(--font-mono); font-weight: 700; color: var(--red-text); }
+@media (min-width: 640px) { .quiz-choice-grid { grid-template-columns: repeat(2, 1fr); } }
+.quiz-next { margin-top: 16px; font-weight: 600; }
+.quiz-next a { color: var(--red-text); font-family: var(--font-mono); }
+/* Exercise-program chooser — JS-free: the checked radio reveals the matching
+   REAL 20FIT program card via a CSS sibling selector. */
+.exq { margin-top: 16px; }
+.exq-radio { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.exq-opt {
+  display: inline-block; margin: 0 8px 8px 0; padding: 10px 16px; border: 1px solid var(--border-strong);
+  border-radius: 999px; background: var(--card); color: var(--ink); font-weight: 600; font-size: 0.9rem; cursor: pointer;
+}
+.exq-radio:checked + .exq-opt { background: var(--red); color: #fff; border-color: var(--red); }
+.exq-radio:focus-visible + .exq-opt { outline: 2px solid var(--red); outline-offset: 2px; }
+.exq-reveal { display: none; margin-top: 8px; }
+#exq-home:checked ~ .exq-r-home,
+#exq-studio:checked ~ .exq-r-studio,
+#exq-outdoor:checked ~ .exq-r-outdoor { display: block; }
+.exq-note { margin-top: 14px; font-size: 0.85rem; color: var(--muted-2); line-height: 1.6; }
+
 /* ── BMI quiz ── */
 .quiz-form { margin-top: 18px; }
 .quiz-fields { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }

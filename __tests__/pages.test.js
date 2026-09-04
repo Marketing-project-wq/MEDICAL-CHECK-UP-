@@ -42,20 +42,31 @@ test("hub: pillars + scan widget (§0.1 gate) + quiz coming-soon + featured + do
   assert.match(p.bodyHtml, /data-role="login-gate">/);
   assert.match(p.bodyHtml, /data-role="uploader" hidden>/);
   assert.equal((p.bodyHtml.match(/data-role="file"/g) || []).length, 1);
+  // Quiz choices — BMI + exercise-program router
+  assert.match(p.bodyHtml, /id="quiz-choices"/);
+  assert.match(p.bodyHtml, /href="#quiz"/);
+  assert.match(p.bodyHtml, /href="#exercise-quiz"/);
   // Quiz — BMI form (Tahap 2)
   assert.match(p.bodyHtml, /id="quiz"/);
   assert.match(p.bodyHtml, /data-role="quiz-form"/);
   assert.match(p.bodyHtml, /data-role="q-height"/);
   assert.match(p.bodyHtml, /data-role="q-weight"/);
   assert.match(p.bodyHtml, /data-role="quiz-result"/);
+  // Exercise-program chooser — JS-free radios that reveal REAL 20FIT programs
+  assert.match(p.bodyHtml, /id="exercise-quiz"/);
+  assert.match(p.bodyHtml, /id="exq-home"/);
+  assert.match(p.bodyHtml, /class="exq-reveal exq-r-home"/);
+  // reveals the configured (real) program links, e.g. the arena option
+  assert.match(p.bodyHtml, /href="https:\/\/arena\.example"/, "exercise chooser routes to a real program link");
   // Program & training (Tahap 3+4): real options + configurable link + save handoff
   assert.match(p.bodyHtml, /id="program"/);
   assert.match(p.bodyHtml, /train-card/);
   assert.match(p.bodyHtml, /href="https:\/\/arena\.example"/, "uses the configured arena link");
   assert.match(p.bodyHtml, /program-save/);
-  // Featured article + view-all link
+  // Top 5 Articles to Read Today + See All link
+  assert.match(p.bodyHtml, /Top 5 Articles to Read Today/);
   assert.match(p.bodyHtml, /href="\/articles\/a"/);
-  assert.match(p.bodyHtml, /href="\/articles"/);
+  assert.match(p.bodyHtml, /class="link-more" href="\/articles">See All/);
   // Escalation
   assert.match(p.bodyHtml, /health-disclaimer/);
   assert.match(p.bodyHtml, /doctor-cta/);

@@ -12,6 +12,7 @@ import { getSampleResult } from "../shared/sampleData.js";
 import { healthDisclaimer, doctorCta } from "../shared/health.js";
 import { iconSvg } from "../shared/icons.js";
 import { articleCover, topicKey } from "../shared/articleCover.js";
+import { localizeArticle } from "../shared/localizeArticle.js";
 import { articlePath } from "./articles.js";
 
 function hubHrefFor(lang) {
@@ -248,7 +249,7 @@ function quizSection(s) {
 }
 
 function featuredArticlesSection(s, lang, articles) {
-  const rows = Array.isArray(articles) ? articles.slice(0, 3) : [];
+  const rows = (Array.isArray(articles) ? articles.slice(0, 3) : []).map((a) => localizeArticle(a, lang));
   const cards = rows
     .map((a) => {
       const desc = a.excerpt || a.meta_description || "";

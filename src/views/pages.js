@@ -215,6 +215,53 @@ function scanSection(s, loginUrl, returnToUrl) {
   </section>`;
 }
 
+// Quiz choices — the homepage entry point to the tools. BMI is the main quiz;
+// "Find Your Exercise Program" is an honest router to 20FIT's REAL programs
+// (no invented program). Both are awareness/education, not a diagnosis.
+function quizChoicesSection(s) {
+  const choice = (href, title, desc) => `<a class="quiz-choice" href="${escapeHtml(href)}">
+      <h3 class="quiz-choice-title">${escapeHtml(title)}</h3>
+      <p class="quiz-choice-desc">${escapeHtml(desc)}</p>
+      <span class="quiz-choice-cta" aria-hidden="true">→</span>
+    </a>`;
+  return `<section id="quiz-choices" class="section">
+    <div class="wrap">
+      <h2>${escapeHtml(s.quizChooseHeading)}</h2>
+      <p class="section-intro">${escapeHtml(s.quizChooseIntro)}</p>
+      <div class="quiz-choice-grid">
+        ${choice("#quiz", s.quizCardBmiTitle, s.quizCardBmiDesc)}
+        ${choice("#exercise-quiz", s.quizCardExTitle, s.quizCardExDesc)}
+      </div>
+    </div>
+  </section>`;
+}
+
+// "Find Your Exercise Program" — a JS-free chooser (CSS :checked reveal): pick
+// where you want to train, see the matching REAL 20FIT program (reuses the
+// program cards + configurable links). It routes to real options; it never
+// invents a program, and it states it is not a medical prescription.
+function exerciseQuizSection(s, links) {
+  const l = links || {};
+  const opt = (id, label) =>
+    `<input type="radio" name="exq" id="${id}" class="exq-radio"><label for="${id}" class="exq-opt">${escapeHtml(label)}</label>`;
+  const reveal = (cls, card) => `<div class="exq-reveal ${cls}">${card}</div>`;
+  return `<section id="exercise-quiz" class="section section-alt">
+    <div class="wrap wrap-narrow">
+      <h2>${escapeHtml(s.exqHeading)}</h2>
+      <p class="section-intro">${escapeHtml(s.exqQuestion)}</p>
+      <div class="exq">
+        ${opt("exq-home", s.exqOptHome)}
+        ${opt("exq-studio", s.exqOptStudio)}
+        ${opt("exq-outdoor", s.exqOptOutdoor)}
+        ${reveal("exq-r-home", trainingCard(s.optHomeTitle, s.optHomeDesc, l.home || "#", s.programLinkCta))}
+        ${reveal("exq-r-studio", trainingCard(s.optEmsTitle, s.optEmsDesc, l.ems || "#", s.programLinkCta))}
+        ${reveal("exq-r-outdoor", trainingCard(s.optArenaTitle, s.optArenaDesc, l.arena || "#", s.programLinkCta))}
+      </div>
+      <p class="exq-note">${escapeHtml(s.exqNote)}</p>
+    </div>
+  </section>`;
+}
+
 // Quiz — BMI (+ optional waist-to-height). Pure client-side math on
 // self-entered numbers (no upload, no AI, no server), so it is safe for anon
 // and needs no §0.1 gate. The result is rendered by client/quiz.js; the copy
@@ -244,12 +291,19 @@ function quizSection(s) {
         <span class="status-msg" data-role="q-status" role="status" aria-live="polite"></span>
       </form>
       <div class="quiz-result" data-role="quiz-result" hidden></div>
+      <p class="quiz-next"><a href="#exercise-quiz">${escapeHtml(s.quizNextNudge)}</a></p>
     </div>
   </section>`;
 }
 
-function featuredArticlesSection(s, lang, articles) {
-  const rows = (Array.isArray(articles) ? articles.slice(0, 3) : []).map((a) => localizeArticle(a, lang));
+// "Top 5 Articles to Read Today" — the 5 most recent published articles (by
+// published_at). We have no view/popularity tracking, so "top" = latest (an
+// honest signal), never a fabricated "most popular" metric.
+function topArticlesSection(s, lang, articles) {
+  const rows = (Array.isArray(articles) ? articles.slice() : [])
+    .sort((a, b) => String(b.published_at || "").localeCompare(String(a.published_at || "")))
+    .slice(0, 5)
+    .map((a) => localizeArticle(a, lang));
   const cards = rows
     .map((a) => {
       const desc = a.excerpt || a.meta_description || "";
@@ -268,8 +322,8 @@ function featuredArticlesSection(s, lang, articles) {
   return `<section id="artikel" class="section">
     <div class="wrap">
       <div class="section-head-row">
-        <h2>${escapeHtml(s.articlesHeading)}</h2>
-        <a class="link-more" href="${escapeHtml(articlePath(lang))}">${escapeHtml(s.viewAllArticles)} →</a>
+        <h2>${escapeHtml(s.topArticlesHeading)}</h2>
+        <a class="link-more" href="${escapeHtml(articlePath(lang))}">${escapeHtml(s.seeAll)} →</a>
       </div>
       ${cards ? `<div class="article-grid">${cards}</div>` : `<p class="section-intro">${escapeHtml(s.articlesEmpty)}</p>`}
     </div>
@@ -344,9 +398,11 @@ export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath,
   const bodyHtml = [
     pillarNav(s),
     scanSection(s, loginUrl, returnToUrl),
+    quizChoicesSection(s),
     quizSection(s),
+    exerciseQuizSection(s, trainingLinks),
     programSection(s, trainingLinks),
-    featuredArticlesSection(s, lang, featuredArticles),
+    topArticlesSection(s, lang, featuredArticles),
     escalationSection(s, bookingUrl),
   ].join("\n");
   return { title: s.hubMetaTitle, description: s.hubMetaDescription, bodyHtml };

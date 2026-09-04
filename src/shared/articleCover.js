@@ -14,14 +14,14 @@ import { iconInner } from "./icons.js";
 import { escapeHtml } from "./escape.js";
 
 const THEMES = {
-  // bg/icon: the generated cover. kw: a safe, on-topic keyword for the stock
-  // photo so the image is relevant to the article's subject (not random).
-  lab: { bg: "#2c6e8f", icon: "scan", kw: "laboratory" }, // lab markers / reading results
-  nutrition: { bg: "#3b7a57", icon: "diet", kw: "vegetables" }, // food & nutrition
-  activity: { bg: "#c05621", icon: "program", kw: "running" }, // physical activity
-  consult: { bg: "#6b46c1", icon: "quiz", kw: "doctor" }, // consultation / literacy
-  lifestyle: { bg: "#2d7d74", icon: "clinic", kw: "wellness" }, // sleep, stress, habits
-  mcu: { bg: "#c53030", icon: "article", kw: "health" }, // general MCU / catch-all
+  // bg + line-icon for the generated themed cover (the fallback when an article
+  // has no curated/explicit photo).
+  lab: { bg: "#2c6e8f", icon: "scan" }, // lab markers / reading results
+  nutrition: { bg: "#3b7a57", icon: "diet" }, // food & nutrition
+  activity: { bg: "#c05621", icon: "program" }, // physical activity
+  consult: { bg: "#6b46c1", icon: "quiz" }, // consultation / literacy
+  lifestyle: { bg: "#2d7d74", icon: "clinic" }, // sleep, stress, habits
+  mcu: { bg: "#c53030", icon: "article" }, // general MCU / catch-all
 };
 
 // Theme -> i18n string key for the human-readable topic label.
@@ -86,23 +86,34 @@ export function articleCoverSvg(theme) {
 // CSS url('...') / HTML attribute context.
 const CSS_URL_OK = /^https:\/\/[^\s'"()<>\\]+$/;
 
-// Small deterministic number from the slug so each article keeps the same photo.
-function lockNum(s) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h % 100000;
-}
+// Curated real cover photos from 20FIT's OWN media library (media_assets:
+// Unsplash / Pexels / 20fit — all free-license), each matched to the article's
+// topic. Only CONFIDENT topic matches are listed; every other article falls back
+// to its themed SVG cover — we never attach a random / off-topic photo just to
+// "have a photo". Baked as URLs (no runtime dependency); an explicit `image` on
+// the article still wins over this.
+const ARTICLE_PHOTO = {
+  "memahami-angka-tekanan-darah": "https://images.unsplash.com/photo-1725870953863-4ad4db0acfc2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "pentingnya-serat-sayur-dan-buah": "https://images.pexels.com/photos/25315522/pexels-photo-25315522.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "prinsip-makan-seimbang-isi-piringku": "https://images.pexels.com/photos/25315522/pexels-photo-25315522.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "jalan-kaki-untuk-pemula": "https://images.unsplash.com/photo-1678681211549-34714ff68568?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "kenapa-aktivitas-fisik-penting": "https://images.unsplash.com/photo-1752619122458-b6c7f357b5e9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "membangun-kebiasaan-olahraga": "https://media.20fit.id/wp-content/uploads/2026/06/30-hari-workout-plan-pemula-efektif.jpg",
+  "menjaga-berat-badan-sehat": "https://images.pexels.com/photos/4587379/pexels-photo-4587379.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "peran-gaya-hidup-pada-hasil-mcu": "https://images.pexels.com/photos/4587379/pexels-photo-4587379.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "pentingnya-riwayat-kesehatan-keluarga": "https://images.pexels.com/photos/5082869/pexels-photo-5082869.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "pertanyaan-untuk-dokter-tentang-hasil-mcu": "https://images.unsplash.com/photo-1649751361457-01d3a696c7e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "kapan-tidak-menunda-ke-dokter": "https://images.unsplash.com/photo-1649751361457-01d3a696c7e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "faktor-risiko-yang-bisa-diubah": "https://images.pexels.com/photos/5793649/pexels-photo-5793649.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+};
 
-// The photo shown over the cover. An explicit `image` (e.g. a 20FIT brand photo)
-// wins; otherwise a deterministic, ON-TOPIC stock photograph — keyworded by the
-// article's theme so it's relevant to the subject (lab, food, exercise, doctor,
-// wellness, health), not a random image. Returns "" when nothing safe is
-// available (the themed SVG cover then shows on its own).
+// The cover photo for an article: an explicit `image` wins; otherwise the
+// curated library match; otherwise "" → the themed SVG cover shows on its own.
 function photoUrl(a) {
   const explicit = a && typeof a.image === "string" ? a.image.trim() : "";
   if (explicit) return CSS_URL_OK.test(explicit) ? explicit : "";
-  const t = THEMES[coverTheme(a || {})] || THEMES.mcu;
-  return `https://loremflickr.com/1200/675/${t.kw}?lock=${lockNum(((a && a.slug) || "mcu"))}`;
+  const url = (a && ARTICLE_PHOTO[a.slug]) || "";
+  return CSS_URL_OK.test(url) ? url : "";
 }
 
 // Cover block for a card (default) or a detail hero: the generated SVG sits at

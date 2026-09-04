@@ -202,7 +202,8 @@ function renderLanding(lang, canonicalPath) {
 
 async function renderHomeHub(lang, canonicalPath) {
   const store = getArticleStore();
-  const featuredArticles = store ? await store.listPublished({ limit: 3 }) : [];
+  // Pass a broad set so the hub's "Top 5" can pick the 5 most recent by date.
+  const featuredArticles = store ? await store.listPublished({ limit: 60 }) : [];
   const page = renderHomeHubPage({
     lang,
     publicOrigin: PUBLIC_ORIGIN,

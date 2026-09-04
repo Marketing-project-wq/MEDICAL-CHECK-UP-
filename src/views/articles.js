@@ -8,6 +8,7 @@ import { escapeHtml } from "../shared/escape.js";
 import { sanitizeArticleHtml } from "../shared/sanitizeHtml.js";
 import { healthDisclaimer, doctorCta } from "../shared/health.js";
 import { articleCover, topicKey } from "../shared/articleCover.js";
+import { localizeArticle } from "../shared/localizeArticle.js";
 
 function fmtDate(v, lang) {
   if (!v) return "";
@@ -38,7 +39,7 @@ function metaRow(a, lang, s) {
 
 /** @returns {{title, description, bodyHtml}} */
 export function articleListPage({ s, lang, articles }) {
-  const rows = Array.isArray(articles) ? articles : [];
+  const rows = (Array.isArray(articles) ? articles : []).map((a) => localizeArticle(a, lang));
   const cards = rows
     .map((a) => {
       const desc = a.excerpt || a.meta_description || "";
@@ -68,7 +69,7 @@ export function articleListPage({ s, lang, articles }) {
 
 /** @returns {{title, description, bodyHtml, canonical}} */
 export function articleDetailPage({ s, lang, article, bookingUrl }) {
-  const a = article || {};
+  const a = localizeArticle(article || {}, lang);
   const author = a.author_name ? `<span class="article-author">${escapeHtml(a.author_name)}</span>` : "";
   const source = a.published_url
     ? `<p class="article-source">${escapeHtml(s.articleSourcePrefix)}

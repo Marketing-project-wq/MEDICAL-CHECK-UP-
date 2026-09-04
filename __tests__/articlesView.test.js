@@ -51,6 +51,25 @@ test("detail page: canonical = published_url; disclaimer + doctor CTA present; b
   assert.match(page.bodyHtml, /media\.20fit\.id\/ems-vs-hiit/); // source link
 });
 
+test("EN site overlays an article's `en` translation; ID site keeps Indonesian", () => {
+  const art = {
+    title: "Judul ID", slug: "x", excerpt: "Ringkasan ID", meta_description: "Meta ID",
+    body_html: "<p>Isi Indonesia</p>", published_url: null, category: "edukasi",
+    en: { title: "EN Title", excerpt: "EN summary", meta_description: "EN meta", body_html: "<p>English body</p>" },
+  };
+  const en = articleDetailPage({ s: sEn, lang: "en", article: art, bookingUrl: "#" });
+  assert.match(en.bodyHtml, /EN Title/);
+  assert.match(en.bodyHtml, /English body/);
+  assert.doesNotMatch(en.bodyHtml, /Judul ID/);
+  const id = articleDetailPage({ s: sId, lang: "id", article: art, bookingUrl: "#" });
+  assert.match(id.bodyHtml, /Judul ID/);
+  assert.match(id.bodyHtml, /Isi Indonesia/);
+  assert.doesNotMatch(id.bodyHtml, /EN Title/);
+  const enList = articleListPage({ s: sEn, lang: "en", articles: [art] });
+  assert.match(enList.bodyHtml, /EN Title/);
+  assert.doesNotMatch(enList.bodyHtml, /Judul ID/);
+});
+
 test("detail page escapes an untrusted title (no HTML injection)", () => {
   const page = articleDetailPage({
     s: sId,

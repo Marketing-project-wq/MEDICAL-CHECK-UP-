@@ -111,6 +111,7 @@ export function renderLayout(opts) {
   const altEn = publicOrigin + "/";
   const myOrigin = clientConfig.apiBase;
   const homeHref = lang === "id" ? "/id" : "/";
+  const checkMcuHref = lang === "id" ? "/id/check-mcu" : "/check-mcu";
   const articlesHref = lang === "id" ? "/id/articles" : "/articles";
 
   return `<!doctype html>
@@ -150,9 +151,10 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
       <span class="brand-sub">${escapeHtml(s.headerTagline)}</span>
     </a>
     <nav class="site-nav" aria-label="primary">
-      <a href="${escapeHtml(homeHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>
+      <a href="${escapeHtml(homeHref)}" class="nav-secondary">${escapeHtml(s.nav.beranda)}</a>
       <a href="${escapeHtml(articlesHref)}" class="nav-secondary">${escapeHtml(s.nav.articles)}</a>
       <a href="${escapeHtml(homeHref)}#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
+      <a href="${escapeHtml(checkMcuHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>
       ${langToggleMarkup(lang, s)}
       <button type="button" class="theme-toggle" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>

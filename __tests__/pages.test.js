@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderHomeHubPage } from "../src/views/pages.js";
+import { renderHomeHubPage, renderCheckMcuPage } from "../src/views/pages.js";
 
 const CTX = { publicOrigin: "https://medicalcheckup.20fit.id", loginUrl: "https://my.20fit.id/login" };
 
@@ -15,72 +15,73 @@ function renderHome(lang, canonicalPath) {
   });
 }
 
-test("homepage: hero + pillars + scan (§0.1) + quiz choices + program + Top 5 + sample/how/faq + doctor", () => {
+test("homepage: hub only — hero + quiz choices + program + Top 5 + FAQ; links to /check-mcu; NO inline uploader", () => {
   const p = renderHome("en", "/");
 
-  // Hero owns the single <h1> of the page; its CTA jumps to the on-page scan
-  // section (the homepage IS the MCU experience — no separate landing).
+  // Hero owns the single <h1>; its CTAs point at the SEPARATE Check MCU page.
   assert.match(p.bodyHtml, /class="hero"/, "hero present");
   assert.equal((p.bodyHtml.match(/<h1[ >]/g) || []).length, 1, "exactly one <h1> (the hero)");
-  assert.match(p.bodyHtml, /class="btn btn-primary" href="#scan"/, "hero primary CTA → #scan on page");
-  assert.doesNotMatch(p.bodyHtml, /id="ecosystem"/, "ecosystem removed");
+  assert.match(p.bodyHtml, /class="btn btn-primary" href="\/check-mcu"/, "hero primary CTA → /check-mcu");
+  assert.match(p.bodyHtml, /href="\/check-mcu#example"/, "hero 'see example' → the tool page's sample");
 
-  // Pillar nav (quick-jump, 4 pillars) — heading demoted to <h2> under the hero.
-  assert.match(p.bodyHtml, /pillar-card/);
-  assert.match(p.bodyHtml, /href="#scan"/);
+  // The Scan MCU tool is NOT embedded on the homepage anymore.
+  assert.doesNotMatch(p.bodyHtml, /id="member-app"/, "no uploader widget on the homepage");
+  assert.equal((p.bodyHtml.match(/data-role="file"/g) || []).length, 0, "no file input on the homepage");
+  assert.doesNotMatch(p.bodyHtml, /id="scan"/, "no inline scan section on the homepage");
+  assert.doesNotMatch(p.bodyHtml, /id="example"/, "sample result moved to the tool page");
+  assert.doesNotMatch(p.bodyHtml, /id="how"/, "how-it-works moved to the tool page");
+
+  // Pillar nav: the Scan pillar links across to /check-mcu; the rest are anchors.
+  assert.match(p.bodyHtml, /class="pillar-card" href="\/check-mcu"/, "Scan pillar → /check-mcu");
   assert.match(p.bodyHtml, /href="#quiz"/);
   assert.match(p.bodyHtml, /href="#program"/);
   assert.match(p.bodyHtml, /href="#artikel"/);
 
-  // Scan section = the §0.1 widget: login gate present, uploader hidden by
-  // default, exactly one file input.
-  assert.match(p.bodyHtml, /id="scan"/);
-  assert.match(p.bodyHtml, /id="member-app"/);
-  assert.match(p.bodyHtml, /data-role="login-gate">/);
-  assert.match(p.bodyHtml, /data-role="uploader" hidden>/);
-  assert.equal((p.bodyHtml.match(/data-role="file"/g) || []).length, 1);
-
-  // Quiz choices — BMI + exercise-program router.
+  // Quiz choices + BMI + exercise router + program + Top 5 + See All stay.
   assert.match(p.bodyHtml, /id="quiz-choices"/);
-  assert.match(p.bodyHtml, /href="#quiz"/);
   assert.match(p.bodyHtml, /href="#exercise-quiz"/);
-
-  // BMI quiz form.
   assert.match(p.bodyHtml, /id="quiz"/);
   assert.match(p.bodyHtml, /data-role="quiz-form"/);
-  assert.match(p.bodyHtml, /data-role="q-height"/);
-  assert.match(p.bodyHtml, /data-role="q-weight"/);
-  assert.match(p.bodyHtml, /data-role="quiz-result"/);
-
-  // Exercise-program chooser — JS-free radios that reveal REAL 20FIT programs.
   assert.match(p.bodyHtml, /id="exercise-quiz"/);
-  assert.match(p.bodyHtml, /id="exq-home"/);
-  assert.match(p.bodyHtml, /class="exq-reveal exq-r-home"/);
-  assert.match(p.bodyHtml, /href="https:\/\/arena\.example"/, "exercise chooser routes to a real program link");
-
-  // Program & training: real options + configurable link + save handoff.
+  assert.match(p.bodyHtml, /href="https:\/\/arena\.example"/, "exercise/program routes to a real link");
   assert.match(p.bodyHtml, /id="program"/);
-  assert.match(p.bodyHtml, /train-card/);
   assert.match(p.bodyHtml, /program-save/);
-
-  // Top 5 Articles to Read Today + See All link.
   assert.match(p.bodyHtml, /Top 5 Articles to Read Today/);
   assert.match(p.bodyHtml, /href="\/articles\/a"/);
   assert.match(p.bodyHtml, /class="link-more" href="\/articles">See All/);
+  assert.match(p.bodyHtml, /id="faq"/, "FAQ stays on the homepage");
 
-  // Folded-in landing content: §0.1-safe sample result, how-it-works, FAQ.
-  assert.match(p.bodyHtml, /id="example"/, "sample result section");
-  assert.match(p.bodyHtml, /id="how"/, "how-it-works section");
-  assert.match(p.bodyHtml, /id="faq"/, "faq section");
-
-  // Escalation.
+  // Escalation is on the homepage too (doctor path always reachable).
   assert.match(p.bodyHtml, /health-disclaimer/);
   assert.match(p.bodyHtml, /doctor-cta/);
-  assert.match(p.bodyHtml, /book-doctor/);
 });
 
 test("homepage: featured empty state + ID article paths when no articles", () => {
   const p = renderHomeHubPage({ lang: "id", canonicalPath: "/id", featuredArticles: [], bookingUrl: "#", ...CTX });
   assert.match(p.bodyHtml, /id="artikel"/);
   assert.match(p.bodyHtml, /href="\/id\/articles"/);
+});
+
+test("Check MCU page: §0.1 gate (login gate, uploader hidden, one file input) + how + sample + doctor", () => {
+  const p = renderCheckMcuPage({ lang: "en", canonicalPath: "/check-mcu", bookingUrl: "https://my.20fit.id/book-doctor", ...CTX });
+
+  // Single <h1> for the tool page (the intro), then the §0.1 scan widget.
+  assert.equal((p.bodyHtml.match(/<h1[ >]/g) || []).length, 1, "exactly one <h1> (the intro)");
+  assert.match(p.bodyHtml, /id="scan"/);
+  assert.match(p.bodyHtml, /id="member-app"/);
+  assert.match(p.bodyHtml, /data-role="login-gate">/, "anonymous visitors get the login gate");
+  assert.match(p.bodyHtml, /data-role="uploader" hidden>/, "uploader hidden by default");
+  assert.equal((p.bodyHtml.match(/data-role="file"/g) || []).length, 1, "exactly one file input");
+
+  // How-it-works + §0.1-safe sample result live with the tool.
+  assert.match(p.bodyHtml, /id="how"/);
+  assert.match(p.bodyHtml, /id="example"/);
+
+  // Doctor escalation present.
+  assert.match(p.bodyHtml, /health-disclaimer/);
+  assert.match(p.bodyHtml, /doctor-cta/);
+  assert.match(p.bodyHtml, /book-doctor/);
+
+  // The return-to for the login gate is the tool page itself.
+  assert.match(p.bodyHtml, /data-return-to="https:\/\/medicalcheckup\.20fit\.id\/check-mcu"/);
 });

@@ -1,9 +1,12 @@
-// Page composition (server-rendered). One homepage:
-//   Homepage (/, /id) — the MCU experience itself: hero, quiz choices (BMI +
-//     exercise router), the members-only Scan MCU widget (§0.1 gate), a real
-//     20FIT program handoff, "Top 5 Articles to Read Today", a §0.1-safe sample
-//     result, how-it-works, FAQ, and the doctor escalation. /home and /id/home
-//     301-redirect here (see server.js) so there is one canonical URL per lang.
+// Page composition (server-rendered). Two pages, kept separate on purpose:
+//   Homepage   (/, /id)          — the hub: hero, quiz choices (BMI + exercise
+//                                   router), 20FIT program handoff, "Top 5
+//                                   Articles", FAQ, doctor escalation. Links out
+//                                   to Check MCU; it does NOT embed the uploader.
+//   Check MCU  (/check-mcu, …)    — the tool: the members-only Scan MCU widget
+//                                   (§0.1 gate), how-it-works, a §0.1-safe sample
+//                                   result, and the doctor escalation.
+//   /home and /id/home 301-redirect to the homepage (see server.js).
 // Dependency-free ESM.
 
 import { escapeHtml } from "../shared/escape.js";
@@ -17,9 +20,14 @@ import { articleCover, topicKey } from "../shared/articleCover.js";
 import { localizeArticle } from "../shared/localizeArticle.js";
 import { articlePath } from "./articles.js";
 
+// The Check MCU tool lives on its own page; the homepage links to it.
+function checkMcuHrefFor(lang) {
+  return lang === "id" ? "/id/check-mcu" : "/check-mcu";
+}
+
 // ── Homepage sections ───────────────────────────────────────────────────────
 
-function heroSection(s, primaryHref) {
+function heroSection(s, primaryHref, exampleHref) {
   return `<section class="hero">
     <div class="wrap hero-grid">
       <div class="hero-copy">
@@ -28,7 +36,7 @@ function heroSection(s, primaryHref) {
         <p class="hero-sub">${escapeHtml(s.heroSubtitle)}</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="${escapeHtml(primaryHref)}">${escapeHtml(s.heroPrimaryCta)}</a>
-          <a class="btn btn-ghost" href="#example">${escapeHtml(s.heroSeeExample)}</a>
+          <a class="btn btn-ghost" href="${escapeHtml(exampleHref)}">${escapeHtml(s.heroSeeExample)}</a>
         </div>
         <div class="app-badges">
           <span class="app-badge">${escapeHtml(s.appStoreLine1)}<strong>${escapeHtml(s.appStoreLine2)}</strong></span>
@@ -102,9 +110,11 @@ function faqSection(s) {
   </section>`;
 }
 
-function pillarNav(s) {
+function pillarNav(s, checkMcuHref) {
   const pillars = [
-    { href: "#scan", icon: "scan", title: s.pillarScanTitle, desc: s.pillarScanDesc },
+    // Scan MCU is its own page now — this pillar links across to it, not to an
+    // on-page anchor.
+    { href: checkMcuHref, icon: "scan", title: s.pillarScanTitle, desc: s.pillarScanDesc },
     { href: "#quiz", icon: "quiz", title: s.pillarQuizTitle, desc: s.pillarQuizDesc },
     { href: "#program", icon: "program", title: s.pillarProgramTitle, desc: s.pillarProgramDesc },
     { href: "#artikel", icon: "article", title: s.pillarArticleTitle, desc: s.pillarArticleDesc },
@@ -346,31 +356,59 @@ function escalationSection(s, bookingUrl) {
   </section>`;
 }
 
+// Intro/hero for the standalone Check MCU page — owns that page's single <h1>.
+function checkMcuIntro(s) {
+  return `<section class="section hub-intro">
+    <div class="wrap wrap-narrow">
+      <h1>${escapeHtml(s.pillarScanTitle)}</h1>
+      <p class="section-intro">${escapeHtml(s.pillarScanDesc)}</p>
+      <div class="disclaimer-banner">${escapeHtml(s.heroDisclaimer)}</div>
+    </div>
+  </section>`;
+}
+
 // ── Page composers ──────────────────────────────────────────────────────────
 
 /**
- * The MCU experience IS the homepage ("Jadikan mcu.20fit.id sebagai HOMEPAGE").
- * Served at / (EN) and /id (ID); /home and /id/home 301-redirect here so there
- * is one canonical URL per language. The hero owns the single <h1> and its CTAs
- * jump to on-page anchors (#scan, #example); pillarNav is a quick-jump strip.
+ * Homepage — the hub. Served at / (EN) and /id (ID); /home and /id/home
+ * 301-redirect here. The Scan MCU tool is a SEPARATE page (/check-mcu): the hero
+ * CTA and the first pillar link across to it — the uploader is NOT embedded here.
+ * The hero owns the single <h1>.
  * @returns {{ title:string, description:string, bodyHtml:string }}
  */
 export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath, featuredArticles, bookingUrl, trainingLinks }) {
   const s = getStrings(lang);
-  const returnToUrl = publicOrigin + canonicalPath;
+  const checkMcuHref = checkMcuHrefFor(lang);
   const bodyHtml = [
-    heroSection(s, "#scan"),
-    pillarNav(s),
-    scanSection(s, loginUrl, returnToUrl),
+    heroSection(s, checkMcuHref, checkMcuHref + "#example"),
+    pillarNav(s, checkMcuHref),
     quizChoicesSection(s),
     quizSection(s),
     exerciseQuizSection(s, trainingLinks),
     programSection(s, trainingLinks),
     topArticlesSection(s, lang, featuredArticles),
-    sampleSection(s, lang),
-    howItWorksSection(s),
     faqSection(s),
     escalationSection(s, bookingUrl),
   ].join("\n");
   return { title: s.metaTitle, description: s.metaDescription, bodyHtml };
+}
+
+/**
+ * Check MCU — the standalone Scan MCU tool page. Served at /check-mcu (EN) and
+ * /id/check-mcu (ID). This is where the §0.1 members-only uploader lives (login
+ * gate for anonymous visitors); it also carries how-it-works, a §0.1-safe sample
+ * result, and the doctor escalation. checkMcuIntro owns the single <h1>.
+ * @returns {{ title:string, description:string, bodyHtml:string }}
+ */
+export function renderCheckMcuPage({ lang, publicOrigin, loginUrl, canonicalPath, bookingUrl }) {
+  const s = getStrings(lang);
+  const returnToUrl = publicOrigin + canonicalPath;
+  const bodyHtml = [
+    checkMcuIntro(s),
+    scanSection(s, loginUrl, returnToUrl),
+    howItWorksSection(s),
+    sampleSection(s, lang),
+    escalationSection(s, bookingUrl),
+  ].join("\n");
+  return { title: `${s.pillarScanTitle} — ${s.brand}`, description: s.pillarScanDesc, bodyHtml };
 }

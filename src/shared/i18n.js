@@ -24,7 +24,7 @@ const STRINGS = {
     serviceUnavailable: "Fitur scan belum dikonfigurasi di server ini.",
     themeToggleLabel: "Ganti tema terang/gelap",
     langToggleAriaLabel: "Bahasa",
-    nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang", articles: "Artikel", home: "Cek MCU" },
+    nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang", articles: "Artikel", home: "Cek MCU", beranda: "Beranda" },
 
     heroBadge: "Panduan MCU",
     heroKicker: "Pantau Kesehatan Berkelanjutan",
@@ -268,7 +268,7 @@ const STRINGS = {
     serviceUnavailable: "Scanning isn't configured on this server yet.",
     themeToggleLabel: "Toggle light/dark theme",
     langToggleAriaLabel: "Language",
-    nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now", articles: "Articles", home: "Check MCU" },
+    nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now", articles: "Articles", home: "Check MCU", beranda: "Home" },
 
     heroBadge: "MCU Guide",
     heroKicker: "Continuous Health Tracking",

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
-import { renderHomeHubPage } from "./views/pages.js";
+import { renderHomeHubPage, renderCheckMcuPage } from "./views/pages.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
 import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
@@ -211,6 +211,18 @@ async function renderHomeHub(lang, canonicalPath) {
   return wrapPage(lang, canonicalPath, page);
 }
 
+// Check MCU — the standalone Scan MCU tool page (§0.1 gate lives here).
+function renderCheckMcu(lang, canonicalPath) {
+  const page = renderCheckMcuPage({
+    lang,
+    publicOrigin: PUBLIC_ORIGIN,
+    loginUrl: MY20FIT_ORIGIN + "/login",
+    canonicalPath,
+    bookingUrl: DOCTOR_BOOKING_URL,
+  });
+  return wrapPage(lang, canonicalPath, page);
+}
+
 function strings(lang) {
   return getStrings(lang);
 }
@@ -372,6 +384,8 @@ const server = http.createServer(async (req, res) => {
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         `<url><loc>${PUBLIC_ORIGIN}/</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id</loc><lastmod>${now}</lastmod></url>\n` +
+        `<url><loc>${PUBLIC_ORIGIN}/check-mcu</loc><lastmod>${now}</lastmod></url>\n` +
+        `<url><loc>${PUBLIC_ORIGIN}/id/check-mcu</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/articles</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id/articles</loc><lastmod>${now}</lastmod></url>\n` +
         articleUrls +
@@ -446,6 +460,21 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === "/en" || pathname === "/en/" || pathname === "/en/auth/callback") {
     res.writeHead(302, { Location: pathname.replace(/^\/en/, "") || "/" }).end();
+    return;
+  }
+
+  // Check MCU — the standalone Scan MCU tool page (§0.1 gate). Its /auth/callback
+  // variant renders (not redirects) so the SSO fragment is consumed here, and the
+  // member returns to the tool they were using.
+  if (pathname === "/check-mcu" || pathname === "/check-mcu/" || pathname === "/check-mcu/auth/callback") {
+    const { html, nonce } = renderCheckMcu("en", "/check-mcu");
+    // relaxImg: the uploader shows a blob: preview of the chosen file.
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+  if (pathname === "/id/check-mcu" || pathname === "/id/check-mcu/" || pathname === "/id/check-mcu/auth/callback") {
+    const { html, nonce } = renderCheckMcu("id", "/id/check-mcu");
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
 

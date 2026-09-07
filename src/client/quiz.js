@@ -20,6 +20,7 @@ export function setupQuiz(root, cfg) {
   const lang = cfg && cfg.lang === "id" ? "id" : "en";
   const s = getStrings(lang);
   const bookingUrl = (cfg && cfg.doctorBookingUrl) || "#";
+  const myUrl = (cfg && cfg.apiBase) || "#";
   const heightEl = q('[data-role="q-height"]');
   const weightEl = q('[data-role="q-weight"]');
   const waistEl = q('[data-role="q-waist"]');
@@ -67,6 +68,7 @@ export function setupQuiz(root, cfg) {
       <p class="quiz-context quiz-asia">${escapeHtml(s.bmiAsiaNote)}</p>
       ${whtrBlock}
       <p class="quiz-doctor-line">${escapeHtml(s.quizDoctorLine)} <a href="${escapeHtml(bookingUrl)}">${escapeHtml(s.doctorCtaButton)} →</a></p>
+      <p class="program-save">${escapeHtml(s.programSaveNote)} <a href="${escapeHtml(myUrl)}">${escapeHtml(s.programSaveCta)} →</a></p>
     `;
     resultEl.hidden = false;
     resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });

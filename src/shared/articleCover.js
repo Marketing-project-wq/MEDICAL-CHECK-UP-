@@ -110,6 +110,53 @@ const ARTICLE_PHOTO = {
   "pentingnya-pemanasan-dan-pendinginan": "https://images.unsplash.com/photo-1776710669971-eebdde536700?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
   // Consult — a clinician reviewing results with a patient (see a pro, don't self-diagnose).
   "kenapa-jangan-mendiagnosis-diri-sendiri": "https://images.pexels.com/photos/7088834/pexels-photo-7088834.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+
+  // Lab — reading/interpreting a real lab report or sample, per specific test.
+  "mengenal-penanda-umum-di-hasil-lab-mcu": "https://images.pexels.com/photos/7578815/pexels-photo-7578815.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-nilai-rujukan-lab": "https://images.pexels.com/photos/7579828/pexels-photo-7579828.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "arti-tanda-h-dan-l-di-hasil-lab": "https://images.pexels.com/photos/6129197/pexels-photo-6129197.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-profil-lipid-kolesterol": "https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-pemeriksaan-gula-darah": "https://images.pexels.com/photos/19243767/pexels-photo-19243767.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-tes-fungsi-hati": "https://images.pexels.com/photos/7578815/pexels-photo-7578815.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-tes-fungsi-ginjal": "https://images.pexels.com/photos/7579828/pexels-photo-7579828.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-hasil-darah-lengkap": "https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-asam-urat": "https://images.pexels.com/photos/6129197/pexels-photo-6129197.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-hasil-tes-urin": "https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "hasil-di-luar-rentang-belum-tentu-sakit": "https://images.pexels.com/photos/7579828/pexels-photo-7579828.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+
+  // Nutrition.
+  "kenapa-membatasi-gula-berlebih": "https://images.pexels.com/photos/2523650/pexels-photo-2523650.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "kenapa-membatasi-garam-berlebih": "https://images.pexels.com/photos/4475228/pexels-photo-4475228.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "dasar-hidrasi-cukup-minum-air": "https://images.pexels.com/photos/8537879/pexels-photo-8537879.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "cara-membaca-label-gizi-kemasan": "https://images.pexels.com/photos/6097883/pexels-photo-6097883.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "memahami-jenis-lemak-dalam-makanan": "https://images.pexels.com/photos/557659/pexels-photo-557659.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+
+  // Activity.
+  "bahaya-duduk-terlalu-lama": "https://images.pexels.com/photos/12812686/pexels-photo-12812686.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "cara-bergerak-lebih-banyak-sehari-hari": "https://images.pexels.com/photos/7888730/pexels-photo-7888730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+
+  // Lifestyle — sleep, stress, smoking, alcohol, heart habits, screen/eye strain.
+  "pentingnya-tidur-yang-cukup": "https://images.pexels.com/photos/6753354/pexels-photo-6753354.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "manajemen-stres-untuk-kesehatan": "https://images.pexels.com/photos/5201522/pexels-photo-5201522.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "dampak-merokok-bagi-kesehatan": "https://images.pexels.com/photos/2827798/pexels-photo-2827798.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "alkohol-dan-kesehatan": "https://images.pexels.com/photos/1484/pexels-photo-1484.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "kebiasaan-untuk-kesehatan-jantung": "https://images.pexels.com/photos/9804999/pexels-photo-9804999.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "menjaga-kesehatan-mata-era-layar": "https://images.pexels.com/photos/7605228/pexels-photo-7605228.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+
+  // Consult.
+  "beda-skrining-dan-diagnosis": "https://images.pexels.com/photos/7585316/pexels-photo-7585316.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "cara-menyimpan-hasil-mcu": "https://images.pexels.com/photos/8152735/pexels-photo-8152735.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "beda-gejala-dan-tanda": "https://images.pexels.com/photos/7659873/pexels-photo-7659873.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+
+  // MCU — general check-up, BMI/waist measurement, before/after and dasar-vs-lengkap.
+  "cara-membaca-hasil-mcu-untuk-pemula": "https://images.pexels.com/photos/20100296/pexels-photo-20100296.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "apa-itu-bmi-dan-kenapa-bukan-segalanya": "https://images.pexels.com/photos/6550820/pexels-photo-6550820.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "kenapa-medical-check-up-rutin-itu-penting": "https://images.pexels.com/photos/4173251/pexels-photo-4173251.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "cara-menyiapkan-diri-sebelum-medical-check-up": "https://images.pexels.com/photos/12955896/pexels-photo-12955896.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "rasio-lingkar-pinggang-tinggi-badan": "https://images.pexels.com/photos/6551427/pexels-photo-6551427.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "kenapa-tren-hasil-mcu-penting": "https://images.pexels.com/photos/7579831/pexels-photo-7579831.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "kenapa-hasil-normal-bukan-jaminan": "https://images.pexels.com/photos/8413410/pexels-photo-8413410.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "beda-mcu-dasar-dan-lengkap": "https://images.pexels.com/photos/6010873/pexels-photo-6010873.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
 };
 
 // The cover photo for an article: an explicit `image` wins; otherwise the

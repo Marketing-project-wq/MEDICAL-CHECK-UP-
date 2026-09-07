@@ -105,6 +105,11 @@ const ARTICLE_PHOTO = {
   "pertanyaan-untuk-dokter-tentang-hasil-mcu": "https://images.unsplash.com/photo-1649751361457-01d3a696c7e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
   "kapan-tidak-menunda-ke-dokter": "https://images.unsplash.com/photo-1649751361457-01d3a696c7e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
   "faktor-risiko-yang-bisa-diubah": "https://images.pexels.com/photos/5793649/pexels-photo-5793649.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  // Activity — real gym photos (the 20FIT library's strongest area).
+  "pentingnya-latihan-kekuatan": "https://images.unsplash.com/photo-1641337221253-fdc7237f6b61?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "pentingnya-pemanasan-dan-pendinginan": "https://images.unsplash.com/photo-1776710669971-eebdde536700?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  // Consult — a clinician reviewing results with a patient (see a pro, don't self-diagnose).
+  "kenapa-jangan-mendiagnosis-diri-sendiri": "https://images.pexels.com/photos/7088834/pexels-photo-7088834.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
 };
 
 // The cover photo for an article: an explicit `image` wins; otherwise the

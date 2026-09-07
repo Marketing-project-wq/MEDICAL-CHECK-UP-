@@ -192,6 +192,10 @@ const STRINGS = {
     quizCardBmiDesc: "Hitung BMI dari tinggi & berat, plus rasio pinggang. Indikator kasar, bukan vonis.",
     quizCardExTitle: "Temukan Program Latihanmu",
     quizCardExDesc: "Jawab satu pertanyaan singkat, lalu diarahkan ke program 20FIT yang sesuai.",
+    quizCardRunTitle: "Program untuk Pelari",
+    quizCardRunDesc: "Jawab satu pertanyaan soal levelmu, dapat saran latihan lari yang jujur dan realistis.",
+    quizCardHyroxTitle: "Program untuk HYROX",
+    quizCardHyroxDesc: "Cek level HYROX kamu, dan temukan langkah latihan yang sesuai di 20FIT Arena.",
     quizNextNudge: "Sudah cek BMI? Lanjut temukan program latihanmu di bawah ↓",
     exqHeading: "Temukan Program Latihanmu",
     exqQuestion: "Di mana kamu ingin berlatih?",
@@ -199,6 +203,40 @@ const STRINGS = {
     exqOptStudio: "Studio EMS",
     exqOptOutdoor: "Luar ruangan & fungsional",
     exqNote: "Ini mengarahkan ke program 20FIT yang sebenarnya — bukan resep medis. Untuk kondisi kesehatan, konsultasikan ke dokter 20FIT.",
+
+    // Runner quiz — single question, honest general guidance (no invented program).
+    rqHeading: "Program untuk Pelari",
+    rqQuestion: "Sejauh mana pengalaman larimu?",
+    rqOptBeginner: "Baru mulai lari",
+    rqOptRegular: "Rutin lari, mau lebih terstruktur",
+    rqOptRace: "Latihan untuk lomba / performa",
+    rqBeginnerTitle: "Bangun Kebiasaan Dulu",
+    rqBeginnerDesc:
+      "Mulai dari jalan-lari (run-walk) 20-30 menit, 2-3x seminggu. Fokus ke konsistensi dulu, bukan kecepatan atau jarak.",
+    rqRegularTitle: "Tambah Struktur Latihan",
+    rqRegularDesc:
+      "Kombinasikan lari santai dengan satu sesi tempo/interval per minggu, plus latihan kekuatan ringan buat kurangi risiko cedera.",
+    rqRaceTitle: "Latihan Terarah untuk Performa",
+    rqRaceDesc:
+      "Di fase ini, program berjenjang (long run, speed work, recovery) yang disesuaikan levelmu biasanya lebih efektif daripada latihan asal jalan.",
+    rqNote:
+      "Ini panduan umum untuk awareness — bukan program lari yang dipersonalisasi. Untuk plan yang disesuaikan dan bisa dipantau progresnya, lanjutkan di akun my.20fit.",
+
+    // HYROX quiz — single question; HYROX/Arena is a real 20FIT service line.
+    hqHeading: "Program untuk HYROX",
+    hqQuestion: "Sejauh apa pengalamanmu dengan HYROX?",
+    hqOptNew: "Belum pernah, mau coba",
+    hqOptDone: "Sudah pernah ikut race",
+    hqOptCompete: "Latihan untuk PR / kompetitif",
+    hqNewTitle: "Kenalan dengan Functional Training",
+    hqNewDesc:
+      "Mulai dari dasar functional training buat kenal gerakan-gerakan HYROX (lari, lunge, sled, dll) sebelum coba race pertamamu.",
+    hqDoneTitle: "Perkuat Titik Lemah",
+    hqDoneDesc: "Evaluasi race sebelumnya, lalu fokus perkuat station yang paling lambat atau paling melelahkan buat kamu.",
+    hqCompeteTitle: "Latihan Terstruktur untuk Waktu Terbaik",
+    hqCompeteDesc: "Di level ini, program periodisasi dengan target waktu per station biasanya dibutuhkan buat naik level performa.",
+    hqNote:
+      "Ini panduan umum untuk awareness — bukan program HYROX yang dipersonalisasi. Untuk latihan HYROX asli di 20FIT Arena dan plan yang bisa dipantau, lanjutkan di my.20fit.",
 
     // Quiz BMI (Tahap 2) — ambang standar WHO, dengan konteks jujur
     quizIntro: "Masukkan tinggi & berat kamu untuk lihat BMI dan gambaran kondisi tubuh. Ini perkiraan kasar untuk awareness — bukan diagnosa.",
@@ -428,6 +466,10 @@ const STRINGS = {
     quizCardBmiDesc: "Get your BMI from height & weight, plus waist ratio. A rough indicator, not a verdict.",
     quizCardExTitle: "Find Your Exercise Program",
     quizCardExDesc: "Answer one quick question, then get pointed to the matching 20FIT program.",
+    quizCardRunTitle: "Program for Runners",
+    quizCardRunDesc: "Answer one question about your level, get an honest, realistic running-training pointer.",
+    quizCardHyroxTitle: "Program for HYROX",
+    quizCardHyroxDesc: "Check your HYROX level and find the matching next step at 20FIT Arena.",
     quizNextNudge: "Done with BMI? Next, find your exercise program below ↓",
     exqHeading: "Find Your Exercise Program",
     exqQuestion: "Where do you want to train?",
@@ -435,6 +477,40 @@ const STRINGS = {
     exqOptStudio: "EMS studio",
     exqOptOutdoor: "Outdoor & functional",
     exqNote: "This points you to a real 20FIT program — not a medical prescription. For health conditions, consult a 20FIT doctor.",
+
+    // Runner quiz — single question, honest general guidance (no invented program).
+    rqHeading: "Program for Runners",
+    rqQuestion: "How experienced are you as a runner?",
+    rqOptBeginner: "Just starting out",
+    rqOptRegular: "I run regularly, want more structure",
+    rqOptRace: "Training for a race / performance",
+    rqBeginnerTitle: "Build the Habit First",
+    rqBeginnerDesc:
+      "Start with run-walk intervals, 20–30 minutes, 2–3x a week. Focus on consistency first, not speed or distance.",
+    rqRegularTitle: "Add Structure to Your Training",
+    rqRegularDesc:
+      "Combine easy runs with one tempo/interval session a week, plus light strength work to lower injury risk.",
+    rqRaceTitle: "Targeted Training for Performance",
+    rqRaceDesc:
+      "At this stage, a tiered program (long runs, speed work, recovery) matched to your level usually beats just running more.",
+    rqNote:
+      "This is general awareness guidance, not a personalized running program. For a plan tailored to you with progress tracking, continue in your my.20fit account.",
+
+    // HYROX quiz — single question; HYROX/Arena is a real 20FIT service line.
+    hqHeading: "Program for HYROX",
+    hqQuestion: "How experienced are you with HYROX?",
+    hqOptNew: "New to it, want to try",
+    hqOptDone: "Done a race before",
+    hqOptCompete: "Training to compete / improve time",
+    hqNewTitle: "Get Familiar with Functional Training",
+    hqNewDesc:
+      "Start with functional-training basics to get familiar with HYROX movements (run, lunge, sled, and more) before your first race.",
+    hqDoneTitle: "Strengthen Your Weak Points",
+    hqDoneDesc: "Review your last race, then focus on strengthening whichever station slowed you down or wore you out the most.",
+    hqCompeteTitle: "Structured Training for a Better Time",
+    hqCompeteDesc: "At this level, a periodized program with per-station time targets is usually what it takes to level up.",
+    hqNote:
+      "This is general awareness guidance, not a personalized HYROX program. For real HYROX training at 20FIT Arena and a plan you can track, continue at my.20fit.",
 
     // BMI quiz (Tahap 2) — standard WHO thresholds, with honest context
     quizIntro: "Enter your height & weight to see your BMI and a picture of your body condition. This is a rough estimate for awareness — not a diagnosis.",

@@ -213,6 +213,8 @@ function quizChoicesSection(s) {
       <div class="quiz-choice-grid">
         ${choice("#quiz", s.quizCardBmiTitle, s.quizCardBmiDesc)}
         ${choice("#exercise-quiz", s.quizCardExTitle, s.quizCardExDesc)}
+        ${choice("#runner-quiz", s.quizCardRunTitle, s.quizCardRunDesc)}
+        ${choice("#hyrox-quiz", s.quizCardHyroxTitle, s.quizCardHyroxDesc)}
       </div>
     </div>
   </section>`;
@@ -240,6 +242,69 @@ function exerciseQuizSection(s, links) {
         ${reveal("exq-r-outdoor", trainingCard(s.optArenaTitle, s.optArenaDesc, l.arena || "#", s.programLinkCta))}
       </div>
       <p class="exq-note">${escapeHtml(s.exqNote)}</p>
+    </div>
+  </section>`;
+}
+
+// Shared close for every quiz: the quiz itself only ever gives general
+// awareness guidance (never a personalized plan for an anonymous visitor) —
+// this is the one consistent nudge to realize/customize that guidance by
+// signing in to a real my.20fit account. Reuses .program-save (see the
+// Program & Training section below) so the visual language matches.
+function my20fitCta(s, myUrl) {
+  return `<p class="program-save">${escapeHtml(s.programSaveNote)}
+    <a href="${escapeHtml(myUrl || "#")}">${escapeHtml(s.programSaveCta)} →</a></p>`;
+}
+
+// "Program for Runners" — a JS-free chooser (same CSS :checked-reveal
+// mechanism as the exercise-program quiz). 20FIT has no dedicated running
+// program to route to, so each reveal is honest general training guidance
+// (not a real-program card) and the only CTA is the shared my20fitCta.
+function runnerQuizSection(s, myUrl) {
+  const opt = (id, label) =>
+    `<input type="radio" name="rq" id="${id}" class="exq-radio"><label for="${id}" class="exq-opt">${escapeHtml(label)}</label>`;
+  const reveal = (cls, card) => `<div class="exq-reveal ${cls}">${card}</div>`;
+  const tip = (title, desc) => `<div class="train-card-static"><h4>${escapeHtml(title)}</h4><p>${escapeHtml(desc)}</p></div>`;
+  return `<section id="runner-quiz" class="section">
+    <div class="wrap wrap-narrow">
+      <h2>${escapeHtml(s.rqHeading)}</h2>
+      <p class="section-intro">${escapeHtml(s.rqQuestion)}</p>
+      <div class="exq">
+        ${opt("rq-beginner", s.rqOptBeginner)}
+        ${opt("rq-regular", s.rqOptRegular)}
+        ${opt("rq-race", s.rqOptRace)}
+        ${reveal("rq-r-beginner", tip(s.rqBeginnerTitle, s.rqBeginnerDesc))}
+        ${reveal("rq-r-regular", tip(s.rqRegularTitle, s.rqRegularDesc))}
+        ${reveal("rq-r-race", tip(s.rqRaceTitle, s.rqRaceDesc))}
+      </div>
+      <p class="exq-note">${escapeHtml(s.rqNote)}</p>
+      ${my20fitCta(s, myUrl)}
+    </div>
+  </section>`;
+}
+
+// "Program for HYROX" — same chooser mechanism; HYROX/Arena IS a real 20FIT
+// service line, so each reveal is a real trainingCard pointing at the
+// configured arena booking link, followed by the shared my20fitCta for the
+// fuller, trackable plan.
+function hyroxQuizSection(s, links, myUrl) {
+  const l = links || {};
+  const opt = (id, label) =>
+    `<input type="radio" name="hq" id="${id}" class="exq-radio"><label for="${id}" class="exq-opt">${escapeHtml(label)}</label>`;
+  const reveal = (cls, card) => `<div class="exq-reveal ${cls}">${card}</div>`;
+  return `<section id="hyrox-quiz" class="section section-alt">
+    <div class="wrap wrap-narrow">
+      <h2>${escapeHtml(s.hqHeading)}</h2>
+      <p class="section-intro">${escapeHtml(s.hqQuestion)}</p>
+      <div class="exq">
+        ${opt("hq-new", s.hqOptNew)}
+        ${opt("hq-done", s.hqOptDone)}
+        ${opt("hq-compete", s.hqOptCompete)}
+        ${reveal("hq-r-new", trainingCard(s.hqNewTitle, s.hqNewDesc, l.arena || "#", s.programLinkCta))}
+        ${reveal("hq-r-done", trainingCard(s.hqDoneTitle, s.hqDoneDesc, l.arena || "#", s.programLinkCta))}
+        ${reveal("hq-r-compete", trainingCard(s.hqCompeteTitle, s.hqCompeteDesc, l.arena || "#", s.programLinkCta))}
+      </div>
+      ${my20fitCta(s, myUrl)}
     </div>
   </section>`;
 }
@@ -385,6 +450,8 @@ export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath,
     quizChoicesSection(s),
     quizSection(s),
     exerciseQuizSection(s, trainingLinks),
+    runnerQuizSection(s, (trainingLinks || {}).my),
+    hyroxQuizSection(s, trainingLinks, (trainingLinks || {}).my),
     programSection(s, trainingLinks),
     topArticlesSection(s, lang, featuredArticles),
     faqSection(s),

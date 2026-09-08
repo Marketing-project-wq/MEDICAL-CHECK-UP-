@@ -154,6 +154,31 @@ async function accessToken() {
   return data && data.session ? data.session.access_token : null;
 }
 
+// Klaim data anonim (like/scan/kontribusi dari app 20FIT LAIN) ke akun ini kalau user
+// pertama kali login lewat MCU. Penting §0.1: MCU TIDAK pernah membuat identitas anon
+// (tak set cookie) — hanya MEMBACA my20fit_anon bersama; kalau tak ada, no-op. Idempoten.
+function sharedAnonId() {
+  const m = document.cookie.match(/(?:^|; )my20fit_anon=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+async function claimAnon() {
+  try {
+    const anon = sharedAnonId();
+    if (!anon) return;
+    const tok = await accessToken();
+    if (!tok) return;
+    const base = String(CFG.apiBase || "").replace(/\/+$/, "");
+    if (!base) return;
+    await fetch(base + "/api/anon/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok, "x-anon-id": anon },
+      body: JSON.stringify({ anon_ids: [anon] }),
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
 function formatDate(v) {
   try {
     return new Date(v).toLocaleString(LANG === "en" ? "en-GB" : "id-ID");
@@ -455,9 +480,11 @@ async function boot() {
       data: { session },
     } = await supabase.auth.getSession();
     await currentWidget.applySessionState(session);
+    if (session) claimAnon(); // sudah login (mis. via SSO handoff) -> klaim data anon lintas app
 
     supabase.auth.onAuthStateChange((_event, session) => {
       currentWidget.applySessionState(session);
+      if (_event === "SIGNED_IN" && session) claimAnon();
     });
   }
 }

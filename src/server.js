@@ -10,12 +10,15 @@ import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
 import { renderHomeHubPage, renderCheckMcuPage } from "./views/pages.js";
+import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
 import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
 import { createArticleStore } from "./server/articles.js";
+import { createQuizStore } from "./server/quizzes.js";
+import { createQuizHandlers } from "./server/quizHandlers.js";
 import { LOCAL_ARTICLES } from "./shared/localArticles.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,22 +61,49 @@ const LOGO_DARK_URL =
 
 const supabaseOrigin = safeOrigin(SUPABASE_URL);
 
-// Service-role client: server-only, used by /api/scan to verify the member's
-// token and write the AI-access audit log. Lazily constructed so a missing
-// key doesn't crash page rendering — /api/scan itself fails clearly if it's
-// actually invoked without one.
+// Service-role client: server-only, used to verify a member's token and
+// (for /api/scan) write the AI-access audit log. Lazily constructed so a
+// missing key doesn't crash page rendering — each route that needs it fails
+// clearly on its own if actually invoked without one.
 let supabaseAdmin = null;
-let scanHandlers = null;
-function getScanHandlers() {
-  if (scanHandlers) return scanHandlers;
+function getSupabaseAdmin() {
+  if (supabaseAdmin) return supabaseAdmin;
   if (!SUPABASE_SERVICE_ROLE_KEY) return null;
   supabaseAdmin = createSupabaseAdmin({
     url: SUPABASE_URL,
     serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
     anonKey: SUPABASE_ANON_KEY,
   });
-  scanHandlers = createScanHandlers({ supabaseAdmin, my20fitOrigin: MY20FIT_ORIGIN });
+  return supabaseAdmin;
+}
+
+let scanHandlers = null;
+function getScanHandlers() {
+  if (scanHandlers) return scanHandlers;
+  const admin = getSupabaseAdmin();
+  if (!admin) return null;
+  scanHandlers = createScanHandlers({ supabaseAdmin: admin, my20fitOrigin: MY20FIT_ORIGIN });
   return scanHandlers;
+}
+
+// Quiz content store: needs the service-role key too (outcomes/results are
+// RLS service-role-only — see server/quizzes.js). Quizzes/questions still
+// render (publicly readable content) even without one; only submit/history
+// fail clearly if actually invoked.
+let quizStore = null;
+function getQuizStore() {
+  if (quizStore) return quizStore;
+  quizStore = createQuizStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
+  return quizStore;
+}
+
+let quizHandlers = null;
+function getQuizHandlers() {
+  if (quizHandlers) return quizHandlers;
+  const admin = getSupabaseAdmin();
+  if (!admin) return null;
+  quizHandlers = createQuizHandlers({ quizStore: getQuizStore(), supabaseAdmin: admin });
+  return quizHandlers;
 }
 
 // Article store (Tahap 1): serves the mcu-original (local) health articles
@@ -223,6 +253,28 @@ function renderCheckMcu(lang, canonicalPath) {
   return wrapPage(lang, canonicalPath, page);
 }
 
+// Quiz hub — lists every active CMS-driven quiz (BMI, Runner, HYROX, …).
+async function renderQuizHub(lang, canonicalPath) {
+  const quizzes = await getQuizStore().listActive();
+  const page = renderQuizHubPage({ lang, quizzes, bookingUrl: DOCTOR_BOOKING_URL });
+  return wrapPage(lang, canonicalPath, page);
+}
+
+// One quiz's wizard page. Returns null if the slug doesn't match an active
+// quiz (caller falls back to 404).
+async function renderQuizDetail(lang, canonicalPath, slug) {
+  const quiz = await getQuizStore().getBySlug(slug);
+  if (!quiz) return null;
+  const page = renderQuizPage({
+    lang,
+    quiz,
+    loginUrl: MY20FIT_ORIGIN + "/login",
+    returnToUrl: PUBLIC_ORIGIN + canonicalPath,
+    bookingUrl: DOCTOR_BOOKING_URL,
+  });
+  return wrapPage(lang, canonicalPath, page);
+}
+
 function strings(lang) {
   return getStrings(lang);
 }
@@ -350,6 +402,22 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // /api/quiz/submit: answerable anonymously by design (spec: the result is
+  // shown in full to everyone; only saving/history is gated). The outcome
+  // evaluation (including the BMI safety branches) happens only inside the
+  // handler, never in the browser.
+  if (req.method === "POST" && pathname === "/api/quiz/submit") {
+    const handlers = getQuizHandlers();
+    if (!handlers) {
+      res.writeHead(503, { "Content-Type": "application/json" }).end(
+        JSON.stringify({ ok: false, code: "service_unavailable" }),
+      );
+      return;
+    }
+    await handlers.handleSubmit(req, res);
+    return;
+  }
+
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.writeHead(405, { Allow: "GET, HEAD" }).end("Method not allowed");
     return;
@@ -386,6 +454,8 @@ const server = http.createServer(async (req, res) => {
         `<url><loc>${PUBLIC_ORIGIN}/id</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/check-mcu</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id/check-mcu</loc><lastmod>${now}</lastmod></url>\n` +
+        `<url><loc>${PUBLIC_ORIGIN}/quiz</loc><lastmod>${now}</lastmod></url>\n` +
+        `<url><loc>${PUBLIC_ORIGIN}/id/quiz</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/articles</loc><lastmod>${now}</lastmod></url>\n` +
         `<url><loc>${PUBLIC_ORIGIN}/id/articles</loc><lastmod>${now}</lastmod></url>\n` +
         articleUrls +
@@ -475,6 +545,43 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/id/check-mcu" || pathname === "/id/check-mcu/" || pathname === "/id/check-mcu/auth/callback") {
     const { html, nonce } = renderCheckMcu("id", "/id/check-mcu");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+
+  // GET /api/quiz/history: member-only (Bearer token required inside the
+  // handler) — the visitor's past quiz results, per spec "hasil kuis ikut
+  // pindah ke akun barunya" (the list a signed-in visitor sees).
+  if (pathname === "/api/quiz/history") {
+    const handlers = getQuizHandlers();
+    if (!handlers) {
+      res.writeHead(503, { "Content-Type": "application/json" }).end(
+        JSON.stringify({ ok: false, code: "service_unavailable" }),
+      );
+      return;
+    }
+    await handlers.handleHistory(req, res);
+    return;
+  }
+
+  // Quiz hub (/quiz, /id/quiz) + one quiz's wizard (/quiz/<slug>,
+  // /id/quiz/<slug>) — see views/quizPages.js + server/quizzes.js.
+  const quizMatch = pathname.match(/^\/(?:(id)\/)?quiz(?:\/([^/]+))?\/?$/);
+  if (quizMatch) {
+    const quizLang = quizMatch[1] === "id" ? "id" : "en";
+    const slug = quizMatch[2] ? decodeURIComponent(quizMatch[2]) : null;
+    const listPath = quizLang === "id" ? "/id/quiz" : "/quiz";
+    if (!slug) {
+      const { html, nonce } = await renderQuizHub(quizLang, listPath);
+      sendHtml(res, 200, html, nonce);
+      return;
+    }
+    const rendered = await renderQuizDetail(quizLang, `${listPath}/${slug}`, slug);
+    if (!rendered) {
+      const { html, nonce } = render404(quizLang);
+      sendHtml(res, 404, html, nonce);
+      return;
+    }
+    sendHtml(res, 200, rendered.html, rendered.nonce);
     return;
   }
 

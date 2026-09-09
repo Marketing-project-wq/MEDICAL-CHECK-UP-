@@ -15,7 +15,7 @@ function renderHome(lang, canonicalPath) {
   });
 }
 
-test("homepage: hub only — hero + quiz choices + program + Top 5 + FAQ; links to /check-mcu; NO inline uploader", () => {
+test("homepage: hub only — hero + pillar nav + program + Top 5 + FAQ; links to /check-mcu and /quiz; NO inline uploader or quiz", () => {
   const p = renderHome("en", "/");
 
   // Hero owns the single <h1>; its CTAs point at the SEPARATE Check MCU page.
@@ -31,19 +31,23 @@ test("homepage: hub only — hero + quiz choices + program + Top 5 + FAQ; links 
   assert.doesNotMatch(p.bodyHtml, /id="example"/, "sample result moved to the tool page");
   assert.doesNotMatch(p.bodyHtml, /id="how"/, "how-it-works moved to the tool page");
 
-  // Pillar nav: the Scan pillar links across to /check-mcu; the rest are anchors.
+  // The quizzes are NOT embedded on the homepage anymore either — they live
+  // on their own pages (/quiz, /quiz/<slug>), reached via the pillar nav.
+  assert.doesNotMatch(p.bodyHtml, /id="quiz-choices"/);
+  assert.doesNotMatch(p.bodyHtml, /id="quiz"[ >]/);
+  assert.doesNotMatch(p.bodyHtml, /id="exercise-quiz"/);
+  assert.doesNotMatch(p.bodyHtml, /id="runner-quiz"/);
+  assert.doesNotMatch(p.bodyHtml, /id="hyrox-quiz"/);
+  assert.doesNotMatch(p.bodyHtml, /data-role="quiz-form"/);
+
+  // Pillar nav: Scan → /check-mcu, Quiz → /quiz; the rest are on-page anchors.
   assert.match(p.bodyHtml, /class="pillar-card" href="\/check-mcu"/, "Scan pillar → /check-mcu");
-  assert.match(p.bodyHtml, /href="#quiz"/);
+  assert.match(p.bodyHtml, /class="pillar-card" href="\/quiz"/, "Quiz pillar → /quiz");
   assert.match(p.bodyHtml, /href="#program"/);
   assert.match(p.bodyHtml, /href="#artikel"/);
 
-  // Quiz choices + BMI + exercise router + program + Top 5 + See All stay.
-  assert.match(p.bodyHtml, /id="quiz-choices"/);
-  assert.match(p.bodyHtml, /href="#exercise-quiz"/);
-  assert.match(p.bodyHtml, /id="quiz"/);
-  assert.match(p.bodyHtml, /data-role="quiz-form"/);
-  assert.match(p.bodyHtml, /id="exercise-quiz"/);
-  assert.match(p.bodyHtml, /href="https:\/\/arena\.example"/, "exercise/program routes to a real link");
+  // Program + Top 5 + See All + FAQ stay on the homepage.
+  assert.match(p.bodyHtml, /href="https:\/\/arena\.example"/, "program routes to a real link");
   assert.match(p.bodyHtml, /id="program"/);
   assert.match(p.bodyHtml, /program-save/);
   assert.match(p.bodyHtml, /Top 5 Articles to Read Today/);

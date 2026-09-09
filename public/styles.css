@@ -567,76 +567,51 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 .train-card h4 { font-size: 1.05rem; margin: 0 0 5px; text-transform: none; letter-spacing: 0; color: var(--ink); }
 .train-card p { margin: 0 0 10px; color: var(--muted); font-size: 0.9rem; }
 .train-link { font-family: var(--font-mono); font-weight: 700; font-size: 0.8rem; color: var(--red-text); }
-/* Same look as .train-card but for a static (non-link) awareness tip — no
-   hover affordance, since there's nothing to click through to. */
-.train-card-static { display: block; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
-.train-card-static h4 { font-size: 1.05rem; margin: 0 0 5px; text-transform: none; letter-spacing: 0; color: var(--ink); }
-.train-card-static p { margin: 0; color: var(--muted); font-size: 0.9rem; }
 .program-save { margin-top: 22px; font-weight: 600; }
 .program-save a { color: var(--red-text); font-family: var(--font-mono); white-space: nowrap; }
 @media (min-width: 720px) {
   .train-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* ── Quiz choices + exercise-program chooser ── */
+/* ── Quiz hub (card grid linking to /quiz/<slug>) ── */
 .quiz-choice-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 22px; }
 .quiz-choice {
   display: block; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 20px 22px; color: inherit; transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .quiz-choice:hover { border-color: var(--red); box-shadow: var(--shadow); transform: translateY(-2px); text-decoration: none; }
+.quiz-choice-time { display: block; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted-2); margin-bottom: 6px; }
 .quiz-choice-title { font-size: 1.1rem; margin: 0 0 6px; color: var(--ink); }
 .quiz-choice-desc { margin: 0 0 12px; color: var(--muted); font-size: 0.92rem; }
 .quiz-choice-cta { font-family: var(--font-mono); font-weight: 700; color: var(--red-text); }
 @media (min-width: 640px) { .quiz-choice-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 980px) { .quiz-choice-grid { grid-template-columns: repeat(4, 1fr); } }
-.quiz-next { margin-top: 16px; font-weight: 600; }
-.quiz-next a { color: var(--red-text); font-family: var(--font-mono); }
-/* Exercise-program chooser — JS-free: the checked radio reveals the matching
-   REAL 20FIT program card via a CSS sibling selector. */
-.exq { margin-top: 16px; }
-.exq-radio { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.exq-opt {
-  display: inline-block; margin: 0 8px 8px 0; padding: 10px 16px; border: 1px solid var(--border-strong);
-  border-radius: 999px; background: var(--card); color: var(--ink); font-weight: 600; font-size: 0.9rem; cursor: pointer;
-}
-.exq-radio:checked + .exq-opt { background: var(--red); color: #fff; border-color: var(--red); }
-.exq-radio:focus-visible + .exq-opt { outline: 2px solid var(--red); outline-offset: 2px; }
-.exq-reveal { display: none; margin-top: 8px; }
-#exq-home:checked ~ .exq-r-home,
-#exq-studio:checked ~ .exq-r-studio,
-#exq-outdoor:checked ~ .exq-r-outdoor,
-#rq-beginner:checked ~ .rq-r-beginner,
-#rq-regular:checked ~ .rq-r-regular,
-#rq-race:checked ~ .rq-r-race,
-#hq-new:checked ~ .hq-r-new,
-#hq-done:checked ~ .hq-r-done,
-#hq-compete:checked ~ .hq-r-compete { display: block; }
-.exq-note { margin-top: 14px; font-size: 0.85rem; color: var(--muted-2); line-height: 1.6; }
 
-/* ── BMI quiz ── */
-.quiz-form { margin-top: 18px; }
-.quiz-fields { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }
-.quiz-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; font-weight: 600; color: var(--ink); }
-.quiz-field em { color: var(--muted-2); font-weight: 400; font-style: normal; }
-.quiz-field input {
-  padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
-  background: var(--card); color: var(--ink); font-size: 1rem; font-family: inherit;
+/* ── Quiz wizard (one question per screen; see client/quizWizard.js) ── */
+.quiz-progress { margin-bottom: 20px; }
+.quiz-progress-bar { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; }
+.quiz-progress-fill { height: 100%; background: var(--red); transition: width 0.2s ease; }
+.quiz-progress-label { display: block; margin-top: 6px; font-size: 0.82rem; color: var(--muted); font-family: var(--font-mono); }
+.quiz-wizard-question { font-size: 1.3rem; margin: 0 0 8px; }
+.quiz-wizard-help { color: var(--muted); font-size: 0.9rem; margin: 0 0 16px; }
+.quiz-wizard-input {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--card); color: var(--ink); font-size: 1.1rem; font-family: inherit; margin-bottom: 16px;
 }
-.quiz-field input:focus { outline: 2px solid var(--red); outline-offset: 1px; border-color: var(--red); }
-.quiz-result { margin-top: 22px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); }
-.quiz-result h3 { margin: 14px 0 10px; }
-.quiz-bmi { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.quiz-wizard-input:focus { outline: 2px solid var(--red); outline-offset: 1px; border-color: var(--red); }
+.quiz-wizard-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.quiz-wizard-opt {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); background: var(--card); cursor: pointer; font-size: 0.96rem;
+}
+.quiz-wizard-opt:has(input:checked) { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+.quiz-wizard-opt input:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.quiz-wizard-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.quiz-wizard-actions [data-act="qw-next"] { margin-left: auto; }
+.quiz-result-card { margin-top: 8px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); }
+.quiz-result-card h2 { margin: 4px 0 10px; }
+.quiz-bmi { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .quiz-bmi-value { font-family: var(--font-display); font-size: 2.6rem; line-height: 1; color: var(--ink); }
-.quiz-bmi-meta { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
 .quiz-bmi-label { font-size: 0.82rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.quiz-context { font-size: 0.92rem; color: var(--muted); line-height: 1.6; margin: 8px 0; }
-.quiz-context.quiz-asia { font-size: 0.85rem; color: var(--muted-2); }
-.quiz-metric { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
-.quiz-metric-label { font-weight: 600; }
-.quiz-doctor-line { margin-top: 16px; font-weight: 600; }
-.quiz-doctor-line a { color: var(--red-text); font-family: var(--font-mono); white-space: nowrap; }
-
-@media (min-width: 560px) {
-  .quiz-fields { grid-template-columns: repeat(3, 1fr); }
-}
+.quiz-restart { margin-top: 14px; }
+.quiz-restart a { color: var(--red-text); font-family: var(--font-mono); }

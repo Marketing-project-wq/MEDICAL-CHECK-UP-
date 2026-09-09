@@ -16,6 +16,7 @@
 // service-role key ships to the browser.
 
 import { callAnalyzeMcu } from "./mcuAnalyze.js";
+import { bearerToken, readJsonBody, sendJson, createRateLimiter } from "./httpUtil.js";
 
 const MAX_BODY_BYTES = 14 * 1024 * 1024; // ~10MB file base64-encoded + JSON overhead
 const MAX_DECODED_BYTES = 10 * 1024 * 1024; // matches the real my.20fit.id backend's multer limit (verified against its source)
@@ -24,58 +25,7 @@ const MEMBER_MAX_REQ = 20;
 
 // Best-effort in-memory sliding-window limiter (single instance; a hard
 // backstop still belongs on the my20fit-dashboard side — see README).
-const memberHits = new Map();
-
-function isRateLimited(map, key, windowMs, maxReq) {
-  const now = Date.now();
-  const recent = (map.get(key) ?? []).filter((t) => now - t < windowMs);
-  if (recent.length >= maxReq) {
-    map.set(key, recent);
-    return true;
-  }
-  recent.push(now);
-  map.set(key, recent);
-  return false;
-}
-
-function bearerToken(req) {
-  const header = req.headers.authorization;
-  return header && header.startsWith("Bearer ") ? header.slice(7).trim() : null;
-}
-
-function readJsonBody(req) {
-  return new Promise((resolve, reject) => {
-    const declaredLength = Number(req.headers["content-length"] || 0);
-    if (declaredLength > MAX_BODY_BYTES) {
-      reject({ status: 413, code: "file_too_large" });
-      return;
-    }
-    const chunks = [];
-    let total = 0;
-    req.on("data", (chunk) => {
-      total += chunk.length;
-      if (total > MAX_BODY_BYTES) {
-        reject({ status: 413, code: "file_too_large" });
-        req.destroy();
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on("end", () => {
-      try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}"));
-      } catch {
-        reject({ status: 400, code: "invalid_body" });
-      }
-    });
-    req.on("error", () => reject({ status: 400, code: "invalid_body" }));
-  });
-}
-
-function sendJson(res, status, body) {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
-  res.end(JSON.stringify(body));
-}
+const isRateLimited = createRateLimiter();
 
 const ACCEPTED_MIME = new Set(["image/jpeg", "image/png", "application/pdf"]);
 
@@ -91,7 +41,7 @@ export function createScanHandlers({ supabaseAdmin, my20fitOrigin }) {
 
     let body;
     try {
-      body = await readJsonBody(req);
+      body = await readJsonBody(req, MAX_BODY_BYTES, "file_too_large");
     } catch (err) {
       return sendJson(res, err.status || 400, { ok: false, code: err.code || "invalid_request" });
     }
@@ -110,7 +60,7 @@ export function createScanHandlers({ supabaseAdmin, my20fitOrigin }) {
       return sendJson(res, 413, { ok: false, code: "file_too_large" });
     }
 
-    if (isRateLimited(memberHits, user.id, MEMBER_WINDOW_MS, MEMBER_MAX_REQ)) {
+    if (isRateLimited(user.id, MEMBER_WINDOW_MS, MEMBER_MAX_REQ)) {
       return sendJson(res, 429, { ok: false, code: "rate_limited_member" });
     }
 

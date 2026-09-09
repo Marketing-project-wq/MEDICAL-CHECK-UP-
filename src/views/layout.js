@@ -113,6 +113,7 @@ export function renderLayout(opts) {
   const homeHref = lang === "id" ? "/id" : "/";
   const checkMcuHref = lang === "id" ? "/id/check-mcu" : "/check-mcu";
   const articlesHref = lang === "id" ? "/id/articles" : "/articles";
+  const quizHref = lang === "id" ? "/id/quiz" : "/quiz";
 
   return `<!doctype html>
 <html lang="${escapeHtml(s.htmlLang)}">
@@ -152,6 +153,7 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
     </a>
     <nav class="site-nav" aria-label="primary">
       <a href="${escapeHtml(homeHref)}" class="nav-secondary">${escapeHtml(s.nav.beranda)}</a>
+      <a href="${escapeHtml(quizHref)}" class="nav-secondary">${escapeHtml(s.nav.quiz)}</a>
       <a href="${escapeHtml(articlesHref)}" class="nav-secondary">${escapeHtml(s.nav.articles)}</a>
       <a href="${escapeHtml(homeHref)}#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
       <a href="${escapeHtml(checkMcuHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>

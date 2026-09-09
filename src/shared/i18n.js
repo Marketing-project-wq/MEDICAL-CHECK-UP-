@@ -24,7 +24,7 @@ const STRINGS = {
     serviceUnavailable: "Fitur scan belum dikonfigurasi di server ini.",
     themeToggleLabel: "Ganti tema terang/gelap",
     langToggleAriaLabel: "Bahasa",
-    nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang", articles: "Artikel", home: "Cek MCU", beranda: "Beranda" },
+    nav: { education: "Ekosistem", example: "FAQ", analyze: "Upload Sekarang", articles: "Artikel", home: "Cek MCU", beranda: "Beranda", quiz: "Quiz" },
 
     heroBadge: "Panduan MCU",
     heroKicker: "Pantau Kesehatan Berkelanjutan",
@@ -140,6 +140,8 @@ const STRINGS = {
     errAnalyzeTimeout: "Analisa memakan waktu lebih lama dari biasanya. Coba lagi ya.",
     errNotMcu: "Dokumen ini sepertinya bukan hasil medical check-up. Coba upload lembar hasil lab dari klinik atau rumah sakit.",
     errIncompleteMcu: "Dokumen ini terbaca sebagai MCU, tapi beberapa data penting belum lengkap (nama pasien, tanggal periksa, atau nilai lab). Coba upload lembar yang lebih lengkap.",
+    errQuizNotFound: "Kuis ini tidak ditemukan atau sudah tidak aktif.",
+    errQuizInvalidAnswers: "Ada jawaban yang belum lengkap atau tidak valid. Coba periksa lagi ya.",
 
     footerDisclaimer:
       "medicalcheckup.20fit.id membantu kamu MEMAHAMI hasil lab. Ini bukan diagnosis dan bukan pengganti nasihat dokter.",
@@ -177,7 +179,7 @@ const STRINGS = {
     pillarScanTitle: "Cek & Scan MCU",
     pillarScanDesc: "Upload hasil lab kamu, biar tiap penanda dijelaskan dengan bahasa yang gampang.",
     pillarQuizTitle: "Quiz Kesehatan",
-    pillarQuizDesc: "Cek BMI & gambaran kondisi tubuh kamu lewat kuis singkat.",
+    pillarQuizDesc: "BMI, program latihan, tidur, dan lainnya lewat kuis-kuis singkat.",
     pillarArticleTitle: "Artikel Kesehatan",
     pillarArticleDesc: "Insight kebugaran, EMS, HYROX, dan gaya hidup sehat dari tim 20FIT.",
     comingSoonBadge: "SEGERA HADIR",
@@ -185,81 +187,21 @@ const STRINGS = {
     viewAllArticles: "Lihat semua artikel",
     seeAll: "Lihat Semua",
     topArticlesHeading: "Top 5 Artikel untuk Dibaca Hari Ini",
-    // Homepage quiz choices + exercise-program chooser
-    quizChooseHeading: "Quiz & Alat Kesehatan",
-    quizChooseIntro: "Pilih quiz untuk mulai. Semua alat di sini untuk awareness & edukasi — bukan diagnosa resmi.",
-    quizCardBmiTitle: "Cek BMI & Kondisi Tubuh",
-    quizCardBmiDesc: "Hitung BMI dari tinggi & berat, plus rasio pinggang. Indikator kasar, bukan vonis.",
-    quizCardExTitle: "Temukan Program Latihanmu",
-    quizCardExDesc: "Jawab satu pertanyaan singkat, lalu diarahkan ke program 20FIT yang sesuai.",
-    quizCardRunTitle: "Program untuk Pelari",
-    quizCardRunDesc: "Jawab satu pertanyaan soal levelmu, dapat saran latihan lari yang jujur dan realistis.",
-    quizCardHyroxTitle: "Program untuk HYROX",
-    quizCardHyroxDesc: "Cek level HYROX kamu, dan temukan langkah latihan yang sesuai di 20FIT Arena.",
-    quizNextNudge: "Sudah cek BMI? Lanjut temukan program latihanmu di bawah ↓",
-    exqHeading: "Temukan Program Latihanmu",
-    exqQuestion: "Di mana kamu ingin berlatih?",
-    exqOptHome: "Di rumah",
-    exqOptStudio: "Studio EMS",
-    exqOptOutdoor: "Luar ruangan & fungsional",
-    exqNote: "Ini mengarahkan ke program 20FIT yang sebenarnya — bukan resep medis. Untuk kondisi kesehatan, konsultasikan ke dokter 20FIT.",
 
-    // Runner quiz — single question, honest general guidance (no invented program).
-    rqHeading: "Program untuk Pelari",
-    rqQuestion: "Sejauh mana pengalaman larimu?",
-    rqOptBeginner: "Baru mulai lari",
-    rqOptRegular: "Rutin lari, mau lebih terstruktur",
-    rqOptRace: "Latihan untuk lomba / performa",
-    rqBeginnerTitle: "Bangun Kebiasaan Dulu",
-    rqBeginnerDesc:
-      "Mulai dari jalan-lari (run-walk) 20-30 menit, 2-3x seminggu. Fokus ke konsistensi dulu, bukan kecepatan atau jarak.",
-    rqRegularTitle: "Tambah Struktur Latihan",
-    rqRegularDesc:
-      "Kombinasikan lari santai dengan satu sesi tempo/interval per minggu, plus latihan kekuatan ringan buat kurangi risiko cedera.",
-    rqRaceTitle: "Latihan Terarah untuk Performa",
-    rqRaceDesc:
-      "Di fase ini, program berjenjang (long run, speed work, recovery) yang disesuaikan levelmu biasanya lebih efektif daripada latihan asal jalan.",
-    rqNote:
-      "Ini panduan umum untuk awareness — bukan program lari yang dipersonalisasi. Untuk plan yang disesuaikan dan bisa dipantau progresnya, lanjutkan di akun my.20fit.",
-
-    // HYROX quiz — single question; HYROX/Arena is a real 20FIT service line.
-    hqHeading: "Program untuk HYROX",
-    hqQuestion: "Sejauh apa pengalamanmu dengan HYROX?",
-    hqOptNew: "Belum pernah, mau coba",
-    hqOptDone: "Sudah pernah ikut race",
-    hqOptCompete: "Latihan untuk PR / kompetitif",
-    hqNewTitle: "Kenalan dengan Functional Training",
-    hqNewDesc:
-      "Mulai dari dasar functional training buat kenal gerakan-gerakan HYROX (lari, lunge, sled, dll) sebelum coba race pertamamu.",
-    hqDoneTitle: "Perkuat Titik Lemah",
-    hqDoneDesc: "Evaluasi race sebelumnya, lalu fokus perkuat station yang paling lambat atau paling melelahkan buat kamu.",
-    hqCompeteTitle: "Latihan Terstruktur untuk Waktu Terbaik",
-    hqCompeteDesc: "Di level ini, program periodisasi dengan target waktu per station biasanya dibutuhkan buat naik level performa.",
-    hqNote:
-      "Ini panduan umum untuk awareness — bukan program HYROX yang dipersonalisasi. Untuk latihan HYROX asli di 20FIT Arena dan plan yang bisa dipantau, lanjutkan di my.20fit.",
-
-    // Quiz BMI (Tahap 2) — ambang standar WHO, dengan konteks jujur
-    quizIntro: "Masukkan tinggi & berat kamu untuk lihat BMI dan gambaran kondisi tubuh. Ini perkiraan kasar untuk awareness — bukan diagnosa.",
-    quizHeightLabel: "Tinggi badan (cm)",
-    quizWeightLabel: "Berat badan (kg)",
-    quizWaistLabel: "Lingkar pinggang (cm)",
-    quizOptional: "opsional",
-    quizSubmit: "Hitung",
-    quizErrInputs: "Isi tinggi & berat dengan angka yang wajar dulu ya.",
-    quizResultHeading: "Hasil perkiraan kamu",
+    // Quiz hub + wizard chrome (isi tiap kuis sendiri dari CMS —
+    // my20fit_quizzes/_questions/_outcomes — lihat server/quizzes.js).
+    quizHubHeading: "Quiz & Alat Kesehatan",
+    quizHubIntro: "Kuis singkat, bisa dikerjakan tanpa akun. Tiap kuis kasih saran yang beneran sesuai jawabanmu.",
+    quizHubEmpty: "Belum ada kuis untuk ditampilkan.",
+    quizDisclaimer: "Ini alat bantu memahami, bukan pemeriksaan medis. Untuk keputusan kesehatan, temui tenaga profesional.",
+    quizBack: "Kembali",
+    quizNext: "Lanjut",
+    quizFinish: "Lihat Hasil",
+    quizProgressLabel: "Pertanyaan {n} dari {total}",
+    quizSaveNote: "Simpan hasilnya dan susun rencanamu lebih detail di my.20fit.",
+    quizSaveCta: "Buat akun / Login",
+    quizRetake: "Ulangi kuis ini",
     bmiLabel: "BMI kamu",
-    bmiCatUnder: "Berat kurang",
-    bmiCatNormal: "Normal",
-    bmiCatOver: "Berat berlebih",
-    bmiCatObese: "Obesitas",
-    bmiContext:
-      "BMI cuma membandingkan berat dengan tinggi — nggak bisa bedain otot dan lemak. Orang berotot bisa BMI tinggi tapi tetap sehat; sebaliknya BMI 'normal' belum tentu bebas risiko. Anggap ini gambaran kasar, bukan penilaian medis.",
-    bmiAsiaNote:
-      "Untuk populasi Asia, ambangnya sering lebih rendah (mis. berlebih mulai BMI 23). Angka pastinya sebaiknya dibahas dengan dokter.",
-    whtrLabel: "Rasio pinggang–tinggi",
-    whtrOk: "Di bawah 0,5 — umumnya dianggap kisaran sehat.",
-    whtrHigh: "0,5 atau lebih — sering dikaitkan dengan risiko lebih tinggi. Pertimbangkan diskusi dengan dokter.",
-    quizDoctorLine: "Mau lebih pasti soal kondisimu?",
 
     // Program & Latihan (Tahap 3+4) — kategori layanan ASLI 20FIT, tanpa
     // mengarang paket/harga; link booking bisa dikonfigurasi.
@@ -298,7 +240,7 @@ const STRINGS = {
     serviceUnavailable: "Scanning isn't configured on this server yet.",
     themeToggleLabel: "Toggle light/dark theme",
     langToggleAriaLabel: "Language",
-    nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now", articles: "Articles", home: "Check MCU", beranda: "Home" },
+    nav: { education: "Ecosystem", example: "FAQ", analyze: "Upload Now", articles: "Articles", home: "Check MCU", beranda: "Home", quiz: "Quiz" },
 
     heroBadge: "MCU Guide",
     heroKicker: "Continuous Health Tracking",
@@ -414,6 +356,8 @@ const STRINGS = {
     errAnalyzeTimeout: "The analysis is taking longer than usual. Please try again.",
     errNotMcu: "This doesn't look like a medical check-up result. Try uploading the lab report from your clinic or hospital.",
     errIncompleteMcu: "This was read as an MCU, but some key details are missing (patient name, exam date, or lab values). Try uploading a more complete report.",
+    errQuizNotFound: "This quiz couldn't be found, or isn't active anymore.",
+    errQuizInvalidAnswers: "Some answers look incomplete or invalid. Please double-check and try again.",
 
     footerDisclaimer:
       "medicalcheckup.20fit.id helps you UNDERSTAND lab results. It is not a diagnosis and not a substitute for a doctor's advice.",
@@ -451,7 +395,7 @@ const STRINGS = {
     pillarScanTitle: "Check & Scan MCU",
     pillarScanDesc: "Upload your lab results and get each marker explained in plain language.",
     pillarQuizTitle: "Health Quiz",
-    pillarQuizDesc: "Check your BMI & a picture of your body condition with a short quiz.",
+    pillarQuizDesc: "BMI, training programs, sleep, and more via short quizzes.",
     pillarArticleTitle: "Health Articles",
     pillarArticleDesc: "Fitness, EMS, HYROX, and healthy-lifestyle insights from the 20FIT team.",
     comingSoonBadge: "COMING SOON",
@@ -459,81 +403,21 @@ const STRINGS = {
     viewAllArticles: "View all articles",
     seeAll: "See All",
     topArticlesHeading: "Top 5 Articles to Read Today",
-    // Homepage quiz choices + exercise-program chooser
-    quizChooseHeading: "Quizzes & Health Tools",
-    quizChooseIntro: "Pick a quiz to start. Every tool here is for awareness & education — not a formal diagnosis.",
-    quizCardBmiTitle: "BMI & Body Check",
-    quizCardBmiDesc: "Get your BMI from height & weight, plus waist ratio. A rough indicator, not a verdict.",
-    quizCardExTitle: "Find Your Exercise Program",
-    quizCardExDesc: "Answer one quick question, then get pointed to the matching 20FIT program.",
-    quizCardRunTitle: "Program for Runners",
-    quizCardRunDesc: "Answer one question about your level, get an honest, realistic running-training pointer.",
-    quizCardHyroxTitle: "Program for HYROX",
-    quizCardHyroxDesc: "Check your HYROX level and find the matching next step at 20FIT Arena.",
-    quizNextNudge: "Done with BMI? Next, find your exercise program below ↓",
-    exqHeading: "Find Your Exercise Program",
-    exqQuestion: "Where do you want to train?",
-    exqOptHome: "At home",
-    exqOptStudio: "EMS studio",
-    exqOptOutdoor: "Outdoor & functional",
-    exqNote: "This points you to a real 20FIT program — not a medical prescription. For health conditions, consult a 20FIT doctor.",
 
-    // Runner quiz — single question, honest general guidance (no invented program).
-    rqHeading: "Program for Runners",
-    rqQuestion: "How experienced are you as a runner?",
-    rqOptBeginner: "Just starting out",
-    rqOptRegular: "I run regularly, want more structure",
-    rqOptRace: "Training for a race / performance",
-    rqBeginnerTitle: "Build the Habit First",
-    rqBeginnerDesc:
-      "Start with run-walk intervals, 20–30 minutes, 2–3x a week. Focus on consistency first, not speed or distance.",
-    rqRegularTitle: "Add Structure to Your Training",
-    rqRegularDesc:
-      "Combine easy runs with one tempo/interval session a week, plus light strength work to lower injury risk.",
-    rqRaceTitle: "Targeted Training for Performance",
-    rqRaceDesc:
-      "At this stage, a tiered program (long runs, speed work, recovery) matched to your level usually beats just running more.",
-    rqNote:
-      "This is general awareness guidance, not a personalized running program. For a plan tailored to you with progress tracking, continue in your my.20fit account.",
-
-    // HYROX quiz — single question; HYROX/Arena is a real 20FIT service line.
-    hqHeading: "Program for HYROX",
-    hqQuestion: "How experienced are you with HYROX?",
-    hqOptNew: "New to it, want to try",
-    hqOptDone: "Done a race before",
-    hqOptCompete: "Training to compete / improve time",
-    hqNewTitle: "Get Familiar with Functional Training",
-    hqNewDesc:
-      "Start with functional-training basics to get familiar with HYROX movements (run, lunge, sled, and more) before your first race.",
-    hqDoneTitle: "Strengthen Your Weak Points",
-    hqDoneDesc: "Review your last race, then focus on strengthening whichever station slowed you down or wore you out the most.",
-    hqCompeteTitle: "Structured Training for a Better Time",
-    hqCompeteDesc: "At this level, a periodized program with per-station time targets is usually what it takes to level up.",
-    hqNote:
-      "This is general awareness guidance, not a personalized HYROX program. For real HYROX training at 20FIT Arena and a plan you can track, continue at my.20fit.",
-
-    // BMI quiz (Tahap 2) — standard WHO thresholds, with honest context
-    quizIntro: "Enter your height & weight to see your BMI and a picture of your body condition. This is a rough estimate for awareness — not a diagnosis.",
-    quizHeightLabel: "Height (cm)",
-    quizWeightLabel: "Weight (kg)",
-    quizWaistLabel: "Waist circumference (cm)",
-    quizOptional: "optional",
-    quizSubmit: "Calculate",
-    quizErrInputs: "Please enter a sensible height & weight first.",
-    quizResultHeading: "Your estimate",
+    // Quiz hub + wizard chrome (each quiz's actual content comes from the
+    // CMS — my20fit_quizzes/_questions/_outcomes — see server/quizzes.js).
+    quizHubHeading: "Quizzes & Health Tools",
+    quizHubIntro: "Short quizzes, answerable without an account. Every quiz gives advice that actually matches your answers.",
+    quizHubEmpty: "No quizzes to show yet.",
+    quizDisclaimer: "This is a tool to help you understand, not a medical exam. For health decisions, see a professional.",
+    quizBack: "Back",
+    quizNext: "Next",
+    quizFinish: "See Result",
+    quizProgressLabel: "Question {n} of {total}",
+    quizSaveNote: "Save this result and build a more detailed plan at my.20fit.",
+    quizSaveCta: "Create account / Sign in",
+    quizRetake: "Retake this quiz",
     bmiLabel: "Your BMI",
-    bmiCatUnder: "Underweight",
-    bmiCatNormal: "Normal",
-    bmiCatOver: "Overweight",
-    bmiCatObese: "Obese",
-    bmiContext:
-      "BMI only compares weight to height — it can't tell muscle from fat. A muscular person can have a high BMI yet be healthy; a 'normal' BMI isn't automatically risk-free. Treat this as a rough picture, not a medical assessment.",
-    bmiAsiaNote:
-      "For Asian populations the thresholds are often lower (e.g. overweight from BMI 23). Discuss the exact number with a doctor.",
-    whtrLabel: "Waist-to-height ratio",
-    whtrOk: "Below 0.5 — generally considered a healthy range.",
-    whtrHigh: "0.5 or above — often linked to higher risk. Consider discussing it with a doctor.",
-    quizDoctorLine: "Want to be sure about your condition?",
 
     // Programs & Training (Tahap 3+4) — REAL 20FIT service lines, no invented
     // packages/prices; booking links are configurable.
@@ -661,6 +545,10 @@ const ERROR_CODE_KEYS = {
   not_mcu: "errNotMcu",
   incomplete_mcu: "errIncompleteMcu",
   service_unavailable: "serviceUnavailable",
+  quiz_not_found: "errQuizNotFound",
+  invalid_answers: "errQuizInvalidAnswers",
+  rate_limited_quiz: "errRateLimitedDevice",
+  body_too_large: "errGeneric",
 };
 
 export function getErrorMessage(lang, code) {

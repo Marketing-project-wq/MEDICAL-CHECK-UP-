@@ -24,8 +24,10 @@ test("every server-emitted error code translates to a real message in both langu
   const codes = new Set([
     ...extractCodes("src/server/scanHandlers.js"),
     ...extractCodes("src/server/mcuAnalyze.js"),
+    ...extractCodes("src/server/quizHandlers.js"),
+    ...extractCodes("src/server/httpUtil.js"),
     "invalid_request", // readJsonBody rejection fallback (err.code || "invalid_request")
-    "service_unavailable", // src/server.js: /api/scan when scan handlers aren't configured
+    "service_unavailable", // src/server.js: /api/scan + /api/quiz/submit when handlers aren't configured
     "not_mcu", // mcuAnalyze.js: built via a ternary, not a `code: "..."` literal the regex above catches
     "incomplete_mcu", // same as above
   ]);

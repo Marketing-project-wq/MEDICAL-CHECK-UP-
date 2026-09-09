@@ -434,16 +434,17 @@ async function boot() {
   wireThemeToggle();
   updateLoginCta();
 
-  // BMI quiz (home hub only) — lazy-loaded so its code isn't fetched on pages
-  // that don't have it, and independent of the scan widget / Supabase.
-  if (document.querySelector('[data-role="quiz-form"]')) {
-    import("./quiz.js")
-      .then((m) => m.setupQuiz(document, CFG))
-      .catch((e) => console.error("quiz module failed to load:", e));
-  }
-
   supabase = await initSupabase();
   await consumeSsoFragment();
+
+  // Quiz wizard (quiz hub/detail pages only) — lazy-loaded, and given the
+  // already-initialized Supabase client so it can tell a signed-in member
+  // apart from an anonymous visitor without doing its own CDN load.
+  if (document.querySelector('[data-role="quiz-wizard"]')) {
+    import("./quizWizard.js")
+      .then((m) => m.setupQuizWizard(document, CFG, supabase))
+      .catch((e) => console.error("quiz wizard module failed to load:", e));
+  }
 
   const root = document.getElementById("member-app");
   if (!root) return;

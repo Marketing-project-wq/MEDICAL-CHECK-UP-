@@ -1,11 +1,12 @@
-// Page composition (server-rendered). Two pages, kept separate on purpose:
-//   Homepage   (/, /id)          — the hub: hero, quiz choices (BMI + exercise
-//                                   router), 20FIT program handoff, "Top 5
-//                                   Articles", FAQ, doctor escalation. Links out
-//                                   to Check MCU; it does NOT embed the uploader.
+// Page composition (server-rendered). Kept separate on purpose:
+//   Homepage   (/, /id)          — the hub: hero, 20FIT program handoff,
+//                                   "Top 5 Articles", FAQ, doctor escalation.
+//                                   Links out to Check MCU and the Quiz hub;
+//                                   neither is embedded here.
 //   Check MCU  (/check-mcu, …)    — the tool: the members-only Scan MCU widget
 //                                   (§0.1 gate), how-it-works, a §0.1-safe sample
 //                                   result, and the doctor escalation.
+//   Quiz hub + wizard pages       — see views/quizPages.js.
 //   /home and /id/home 301-redirect to the homepage (see server.js).
 // Dependency-free ESM.
 
@@ -110,12 +111,12 @@ function faqSection(s) {
   </section>`;
 }
 
-function pillarNav(s, checkMcuHref) {
+function pillarNav(s, checkMcuHref, quizHref) {
   const pillars = [
-    // Scan MCU is its own page now — this pillar links across to it, not to an
-    // on-page anchor.
+    // Scan MCU and the quiz hub are their own pages now — these pillars link
+    // across to them, not to an on-page anchor.
     { href: checkMcuHref, icon: "scan", title: s.pillarScanTitle, desc: s.pillarScanDesc },
-    { href: "#quiz", icon: "quiz", title: s.pillarQuizTitle, desc: s.pillarQuizDesc },
+    { href: quizHref, icon: "quiz", title: s.pillarQuizTitle, desc: s.pillarQuizDesc },
     { href: "#program", icon: "program", title: s.pillarProgramTitle, desc: s.pillarProgramDesc },
     { href: "#artikel", icon: "article", title: s.pillarArticleTitle, desc: s.pillarArticleDesc },
   ];
@@ -193,152 +194,6 @@ function scanSection(s, loginUrl, returnToUrl) {
           </div>
         </div>
       </div>
-    </div>
-  </section>`;
-}
-
-// Quiz choices — the homepage entry point to the tools. BMI is the main quiz;
-// "Find Your Exercise Program" is an honest router to 20FIT's REAL programs
-// (no invented program). Both are awareness/education, not a diagnosis.
-function quizChoicesSection(s) {
-  const choice = (href, title, desc) => `<a class="quiz-choice" href="${escapeHtml(href)}">
-      <h3 class="quiz-choice-title">${escapeHtml(title)}</h3>
-      <p class="quiz-choice-desc">${escapeHtml(desc)}</p>
-      <span class="quiz-choice-cta" aria-hidden="true">→</span>
-    </a>`;
-  return `<section id="quiz-choices" class="section">
-    <div class="wrap">
-      <h2>${escapeHtml(s.quizChooseHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.quizChooseIntro)}</p>
-      <div class="quiz-choice-grid">
-        ${choice("#quiz", s.quizCardBmiTitle, s.quizCardBmiDesc)}
-        ${choice("#exercise-quiz", s.quizCardExTitle, s.quizCardExDesc)}
-        ${choice("#runner-quiz", s.quizCardRunTitle, s.quizCardRunDesc)}
-        ${choice("#hyrox-quiz", s.quizCardHyroxTitle, s.quizCardHyroxDesc)}
-      </div>
-    </div>
-  </section>`;
-}
-
-// "Find Your Exercise Program" — a JS-free chooser (CSS :checked reveal): pick
-// where you want to train, see the matching REAL 20FIT program (reuses the
-// program cards + configurable links). It routes to real options; it never
-// invents a program, and it states it is not a medical prescription.
-function exerciseQuizSection(s, links) {
-  const l = links || {};
-  const opt = (id, label) =>
-    `<input type="radio" name="exq" id="${id}" class="exq-radio"><label for="${id}" class="exq-opt">${escapeHtml(label)}</label>`;
-  const reveal = (cls, card) => `<div class="exq-reveal ${cls}">${card}</div>`;
-  return `<section id="exercise-quiz" class="section section-alt">
-    <div class="wrap wrap-narrow">
-      <h2>${escapeHtml(s.exqHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.exqQuestion)}</p>
-      <div class="exq">
-        ${opt("exq-home", s.exqOptHome)}
-        ${opt("exq-studio", s.exqOptStudio)}
-        ${opt("exq-outdoor", s.exqOptOutdoor)}
-        ${reveal("exq-r-home", trainingCard(s.optHomeTitle, s.optHomeDesc, l.home || "#", s.programLinkCta))}
-        ${reveal("exq-r-studio", trainingCard(s.optEmsTitle, s.optEmsDesc, l.ems || "#", s.programLinkCta))}
-        ${reveal("exq-r-outdoor", trainingCard(s.optArenaTitle, s.optArenaDesc, l.arena || "#", s.programLinkCta))}
-      </div>
-      <p class="exq-note">${escapeHtml(s.exqNote)}</p>
-    </div>
-  </section>`;
-}
-
-// Shared close for every quiz: the quiz itself only ever gives general
-// awareness guidance (never a personalized plan for an anonymous visitor) —
-// this is the one consistent nudge to realize/customize that guidance by
-// signing in to a real my.20fit account. Reuses .program-save (see the
-// Program & Training section below) so the visual language matches.
-function my20fitCta(s, myUrl) {
-  return `<p class="program-save">${escapeHtml(s.programSaveNote)}
-    <a href="${escapeHtml(myUrl || "#")}">${escapeHtml(s.programSaveCta)} →</a></p>`;
-}
-
-// "Program for Runners" — a JS-free chooser (same CSS :checked-reveal
-// mechanism as the exercise-program quiz). 20FIT has no dedicated running
-// program to route to, so each reveal is honest general training guidance
-// (not a real-program card) and the only CTA is the shared my20fitCta.
-function runnerQuizSection(s, myUrl) {
-  const opt = (id, label) =>
-    `<input type="radio" name="rq" id="${id}" class="exq-radio"><label for="${id}" class="exq-opt">${escapeHtml(label)}</label>`;
-  const reveal = (cls, card) => `<div class="exq-reveal ${cls}">${card}</div>`;
-  const tip = (title, desc) => `<div class="train-card-static"><h4>${escapeHtml(title)}</h4><p>${escapeHtml(desc)}</p></div>`;
-  return `<section id="runner-quiz" class="section">
-    <div class="wrap wrap-narrow">
-      <h2>${escapeHtml(s.rqHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.rqQuestion)}</p>
-      <div class="exq">
-        ${opt("rq-beginner", s.rqOptBeginner)}
-        ${opt("rq-regular", s.rqOptRegular)}
-        ${opt("rq-race", s.rqOptRace)}
-        ${reveal("rq-r-beginner", tip(s.rqBeginnerTitle, s.rqBeginnerDesc))}
-        ${reveal("rq-r-regular", tip(s.rqRegularTitle, s.rqRegularDesc))}
-        ${reveal("rq-r-race", tip(s.rqRaceTitle, s.rqRaceDesc))}
-      </div>
-      <p class="exq-note">${escapeHtml(s.rqNote)}</p>
-      ${my20fitCta(s, myUrl)}
-    </div>
-  </section>`;
-}
-
-// "Program for HYROX" — same chooser mechanism; HYROX/Arena IS a real 20FIT
-// service line, so each reveal is a real trainingCard pointing at the
-// configured arena booking link, followed by the shared my20fitCta for the
-// fuller, trackable plan.
-function hyroxQuizSection(s, links, myUrl) {
-  const l = links || {};
-  const opt = (id, label) =>
-    `<input type="radio" name="hq" id="${id}" class="exq-radio"><label for="${id}" class="exq-opt">${escapeHtml(label)}</label>`;
-  const reveal = (cls, card) => `<div class="exq-reveal ${cls}">${card}</div>`;
-  return `<section id="hyrox-quiz" class="section section-alt">
-    <div class="wrap wrap-narrow">
-      <h2>${escapeHtml(s.hqHeading)}</h2>
-      <p class="section-intro">${escapeHtml(s.hqQuestion)}</p>
-      <div class="exq">
-        ${opt("hq-new", s.hqOptNew)}
-        ${opt("hq-done", s.hqOptDone)}
-        ${opt("hq-compete", s.hqOptCompete)}
-        ${reveal("hq-r-new", trainingCard(s.hqNewTitle, s.hqNewDesc, l.arena || "#", s.programLinkCta))}
-        ${reveal("hq-r-done", trainingCard(s.hqDoneTitle, s.hqDoneDesc, l.arena || "#", s.programLinkCta))}
-        ${reveal("hq-r-compete", trainingCard(s.hqCompeteTitle, s.hqCompeteDesc, l.arena || "#", s.programLinkCta))}
-      </div>
-      ${my20fitCta(s, myUrl)}
-    </div>
-  </section>`;
-}
-
-// Quiz — BMI (+ optional waist-to-height). Pure client-side math on
-// self-entered numbers (no upload, no AI, no server), so it is safe for anon
-// and needs no §0.1 gate. The result is rendered by client/quiz.js; the copy
-// (standard WHO thresholds + honest "BMI is a rough indicator" context + the
-// doctor escalation) all lives in i18n.
-function quizSection(s) {
-  return `<section id="quiz" class="section section-alt">
-    <div class="wrap wrap-narrow">
-      <h2>${escapeHtml(s.pillarQuizTitle)}</h2>
-      <p class="section-intro">${escapeHtml(s.quizIntro)}</p>
-      <form class="quiz-form" data-role="quiz-form" novalidate>
-        <div class="quiz-fields">
-          <label class="quiz-field">
-            <span>${escapeHtml(s.quizHeightLabel)}</span>
-            <input type="number" inputmode="decimal" min="80" max="250" step="0.1" placeholder="170" data-role="q-height">
-          </label>
-          <label class="quiz-field">
-            <span>${escapeHtml(s.quizWeightLabel)}</span>
-            <input type="number" inputmode="decimal" min="25" max="400" step="0.1" placeholder="65" data-role="q-weight">
-          </label>
-          <label class="quiz-field">
-            <span>${escapeHtml(s.quizWaistLabel)} <em>(${escapeHtml(s.quizOptional)})</em></span>
-            <input type="number" inputmode="decimal" min="40" max="250" step="0.1" placeholder="80" data-role="q-waist">
-          </label>
-        </div>
-        <button class="btn btn-primary" type="submit" data-role="q-submit">${escapeHtml(s.quizSubmit)}</button>
-        <span class="status-msg" data-role="q-status" role="status" aria-live="polite"></span>
-      </form>
-      <div class="quiz-result" data-role="quiz-result" hidden></div>
-      <p class="quiz-next"><a href="#exercise-quiz">${escapeHtml(s.quizNextNudge)}</a></p>
     </div>
   </section>`;
 }
@@ -444,14 +299,10 @@ function checkMcuIntro(s) {
 export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath, featuredArticles, bookingUrl, trainingLinks }) {
   const s = getStrings(lang);
   const checkMcuHref = checkMcuHrefFor(lang);
+  const quizHref = lang === "id" ? "/id/quiz" : "/quiz";
   const bodyHtml = [
     heroSection(s, checkMcuHref, checkMcuHref + "#example"),
-    pillarNav(s, checkMcuHref),
-    quizChoicesSection(s),
-    quizSection(s),
-    exerciseQuizSection(s, trainingLinks),
-    runnerQuizSection(s, (trainingLinks || {}).my),
-    hyroxQuizSection(s, trainingLinks, (trainingLinks || {}).my),
+    pillarNav(s, checkMcuHref, quizHref),
     programSection(s, trainingLinks),
     topArticlesSection(s, lang, featuredArticles),
     faqSection(s),

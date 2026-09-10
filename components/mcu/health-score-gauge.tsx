@@ -58,14 +58,6 @@ export function HealthScoreGauge({
             stroke="hsl(var(--muted))"
             strokeWidth={config.strokeWidth}
           />
-          {/* Gradient definition */}
-          <defs>
-            <linearGradient id={`gauge-gradient-${size}`} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="45%" stopColor="#eab308" />
-              <stop offset="100%" stopColor="#22c55e" />
-            </linearGradient>
-          </defs>
           {/* Progress arc */}
           <motion.circle
             cx={center}

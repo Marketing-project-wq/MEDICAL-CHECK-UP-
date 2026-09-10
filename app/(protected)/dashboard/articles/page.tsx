@@ -1,6 +1,4 @@
-import { redirect } from "next/navigation"
-import { createServerClient } from "@/lib/supabase"
-import { getUser } from "@/lib/auth"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 import { DashboardArticlesClient } from "@/components/articles/dashboard-articles-client"
 import type { Article, MCUResult } from "@/lib/types"
 import type { Metadata } from "next"
@@ -96,12 +94,15 @@ function getRecommendedCategories(results: MCUResult[]): string[] {
 }
 
 export default async function DashboardArticlesPage() {
-  const user = await getUser()
-  if (!user) {
-    redirect("/login")
-  }
-
   const supabase = await createServerClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return null
+  }
 
   // Fetch all articles (user is authenticated, full access including premium)
   const { data: articles, error: articlesError } = await supabase
@@ -135,13 +136,13 @@ export default async function DashboardArticlesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="space-y-6">
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">
           Artikel Kesehatan
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-muted-foreground mt-1">
           Baca semua artikel termasuk konten premium untuk mendukung perjalanan
           kesehatan Anda.
         </p>

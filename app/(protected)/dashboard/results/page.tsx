@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Upload, ArrowLeft, FileText, Clock } from "lucide-react"
-import { createServerClient } from "@/lib/supabase"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/mcu"

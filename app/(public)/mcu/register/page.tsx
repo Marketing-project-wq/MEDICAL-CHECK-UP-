@@ -11,14 +11,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { UserPlus, Loader2 } from "lucide-react"
 
 const registerSchema = z
   .object({
-    fullName: z.string().min(2, "Nama lengkap minimal 2 karakter."),
-    email: z.string().email("Email tidak valid."),
-    password: z.string().min(6, "Password minimal 6 karakter."),
-    confirmPassword: z.string(),
+    fullName: z.string().min(2, "Nama lengkap wajib diisi."),
+    email: z.string().min(1, "Email wajib diisi.").email("Email tidak valid."),
+    password: z.string().min(8, "Password minimal 8 karakter."),
+    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi."),
     dateOfBirth: z.string().min(1, "Tanggal lahir wajib diisi."),
     gender: z.enum(["male", "female"], {
       required_error: "Jenis kelamin wajib dipilih.",
@@ -60,7 +67,7 @@ export default function RegisterPage() {
     },
   })
 
-  // Auto-fill token from localStorage
+  // Auto-fill token from localStorage on mount
   useEffect(() => {
     try {
       const token = localStorage.getItem("mcu_upload_token")
@@ -68,7 +75,7 @@ export default function RegisterPage() {
         setValue("uploadToken", token)
       }
     } catch {
-      // ignore
+      // localStorage may not be available
     }
   }, [setValue])
 
@@ -79,7 +86,7 @@ export default function RegisterPage() {
     try {
       const supabase = createClient()
 
-      // Create auth user
+      // 1. Create user with supabase.auth.signUp including metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -87,6 +94,8 @@ export default function RegisterPage() {
           data: {
             full_name: values.fullName,
             phone: values.phone,
+            date_of_birth: values.dateOfBirth,
+            gender: values.gender,
           },
         },
       })
@@ -108,7 +117,7 @@ export default function RegisterPage() {
         return
       }
 
-      // Create profile
+      // Create profile record
       const { error: profileError } = await supabase.from("profiles").upsert({
         id: userId,
         full_name: values.fullName,
@@ -123,7 +132,7 @@ export default function RegisterPage() {
         // Continue -- auth user exists, profile can be created later
       }
 
-      // Claim token if provided
+      // 2. If token, claim the upload
       if (values.uploadToken) {
         try {
           await fetch("/api/mcu/claim", {
@@ -134,14 +143,20 @@ export default function RegisterPage() {
               userId,
             }),
           })
-          localStorage.removeItem("mcu_upload_token")
         } catch {
           // Non-blocking
         }
       }
 
-      // Redirect
-      router.push("/dashboard")
+      // 3. Clear localStorage token
+      try {
+        localStorage.removeItem("mcu_upload_token")
+      } catch {
+        // ignore
+      }
+
+      // 4. Redirect to results page
+      router.push("/dashboard/results")
       router.refresh()
     } catch {
       setServerError("Terjadi kesalahan. Silakan coba lagi.")
@@ -153,11 +168,9 @@ export default function RegisterPage() {
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">
-            Daftar Akun <span className="text-[#FF6B35]">MCU</span>
-          </CardTitle>
+          <CardTitle className="text-2xl">Buat Akun Baru</CardTitle>
           <CardDescription>
-            Buat akun untuk menyimpan dan melihat hasil medical check-up Anda.
+            Daftar untuk menyimpan dan melihat hasil medical check-up Anda.
           </CardDescription>
         </CardHeader>
 
@@ -168,7 +181,7 @@ export default function RegisterPage() {
               <Label htmlFor="fullName">Nama Lengkap</Label>
               <Input
                 id="fullName"
-                placeholder="John Doe"
+                placeholder="Nama lengkap Anda"
                 {...register("fullName")}
               />
               {errors.fullName && (
@@ -196,7 +209,7 @@ export default function RegisterPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Minimal 6 karakter"
+                placeholder="Minimal 8 karakter"
                 {...register("password")}
               />
               {errors.password && (
@@ -234,26 +247,19 @@ export default function RegisterPage() {
             {/* Jenis Kelamin */}
             <div className="space-y-2">
               <Label>Jenis Kelamin</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="male"
-                    {...register("gender")}
-                    className="h-4 w-4 accent-[#FF6B35]"
-                  />
-                  <span className="text-sm">Laki-laki</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="female"
-                    {...register("gender")}
-                    className="h-4 w-4 accent-[#FF6B35]"
-                  />
-                  <span className="text-sm">Perempuan</span>
-                </label>
-              </div>
+              <Select
+                onValueChange={(value) =>
+                  setValue("gender", value as "male" | "female", { shouldValidate: true })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih jenis kelamin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Laki-laki</SelectItem>
+                  <SelectItem value="female">Perempuan</SelectItem>
+                </SelectContent>
+              </Select>
               {errors.gender && (
                 <p className="text-xs text-destructive">{errors.gender.message}</p>
               )}
@@ -317,7 +323,7 @@ export default function RegisterPage() {
                 href="/mcu/login"
                 className="font-medium text-[#FF6B35] hover:underline"
               >
-                Login di sini
+                Login
               </Link>
             </p>
           </form>

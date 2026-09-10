@@ -1,7 +1,7 @@
 import Link from "next/link"
 import {
   Upload,
-  FileSearch,
+  Brain,
   BookOpen,
   Activity,
   ArrowRight,
@@ -24,12 +24,12 @@ export default function LandingPage() {
             Medical Check-Up Digital untuk Hidup Lebih Sehat
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-white/90 sm:text-xl">
-            Platform my.20fit untuk menganalisis, memahami, dan mengelola hasil
-            Medical Check-Up Anda dengan mudah dan terpercaya.
+            Platform analisis kesehatan personal dari 20fit. Upload hasil MCU,
+            dapatkan insight, dan mulai hidup lebih sehat.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/dashboard/upload"
+              href="/mcu/upload"
               className="inline-flex h-12 items-center justify-center rounded-lg bg-white px-8 text-base font-semibold text-[#FF6B35] shadow-lg transition-colors hover:bg-white/90"
             >
               Upload MCU Sekarang
@@ -62,25 +62,25 @@ export default function LandingPage() {
             <FeatureCard
               icon={<Upload className="h-6 w-6" />}
               title="Upload & Analisis MCU"
-              description="Upload dokumen MCU Anda dan dapatkan analisis otomatis dengan interpretasi yang mudah dipahami."
+              description="Upload hasil lab kamu dan dapatkan analisis visual yang mudah dipahami"
               color="bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400"
             />
             <FeatureCard
-              icon={<Activity className="h-6 w-6" />}
+              icon={<Brain className="h-6 w-6" />}
               title="Quiz Kesehatan Personal"
-              description="Ikuti quiz kesehatan untuk mengetahui kondisi dan mendapatkan rekomendasi yang tepat."
+              description="Evaluasi gaya hidup kamu dengan quiz interaktif dan dapatkan rekomendasi"
               color="bg-blue-100 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
             />
             <FeatureCard
               icon={<BookOpen className="h-6 w-6" />}
               title="Artikel & Tips Kesehatan"
-              description="Akses artikel dan tips kesehatan terpercaya yang ditulis oleh para ahli."
+              description="Baca artikel kesehatan yang dikurasi oleh tim ahli 20fit"
               color="bg-green-100 text-green-600 dark:bg-green-950/30 dark:text-green-400"
             />
             <FeatureCard
-              icon={<FileSearch className="h-6 w-6" />}
-              title="Tracking Progress Kesehatan"
-              description="Pantau perkembangan hasil MCU dari waktu ke waktu dengan visualisasi yang informatif."
+              icon={<Activity className="h-6 w-6" />}
+              title="Tracking Progress"
+              description="Pantau perkembangan kesehatan kamu dari waktu ke waktu"
               color="bg-purple-100 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400"
             />
           </div>
@@ -102,17 +102,17 @@ export default function LandingPage() {
           <div className="mt-12 grid gap-8 sm:grid-cols-3">
             <StepCard
               step={1}
-              title="Upload"
+              title="Upload File"
               description="Unggah dokumen hasil Medical Check-Up Anda dalam format PDF atau gambar."
             />
             <StepCard
               step={2}
-              title="Analisis"
+              title="Analisis Otomatis"
               description="Sistem kami menganalisis dan mengekstrak data dari dokumen MCU Anda secara otomatis."
             />
             <StepCard
               step={3}
-              title="Hasil & Rekomendasi"
+              title="Lihat Hasil & Rekomendasi"
               description="Dapatkan hasil yang mudah dipahami beserta rekomendasi kesehatan yang personal."
             />
           </div>
@@ -123,25 +123,19 @@ export default function LandingPage() {
       <section className="px-4 py-20 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Mulai Pantau Kesehatan Anda Sekarang
+            Mulai Perjalanan Sehat Kamu
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Bergabung dengan ribuan pengguna yang sudah mempercayakan pengelolaan
-            Medical Check-Up mereka kepada my.20fit.
+            Upload hasil medical check-up kamu sekarang dan dapatkan insight
+            kesehatan yang actionable dari platform 20fit.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="mt-8">
             <Link
-              href="/register"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-base font-semibold text-primary-foreground shadow transition-colors hover:bg-primary/90"
+              href="/mcu/upload"
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-[#FF6B35] px-8 text-base font-semibold text-white shadow-lg transition-colors hover:bg-[#FF6B35]/90"
             >
-              Daftar Gratis
+              Upload MCU Sekarang
               <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex h-12 items-center justify-center rounded-lg border border-input bg-background px-8 text-base font-semibold transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Sudah Punya Akun? Masuk
             </Link>
           </div>
         </div>
@@ -154,10 +148,10 @@ export default function LandingPage() {
             &copy; {new Date().getFullYear()} my.20fit. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <Link href="/privacy" className="hover:text-foreground transition-colors">
+            <Link href="/privacy" className="transition-colors hover:text-foreground">
               Kebijakan Privasi
             </Link>
-            <Link href="/terms" className="hover:text-foreground transition-colors">
+            <Link href="/terms" className="transition-colors hover:text-foreground">
               Syarat & Ketentuan
             </Link>
           </div>
@@ -198,7 +192,7 @@ function StepCard({
 }) {
   return (
     <div className="relative text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FF6B35] text-lg font-bold text-white">
         {step}
       </div>
       <h3 className="mt-4 text-lg font-semibold">{title}</h3>

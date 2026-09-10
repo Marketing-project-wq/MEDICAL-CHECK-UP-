@@ -1,5 +1,4 @@
-import { createServerClient } from "@/lib/supabase"
-import { getUser } from "@/lib/auth"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 import { ArticlesListClient } from "@/components/articles/articles-list-client"
 import type { Article } from "@/lib/types"
 import type { Metadata } from "next"
@@ -12,7 +11,11 @@ export const metadata: Metadata = {
 
 export default async function ArticlesPage() {
   const supabase = await createServerClient()
-  const user = await getUser()
+
+  // Check if user is authenticated (optional -- public page)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Fetch all published articles ordered by newest first.
   // If the user is not authenticated, we still fetch all articles but flag

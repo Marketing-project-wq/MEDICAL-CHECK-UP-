@@ -14,17 +14,20 @@ import { ClipboardList, Trophy, Calendar, ArrowRight } from "lucide-react"
 import type { Quiz, QuizResponse } from "@/lib/types"
 
 const categoryGradients: Record<string, string> = {
-  kesehatan:
-    "from-green-400/20 to-emerald-600/20 border-green-200",
-  olahraga:
-    "from-blue-400/20 to-indigo-600/20 border-blue-200",
-  nutrisi:
-    "from-orange-400/20 to-amber-600/20 border-orange-200",
-  mental:
-    "from-purple-400/20 to-violet-600/20 border-purple-200",
-  default:
-    "from-[hsl(16,100%,60%)]/10 to-[hsl(214,52%,25%)]/10 border-border",
+  exercise: "from-orange-400/20 to-amber-600/20 border-orange-200",
+  olahraga: "from-orange-400/20 to-amber-600/20 border-orange-200",
+  nutrition: "from-green-400/20 to-emerald-600/20 border-green-200",
+  nutrisi: "from-green-400/20 to-emerald-600/20 border-green-200",
+  sleep: "from-indigo-400/20 to-blue-600/20 border-indigo-200",
+  tidur: "from-indigo-400/20 to-blue-600/20 border-indigo-200",
+  "mental-health": "from-purple-400/20 to-violet-600/20 border-purple-200",
+  mental: "from-purple-400/20 to-violet-600/20 border-purple-200",
+  "mental health": "from-purple-400/20 to-violet-600/20 border-purple-200",
+  kesehatan: "from-green-400/20 to-emerald-600/20 border-green-200",
 }
+
+const defaultGradient =
+  "from-[#FF6B35]/10 to-[#1E3A5F]/10 border-border"
 
 function getQuizTypeBadge(quizType: string) {
   switch (quizType) {
@@ -53,7 +56,7 @@ function getQuizTypeBadge(quizType: string) {
 
 function getCategoryGradient(category: string) {
   const key = category.toLowerCase()
-  return categoryGradients[key] || categoryGradients.default
+  return categoryGradients[key] || defaultGradient
 }
 
 export default async function QuizListPage() {
@@ -86,12 +89,14 @@ export default async function QuizListPage() {
   const quizList = (quizzes as Quiz[]) || []
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-8">
+    <div className="space-y-8">
       {/* Page Header */}
-      <div className="mb-8">
+      <div>
         <div className="flex items-center gap-3 mb-2">
-          <ClipboardList className="h-7 w-7 text-[hsl(16,100%,60%)]" />
-          <h1 className="text-3xl font-bold text-foreground">Quiz Kesehatan</h1>
+          <ClipboardList className="h-7 w-7 text-[#FF6B35]" />
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+            Quiz Kesehatan
+          </h1>
         </div>
         <p className="text-muted-foreground">
           Ikuti quiz untuk mengetahui kondisi kesehatan Anda dan dapatkan
@@ -101,7 +106,7 @@ export default async function QuizListPage() {
 
       {/* Quiz Grid */}
       {quizList.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
           {quizList.map((quiz) => (
             <Card
               key={quiz.id}
@@ -142,7 +147,7 @@ export default async function QuizListPage() {
               <CardFooter className="pt-0">
                 <Button
                   asChild
-                  className="w-full gap-2 rounded-xl bg-[hsl(16,100%,60%)] text-white hover:bg-[hsl(16,100%,55%)]"
+                  className="w-full gap-2 rounded-xl bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90"
                 >
                   <Link href={`/dashboard/quiz/${quiz.slug}`}>
                     Mulai Quiz
@@ -167,9 +172,9 @@ export default async function QuizListPage() {
 
       {/* Past Responses */}
       {responses.length > 0 && (
-        <div className="mt-12">
+        <div>
           <div className="flex items-center gap-3 mb-6">
-            <Trophy className="h-6 w-6 text-[hsl(16,100%,60%)]" />
+            <Trophy className="h-6 w-6 text-[#FF6B35]" />
             <h2 className="text-2xl font-bold text-foreground">Riwayat Quiz</h2>
           </div>
           <div className="space-y-3">
@@ -190,11 +195,14 @@ export default async function QuizListPage() {
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5" />
                       <span>
-                        {new Date(resp.completed_at).toLocaleDateString("id-ID", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                        {new Date(resp.completed_at).toLocaleDateString(
+                          "id-ID",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}
                       </span>
                       {percentage !== null && (
                         <>

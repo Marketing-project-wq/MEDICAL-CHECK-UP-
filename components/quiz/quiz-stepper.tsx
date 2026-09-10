@@ -7,14 +7,13 @@ import { ChevronLeft, ChevronRight, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import type { QuizQuestion } from "@/lib/types"
 
 interface QuizStepperProps {
   questions: QuizQuestion[]
-  onComplete: (answers: Record<string, string | string[] | number>) => void
+  onComplete: (answers: Record<string, any>) => void
   quizTitle: string
 }
 
@@ -39,9 +38,7 @@ export function QuizStepper({
   quizTitle,
 }: QuizStepperProps) {
   const [currentStep, setCurrentStep] = useState(0)
-  const [answers, setAnswers] = useState<
-    Record<string, string | string[] | number>
-  >({})
+  const [answers, setAnswers] = useState<Record<string, any>>({})
   const [direction, setDirection] = useState(1)
 
   const currentQuestion = questions[currentStep]
@@ -126,8 +123,8 @@ export function QuizStepper({
                 className={cn(
                   "flex h-14 w-14 items-center justify-center rounded-xl border-2 text-lg font-semibold transition-all duration-200",
                   isSelected
-                    ? "border-[hsl(16,100%,60%)] bg-[hsl(16,100%,60%)] text-white shadow-lg scale-110"
-                    : "border-border bg-card text-foreground hover:border-[hsl(16,100%,60%)]/50 hover:bg-accent"
+                    ? "border-[#FF6B35] bg-[#FF6B35] text-white shadow-lg scale-110"
+                    : "border-border bg-card text-foreground hover:border-[#FF6B35]/50 hover:bg-accent"
                 )}
               >
                 {opt.label}
@@ -152,8 +149,8 @@ export function QuizStepper({
               className={cn(
                 "flex h-14 w-14 items-center justify-center rounded-xl border-2 text-lg font-semibold transition-all duration-200",
                 isSelected
-                  ? "border-[hsl(16,100%,60%)] bg-[hsl(16,100%,60%)] text-white shadow-lg scale-110"
-                  : "border-border bg-card text-foreground hover:border-[hsl(16,100%,60%)]/50 hover:bg-accent"
+                  ? "border-[#FF6B35] bg-[#FF6B35] text-white shadow-lg scale-110"
+                  : "border-border bg-card text-foreground hover:border-[#FF6B35]/50 hover:bg-accent"
               )}
             >
               {num}
@@ -168,28 +165,40 @@ export function QuizStepper({
     switch (currentQuestion.question_type) {
       case "single_choice":
         return (
-          <RadioGroup
-            value={(currentAnswer as string) || ""}
-            onValueChange={handleSingleChoice}
-            className="grid gap-3"
-          >
-            {currentQuestion.options?.map((option) => (
-              <label
-                key={option.value}
-                className={cn(
-                  "flex cursor-pointer items-center gap-4 rounded-xl border-2 p-4 transition-all duration-200",
-                  currentAnswer === option.value
-                    ? "border-[hsl(16,100%,60%)] bg-[hsl(16,100%,60%)]/5 shadow-md"
-                    : "border-border bg-card hover:border-[hsl(16,100%,60%)]/40 hover:bg-accent/50"
-                )}
-              >
-                <RadioGroupItem value={option.value} />
-                <span className="text-sm font-medium leading-relaxed">
-                  {option.label}
-                </span>
-              </label>
-            ))}
-          </RadioGroup>
+          <div className="grid gap-3">
+            {currentQuestion.options?.map((option) => {
+              const isSelected = currentAnswer === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleSingleChoice(option.value)}
+                  className={cn(
+                    "flex w-full cursor-pointer items-center gap-4 rounded-xl border-2 p-4 text-left transition-all duration-200",
+                    isSelected
+                      ? "border-[#FF6B35] bg-[#FF6B35]/5 shadow-md"
+                      : "border-border bg-card hover:border-[#FF6B35]/40 hover:bg-accent/50"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                      isSelected
+                        ? "border-[#FF6B35] bg-[#FF6B35]"
+                        : "border-muted-foreground/40"
+                    )}
+                  >
+                    {isSelected && (
+                      <div className="h-2.5 w-2.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <span className="text-sm font-medium leading-relaxed">
+                    {option.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         )
 
       case "multiple_choice":
@@ -200,13 +209,15 @@ export function QuizStepper({
                 ? currentAnswer.includes(option.value)
                 : false
               return (
-                <label
+                <button
                   key={option.value}
+                  type="button"
+                  onClick={() => handleMultipleChoice(option.value, !selected)}
                   className={cn(
-                    "flex cursor-pointer items-center gap-4 rounded-xl border-2 p-4 transition-all duration-200",
+                    "flex w-full cursor-pointer items-center gap-4 rounded-xl border-2 p-4 text-left transition-all duration-200",
                     selected
-                      ? "border-[hsl(16,100%,60%)] bg-[hsl(16,100%,60%)]/5 shadow-md"
-                      : "border-border bg-card hover:border-[hsl(16,100%,60%)]/40 hover:bg-accent/50"
+                      ? "border-[#FF6B35] bg-[#FF6B35]/5 shadow-md"
+                      : "border-border bg-card hover:border-[#FF6B35]/40 hover:bg-accent/50"
                   )}
                 >
                   <Checkbox
@@ -214,11 +225,12 @@ export function QuizStepper({
                     onCheckedChange={(checked) =>
                       handleMultipleChoice(option.value, checked === true)
                     }
+                    className="pointer-events-none"
                   />
                   <span className="text-sm font-medium leading-relaxed">
                     {option.label}
                   </span>
-                </label>
+                </button>
               )
             })}
           </div>
@@ -233,7 +245,7 @@ export function QuizStepper({
             value={(currentAnswer as string) || ""}
             onChange={(e) => handleTextInput(e.target.value)}
             placeholder="Ketik jawaban Anda di sini..."
-            className="min-h-[120px] rounded-xl border-2 text-base focus:border-[hsl(16,100%,60%)]"
+            className="min-h-[120px] rounded-xl border-2 text-base focus:border-[#FF6B35]"
           />
         )
 
@@ -269,7 +281,7 @@ export function QuizStepper({
             className="w-full"
           >
             <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-              <div className="mb-2 text-sm font-medium text-[hsl(16,100%,60%)]">
+              <div className="mb-2 text-sm font-medium text-[#FF6B35]">
                 Pertanyaan {currentStep + 1}
               </div>
               <h2 className="mb-6 text-lg font-semibold leading-relaxed text-foreground sm:text-xl">
@@ -296,7 +308,7 @@ export function QuizStepper({
         <Button
           onClick={handleNext}
           disabled={!isAnswered}
-          className="gap-2 rounded-xl bg-[hsl(16,100%,60%)] text-white hover:bg-[hsl(16,100%,55%)]"
+          className="gap-2 rounded-xl bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90"
         >
           {isLastStep ? (
             <>

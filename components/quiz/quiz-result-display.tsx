@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { motion } from "framer-motion"
 import {
   BookOpen,
@@ -42,16 +43,12 @@ const itemVariants = {
 function getLevelColor(level: string): string {
   switch (level) {
     case "Sangat Baik":
-    case "Excellent":
       return "text-green-600 bg-green-50 border-green-200"
     case "Baik":
-    case "Good":
       return "text-blue-600 bg-blue-50 border-blue-200"
     case "Cukup":
-    case "Fair":
       return "text-yellow-600 bg-yellow-50 border-yellow-200"
     case "Perlu Perbaikan":
-    case "Needs Improvement":
       return "text-red-600 bg-red-50 border-red-200"
     default:
       return "text-muted-foreground bg-muted border-border"
@@ -92,7 +89,7 @@ function AssessmentResult({ result }: { result: Record<string, unknown> }) {
         className="flex flex-col items-center gap-4 rounded-2xl border bg-card p-8 shadow-sm"
       >
         <h2 className="text-lg font-semibold text-foreground">Skor Anda</h2>
-        <HealthScoreGauge score={Math.round((score / maxScore) * 100)} size="md" />
+        <HealthScoreGauge score={percentage} size="lg" />
         <div
           className={cn(
             "rounded-full border px-4 py-1.5 text-sm font-semibold",
@@ -155,7 +152,7 @@ function AssessmentResult({ result }: { result: Record<string, unknown> }) {
           <ul className="space-y-3">
             {recommendations.map((rec, i) => (
               <li key={i} className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-[hsl(16,100%,60%)]" />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#FF6B35]" />
                 <span className="text-sm leading-relaxed text-foreground">
                   {rec}
                 </span>
@@ -195,10 +192,10 @@ function PersonalizedPlanResult({
       {/* Plan Header */}
       <motion.div
         variants={itemVariants}
-        className="rounded-2xl border bg-gradient-to-br from-[hsl(16,100%,60%)]/10 to-[hsl(214,52%,25%)]/10 p-6 shadow-sm"
+        className="rounded-2xl border bg-gradient-to-br from-[#FF6B35]/10 to-[#1E3A5F]/10 p-6 shadow-sm"
       >
         <div className="flex items-center gap-3 mb-2">
-          <Dumbbell className="h-6 w-6 text-[hsl(16,100%,60%)]" />
+          <Dumbbell className="h-6 w-6 text-[#FF6B35]" />
           <h2 className="text-xl font-bold text-foreground">{planTitle}</h2>
         </div>
         {planDescription && (
@@ -212,7 +209,7 @@ function PersonalizedPlanResult({
       {weeklySchedule.length > 0 && (
         <motion.div variants={itemVariants} className="space-y-3">
           <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <Calendar className="h-5 w-5 text-[hsl(214,52%,25%)]" />
+            <Calendar className="h-5 w-5 text-[#1E3A5F]" />
             Jadwal Mingguan
           </h3>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -221,7 +218,7 @@ function PersonalizedPlanResult({
                 key={day.day}
                 className="rounded-xl border bg-card p-4 shadow-sm"
               >
-                <h4 className="mb-3 font-semibold text-[hsl(214,52%,25%)]">
+                <h4 className="mb-3 font-semibold text-[#1E3A5F]">
                   {day.day}
                 </h4>
                 {day.activities.length > 0 ? (
@@ -264,7 +261,7 @@ function PersonalizedPlanResult({
           <ul className="space-y-3">
             {tips.map((tip, i) => (
               <li key={i} className="flex items-start gap-3">
-                <ArrowRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[hsl(16,100%,60%)]" />
+                <ArrowRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#FF6B35]" />
                 <span className="text-sm leading-relaxed text-foreground">
                   {tip}
                 </span>
@@ -291,7 +288,9 @@ export function QuizResultDisplay({
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <h1 className="text-2xl font-bold text-foreground">Hasil: {quizTitle}</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          Hasil: {quizTitle}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Berikut adalah hasil quiz Anda
         </p>
@@ -313,14 +312,18 @@ export function QuizResultDisplay({
         {onSave && (
           <Button
             onClick={onSave}
-            className="gap-2 rounded-xl bg-[hsl(16,100%,60%)] text-white hover:bg-[hsl(16,100%,55%)]"
+            className="gap-2 rounded-xl bg-[#FF6B35] text-white hover:bg-[#e55a2b]"
           >
             <Save className="h-4 w-4" />
             Simpan Hasil
           </Button>
         )}
         {onRetry && (
-          <Button variant="outline" onClick={onRetry} className="gap-2 rounded-xl">
+          <Button
+            variant="outline"
+            onClick={onRetry}
+            className="gap-2 rounded-xl"
+          >
             <RefreshCw className="h-4 w-4" />
             Ulangi Quiz
           </Button>
@@ -330,10 +333,10 @@ export function QuizResultDisplay({
           Bagikan
         </Button>
         <Button variant="ghost" className="gap-2 rounded-xl" asChild>
-          <a href="/dashboard/articles">
+          <Link href="/dashboard/articles">
             <BookOpen className="h-4 w-4" />
             Lihat Artikel Terkait
-          </a>
+          </Link>
         </Button>
       </motion.div>
     </div>

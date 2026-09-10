@@ -1,49 +1,48 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import type { Quiz, QuizQuestion } from "@/lib/types"
-import { QuizClient } from "./quiz-client"
+import { QuizPageClient } from "./quiz-page-client"
 
-interface QuizPageProps {
-  params: { slug: string }
-}
+type Params = { slug: string }
 
-export default async function QuizPage({ params }: QuizPageProps) {
+export default async function QuizSlugPage({
+  params,
+}: {
+  params: Promise<Params>
+}) {
+  const { slug } = await params
   const supabase = await createClient()
 
   // Fetch quiz by slug
-  const { data: quiz, error: quizError } = await supabase
+  const { data: quiz, error } = await supabase
     .from("quizzes")
     .select("*")
-    .eq("slug", params.slug)
+    .eq("slug", slug)
     .eq("is_active", true)
     .single()
 
-  if (quizError || !quiz) {
+  if (error || !quiz) {
     notFound()
   }
+
+  const typedQuiz = quiz as Quiz
 
   // Fetch questions ordered by order_index
   const { data: questions } = await supabase
     .from("quiz_questions")
     .select("*")
-    .eq("quiz_id", quiz.id)
+    .eq("quiz_id", typedQuiz.id)
     .order("order_index", { ascending: true })
 
-  if (!questions || questions.length === 0) {
+  const typedQuestions = (questions as QuizQuestion[]) || []
+
+  if (typedQuestions.length === 0) {
     notFound()
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
-      <QuizClient
-        quiz={quiz as Quiz}
-        questions={questions as QuizQuestion[]}
-        userId={user?.id || null}
-      />
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <QuizPageClient quiz={typedQuiz} questions={typedQuestions} />
     </div>
   )
 }

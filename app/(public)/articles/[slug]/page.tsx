@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Lock } from "lucide-react"
-import { createServerClient } from "@/lib/supabase"
-import { getUser } from "@/lib/auth"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 import { ArticleReader } from "@/components/articles/article-reader"
 import { ArticleCard } from "@/components/articles/article-card"
 import { Button } from "@/components/ui/button"
@@ -47,7 +46,10 @@ export default async function ArticleSlugPage({
 }) {
   const { slug } = await params
   const supabase = await createServerClient()
-  const user = await getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Fetch the article
   const { data: article, error } = await supabase

@@ -1,11 +1,8 @@
-import { createServerClient, createServiceClient } from "@/lib/supabase"
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
-/**
- * Get the current session from the server.
- * Returns null if the user is not authenticated.
- */
 export async function getSession() {
-  const supabase = await createServerClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { session },
     error,
@@ -19,13 +16,8 @@ export async function getSession() {
   return session
 }
 
-/**
- * Get the current user from the server.
- * Uses getUser() which validates the JWT against the auth server.
- * Returns null if the user is not authenticated.
- */
 export async function getUser() {
-  const supabase = await createServerClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
     error,
@@ -39,15 +31,12 @@ export async function getUser() {
   return user
 }
 
-/**
- * Sign up a new user with email and password.
- */
 export async function signUp(
   email: string,
   password: string,
   metadata?: { full_name?: string; phone?: string }
 ) {
-  const supabase = await createServerClient()
+  const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -59,11 +48,8 @@ export async function signUp(
   return { data, error }
 }
 
-/**
- * Sign in a user with email and password.
- */
 export async function signIn(email: string, password: string) {
-  const supabase = await createServerClient()
+  const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -72,21 +58,26 @@ export async function signIn(email: string, password: string) {
   return { data, error }
 }
 
-/**
- * Sign out the current user.
- */
 export async function signOut() {
-  const supabase = await createServerClient()
+  const supabase = await createServerSupabaseClient()
   const { error } = await supabase.auth.signOut()
 
   return { error }
 }
 
-/**
- * Claim an MCU upload by token, setting user_id and is_claimed.
- * Uses the service client to bypass RLS (the upload may not
- * have a user_id yet, so the user's RLS policy wouldn't match).
- */
+function createServiceClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  )
+}
+
 export async function claimUpload(userId: string, token: string) {
   const supabase = createServiceClient()
 

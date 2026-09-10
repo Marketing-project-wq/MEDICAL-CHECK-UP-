@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Loader2 } from "lucide-react"
 
@@ -9,16 +8,14 @@ import { QuizStepper } from "@/components/quiz/quiz-stepper"
 import { QuizResultDisplay } from "@/components/quiz/quiz-result-display"
 import type { Quiz, QuizQuestion } from "@/lib/types"
 
-interface QuizClientProps {
+interface QuizPageClientProps {
   quiz: Quiz
   questions: QuizQuestion[]
-  userId: string | null
 }
 
 type QuizState = "taking" | "submitting" | "result"
 
-export function QuizClient({ quiz, questions, userId }: QuizClientProps) {
-  const router = useRouter()
+export function QuizPageClient({ quiz, questions }: QuizPageClientProps) {
   const [state, setState] = useState<QuizState>("taking")
   const [result, setResult] = useState<Record<string, unknown> | null>(null)
   const [saved, setSaved] = useState(false)
@@ -34,7 +31,7 @@ export function QuizClient({ quiz, questions, userId }: QuizClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           quizId: quiz.id,
-          userId,
+          userId: null,
           answers,
         }),
       })
@@ -64,7 +61,7 @@ export function QuizClient({ quiz, questions, userId }: QuizClientProps) {
   }
 
   async function handleSave() {
-    if (saved || !result || !userId) return
+    if (saved || !result) return
 
     try {
       const response = await fetch("/api/quiz/submit", {
@@ -72,7 +69,7 @@ export function QuizClient({ quiz, questions, userId }: QuizClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           quizId: quiz.id,
-          userId,
+          userId: null,
           answers: {},
           result,
         }),
@@ -96,7 +93,7 @@ export function QuizClient({ quiz, questions, userId }: QuizClientProps) {
           exit={{ opacity: 0 }}
           className="flex min-h-[400px] flex-col items-center justify-center gap-4"
         >
-          <Loader2 className="h-10 w-10 animate-spin text-[hsl(16,100%,60%)]" />
+          <Loader2 className="h-10 w-10 animate-spin text-[#FF6B35]" />
           <p className="text-lg font-medium text-foreground">
             Menghitung hasil...
           </p>
@@ -173,7 +170,6 @@ function calculateLocalResult(
         }
       } else if (q.question_type === "scale" && typeof answer === "number") {
         totalScore += answer
-        // For scale, maxPossible is already counted from maxOptionScore
       }
     }
 

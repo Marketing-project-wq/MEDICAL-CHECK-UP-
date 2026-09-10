@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { LogIn, Loader2 } from "lucide-react"
 
 const loginSchema = z.object({
-  email: z.string().email("Email tidak valid."),
+  email: z.string().min(1, "Email wajib diisi.").email("Email tidak valid."),
   password: z.string().min(6, "Password minimal 6 karakter."),
   uploadToken: z.string().optional(),
 })
@@ -22,7 +22,16 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#FF6B35]" /></div>}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [serverError, setServerError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -40,7 +49,7 @@ export default function LoginPage() {
     },
   })
 
-  // Auto-fill token from localStorage
+  // Auto-fill token from localStorage on mount
   useEffect(() => {
     try {
       const token = localStorage.getItem("mcu_upload_token")
@@ -48,7 +57,7 @@ export default function LoginPage() {
         setValue("uploadToken", token)
       }
     } catch {
-      // ignore
+      // localStorage may not be available
     }
   }, [setValue])
 
@@ -59,20 +68,23 @@ export default function LoginPage() {
     try {
       const supabase = createClient()
 
+      // 1. Sign in with email and password
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       })
 
       if (error) {
-        setServerError(error.message === "Invalid login credentials"
-          ? "Email atau password salah."
-          : error.message)
+        setServerError(
+          error.message === "Invalid login credentials"
+            ? "Email atau password salah."
+            : error.message
+        )
         setIsSubmitting(false)
         return
       }
 
-      // Claim token if provided
+      // 2. If token present, claim the upload
       if (values.uploadToken && data.user) {
         try {
           await fetch("/api/mcu/claim", {
@@ -83,16 +95,20 @@ export default function LoginPage() {
               userId: data.user.id,
             }),
           })
-          // Clear token from localStorage after claim attempt
-          localStorage.removeItem("mcu_upload_token")
         } catch {
           // Non-blocking -- user can claim later
         }
       }
 
-      // Redirect to dashboard
-      const params = new URLSearchParams(window.location.search)
-      const redirectTo = params.get("redirect") || "/dashboard"
+      // 3. Clear localStorage token
+      try {
+        localStorage.removeItem("mcu_upload_token")
+      } catch {
+        // ignore
+      }
+
+      // 4. Redirect to the intended destination or dashboard
+      const redirectTo = searchParams.get("redirect") || "/dashboard"
       router.push(redirectTo)
       router.refresh()
     } catch {
@@ -105,9 +121,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">
-            Login ke <span className="text-[#FF6B35]">MCU</span>
-          </CardTitle>
+          <CardTitle className="text-2xl">Masuk ke Akun</CardTitle>
           <CardDescription>
             Masuk untuk melihat hasil medical check-up Anda.
           </CardDescription>
@@ -131,7 +145,15 @@ export default function LoginPage() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="#"
+                  className="text-xs text-[#FF6B35] hover:underline"
+                >
+                  Lupa password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -177,7 +199,7 @@ export default function LoginPage() {
               ) : (
                 <LogIn className="mr-2 h-4 w-4" />
               )}
-              {isSubmitting ? "Memproses..." : "Login"}
+              {isSubmitting ? "Memproses..." : "Masuk"}
             </Button>
 
             {/* Register link */}
@@ -187,7 +209,7 @@ export default function LoginPage() {
                 href="/mcu/register"
                 className="font-medium text-[#FF6B35] hover:underline"
               >
-                Daftar di sini
+                Daftar
               </Link>
             </p>
           </form>

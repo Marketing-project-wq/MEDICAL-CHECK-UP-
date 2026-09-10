@@ -1,19 +1,10 @@
-import { NextResponse, type NextRequest } from "next/server"
-import { createServerClient as createSSRServerClient } from "@supabase/ssr"
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  let supabaseResponse = NextResponse.next({ request })
 
-  // Only protect /dashboard routes
-  if (!pathname.startsWith("/dashboard")) {
-    return NextResponse.next()
-  }
-
-  let response = NextResponse.next({
-    request: { headers: request.headers },
-  })
-
-  const supabase = createSSRServerClient(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -21,35 +12,29 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
           )
         },
       },
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = "/mcu/login"
-    loginUrl.searchParams.set("redirect", pathname)
-    return NextResponse.redirect(loginUrl)
+  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/mcu/login'
+    url.searchParams.set('redirect', request.nextUrl.pathname)
+    return NextResponse.redirect(url)
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ['/dashboard/:path*'],
 }

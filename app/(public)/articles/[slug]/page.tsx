@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Lock } from "lucide-react"
-import { createClient as createServerClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 import { ArticleReader } from "@/components/articles/article-reader"
 import { ArticleCard } from "@/components/articles/article-card"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ export async function generateMetadata({
   params: Promise<Params>
 }): Promise<Metadata> {
   const { slug } = await params
-  const supabase = await createServerClient()
+  const supabase = await createClient()
 
   const { data: article } = await supabase
     .from("articles")
@@ -45,11 +45,7 @@ export default async function ArticleSlugPage({
   params: Promise<Params>
 }) {
   const { slug } = await params
-  const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const supabase = await createClient()
 
   // Fetch the article
   const { data: article, error } = await supabase
@@ -64,40 +60,50 @@ export default async function ArticleSlugPage({
 
   const typedArticle = article as Article
 
-  // If premium and user is not authenticated, show excerpt + CTA
-  if (typedArticle.is_premium && !user) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-secondary/10 mb-6">
-            <Lock className="h-8 w-8 text-secondary" />
-          </div>
+  // Check auth for premium articles
+  if (typedArticle.is_premium) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4">
-            {typedArticle.title}
-          </h1>
+    if (!user) {
+      return (
+        <div className="container mx-auto px-4 py-8 max-w-3xl">
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#1E3A5F]/10 mb-6">
+              <Lock className="h-8 w-8 text-[#1E3A5F]" />
+            </div>
 
-          {typedArticle.excerpt && (
-            <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-              {typedArticle.excerpt}
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4">
+              {typedArticle.title}
+            </h1>
+
+            {typedArticle.excerpt && (
+              <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
+                {typedArticle.excerpt}
+              </p>
+            )}
+
+            <p className="text-muted-foreground mb-6">
+              Artikel ini hanya tersedia untuk pengguna terdaftar.
             </p>
-          )}
 
-          <p className="text-muted-foreground mb-6">
-            Artikel ini hanya tersedia untuk pengguna terdaftar.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild size="lg">
-              <Link href="/register">Daftar Sekarang</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/login">Sudah punya akun? Masuk</Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                asChild
+                size="lg"
+                className="bg-[#FF6B35] text-white hover:bg-[#FF6B35]/90"
+              >
+                <Link href="/mcu/register">Daftar Sekarang</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/mcu/login">Sudah punya akun? Masuk</Link>
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    )
+      )
+    }
   }
 
   // Fetch related articles (same category, excluding current)

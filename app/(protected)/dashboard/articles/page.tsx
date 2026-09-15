@@ -1,17 +1,11 @@
-import { createClient as createServerClient } from "@/lib/supabase/server"
-import { DashboardArticlesClient } from "@/components/articles/dashboard-articles-client"
+import { createClient } from "@/lib/supabase/server"
+import { ArticleCard } from "@/components/articles/article-card"
+import { ArticlesListClient } from "@/components/articles/articles-list-client"
+import { BookOpen, Sparkles } from "lucide-react"
 import type { Article, MCUResult } from "@/lib/types"
-import type { Metadata } from "next"
-
-export const metadata: Metadata = {
-  title: "Artikel Kesehatan | Dashboard | MCU My20Fit",
-  description: "Baca semua artikel kesehatan termasuk konten premium.",
-}
 
 /**
- * Simple recommendation engine:
- * - Maps abnormal MCU result categories to article categories.
- * - Returns a deduplicated list of recommended articles (max 6).
+ * Determine article categories to recommend based on abnormal MCU results.
  */
 function getRecommendedCategories(results: MCUResult[]): string[] {
   const categories = new Set<string>()
@@ -27,6 +21,7 @@ function getRecommendedCategories(results: MCUResult[]): string[] {
         cat.includes("kolesterol") ||
         cat.includes("cholesterol") ||
         param.includes("cholesterol") ||
+        param.includes("kolesterol") ||
         param.includes("ldl") ||
         param.includes("hdl") ||
         param.includes("triglycerid")
@@ -94,64 +89,96 @@ function getRecommendedCategories(results: MCUResult[]): string[] {
 }
 
 export default async function DashboardArticlesPage() {
-  const supabase = await createServerClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    return null
-  }
-
-  // Fetch all articles (user is authenticated, full access including premium)
-  const { data: articles, error: articlesError } = await supabase
+  // Fetch all articles
+  const { data: articles } = await supabase
     .from("articles")
     .select("*")
     .order("published_at", { ascending: false })
 
-  if (articlesError) {
-    console.error("Error fetching articles:", articlesError.message)
-  }
-
   const allArticles: Article[] = (articles as Article[]) ?? []
 
-  // Fetch user's MCU results for recommendations
-  const { data: mcuResults } = await supabase
-    .from("mcu_results")
-    .select("*")
-    .eq("user_id", user.id)
-
-  const results: MCUResult[] = (mcuResults as MCUResult[]) ?? []
-  const recommendedCategories = getRecommendedCategories(results)
-
-  // Filter articles that match recommended categories (max 6)
+  // Fetch user's MCU results for recommendation logic
   let recommendedArticles: Article[] = []
-  if (recommendedCategories.length > 0) {
-    recommendedArticles = allArticles
-      .filter((a) =>
-        recommendedCategories.includes(a.category.toLowerCase())
-      )
-      .slice(0, 6)
+
+  if (user) {
+    const { data: mcuResults } = await supabase
+      .from("mcu_results")
+      .select("*")
+      .eq("user_id", user.id)
+
+    const results: MCUResult[] = (mcuResults as MCUResult[]) ?? []
+    const recommendedCategories = getRecommendedCategories(results)
+
+    if (recommendedCategories.length > 0) {
+      recommendedArticles = allArticles
+        .filter((a) =>
+          recommendedCategories.includes(a.category.toLowerCase())
+        )
+        .slice(0, 6)
+    }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page header */}
+    <div className="space-y-8">
+      {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Artikel Kesehatan
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Baca semua artikel termasuk konten premium untuk mendukung perjalanan
-          kesehatan Anda.
+        <div className="flex items-center gap-3 mb-2">
+          <BookOpen className="h-7 w-7 text-[#FF6B35]" />
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+            Artikel Kesehatan
+          </h1>
+        </div>
+        <p className="text-muted-foreground">
+          Baca artikel terbaru tentang kesehatan, nutrisi, olahraga, dan gaya
+          hidup sehat.
         </p>
       </div>
 
-      <DashboardArticlesClient
-        articles={allArticles}
-        recommendedArticles={recommendedArticles}
-      />
+      {/* Recommendations Section */}
+      {recommendedArticles.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="h-5 w-5 text-[#FF6B35]" />
+            <h2 className="text-xl font-semibold text-foreground">
+              Rekomendasi untuk Kamu
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Berdasarkan hasil medical check-up Anda, artikel berikut mungkin
+            berguna.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recommendedArticles.map((article) => (
+              <ArticleCard
+                key={article.id}
+                title={article.title}
+                slug={article.slug}
+                excerpt={article.excerpt}
+                cover_image_url={article.cover_image_url}
+                category={article.category}
+                read_time_minutes={article.read_time_minutes}
+                is_premium={article.is_premium}
+                author={article.author}
+                published_at={article.published_at}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Full Articles List with Category Filter Tabs */}
+      <section>
+        <h2 className="text-xl font-semibold text-foreground mb-4">
+          Semua Artikel
+        </h2>
+        <ArticlesListClient articles={allArticles} />
+      </section>
     </div>
   )
 }

@@ -6,8 +6,14 @@ import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Save, User, Lock } from "lucide-react"
-import { createClient } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { createClient } from "@/lib/supabase/client"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -18,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Profile } from "@/lib/types"
@@ -47,6 +52,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>
 
 const passwordSchema = z
   .object({
+    currentPassword: z.string().min(1, "Password saat ini wajib diisi"),
     password: z.string().min(8, "Password minimal 8 karakter"),
     confirmPassword: z.string(),
   })
@@ -65,7 +71,10 @@ export default function ProfilePage() {
   const [changingPassword, setChangingPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  const [toast, setToast] = useState<{
+    message: string
+    type: "success" | "error"
+  } | null>(null)
 
   const {
     register,
@@ -101,7 +110,7 @@ export default function ProfilePage() {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        router.push("/login")
+        router.push("/mcu/login")
         return
       }
 
@@ -155,7 +164,10 @@ export default function ProfilePage() {
         .eq("id", user.id)
 
       if (error) {
-        setToast({ message: "Gagal menyimpan profil: " + error.message, type: "error" })
+        setToast({
+          message: "Gagal menyimpan profil: " + error.message,
+          type: "error",
+        })
       } else {
         setToast({ message: "Profil berhasil diperbarui!", type: "success" })
       }
@@ -174,7 +186,10 @@ export default function ProfilePage() {
       })
 
       if (error) {
-        setToast({ message: "Gagal mengubah password: " + error.message, type: "error" })
+        setToast({
+          message: "Gagal mengubah password: " + error.message,
+          type: "error",
+        })
       } else {
         setToast({ message: "Password berhasil diperbarui!", type: "success" })
         resetPassword()
@@ -252,9 +267,7 @@ export default function ProfilePage() {
             <User className="h-5 w-5" />
             Informasi Profil
           </CardTitle>
-          <CardDescription>
-            Perbarui data pribadi Anda.
-          </CardDescription>
+          <CardDescription>Perbarui data pribadi Anda.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmitProfile)} className="space-y-6">
@@ -394,6 +407,21 @@ export default function ProfilePage() {
             className="space-y-4"
           >
             <div className="space-y-2">
+              <Label htmlFor="currentPassword">Password Saat Ini</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                placeholder="Masukkan password saat ini"
+                {...registerPassword("currentPassword")}
+              />
+              {passwordErrors.currentPassword && (
+                <p className="text-sm text-destructive">
+                  {passwordErrors.currentPassword.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="password">Password Baru</Label>
               <Input
                 id="password"
@@ -423,7 +451,11 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <Button type="submit" variant="secondary" disabled={changingPassword}>
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={changingPassword}
+            >
               {changingPassword ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

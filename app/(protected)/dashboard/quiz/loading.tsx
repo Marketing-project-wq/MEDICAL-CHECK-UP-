@@ -2,19 +2,19 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function QuizLoading() {
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-8">
+    <div className="space-y-8">
       {/* Header skeleton */}
-      <div className="mb-8">
+      <div>
         <div className="flex items-center gap-3 mb-2">
           <Skeleton className="h-7 w-7 rounded" />
           <Skeleton className="h-9 w-48" />
         </div>
-        <Skeleton className="h-5 w-80 mt-2" />
+        <Skeleton className="h-5 w-80 max-w-full mt-2" />
       </div>
 
       {/* Quiz cards grid skeleton */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
             className="overflow-hidden rounded-lg border bg-card shadow-sm"
@@ -42,7 +42,7 @@ export default function QuizLoading() {
       </div>
 
       {/* History skeleton */}
-      <div className="mt-12">
+      <div>
         <div className="flex items-center gap-3 mb-6">
           <Skeleton className="h-6 w-6 rounded" />
           <Skeleton className="h-8 w-36" />

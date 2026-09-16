@@ -81,12 +81,26 @@ export function renderResult(result, t) {
 
   const meta = [];
   if (r.reviewed_at) meta.push(`<span><strong>${escapeHtml(t.reviewedAt)}:</strong> ${escapeHtml(r.reviewed_at)}</span>`);
-  if (r.grade) meta.push(`<span class="mcu-grade">${escapeHtml(t.gradeLabel)}: <strong>${escapeHtml(r.grade)}</strong></span>`);
+
+  // Prominent colored grade badge (A/B/C/D), mirroring the my.20fit dashboard.
+  // Any unexpected grade value falls back to a neutral "na" badge rather than
+  // rendering raw, so an odd upstream value can never break the layout.
+  const gradeLetter = typeof r.grade === "string" ? r.grade.trim().toUpperCase() : "";
+  const gradeClass = ["A", "B", "C", "D"].includes(gradeLetter) ? gradeLetter.toLowerCase() : "na";
+  const gradeBadge = gradeLetter
+    ? `<div class="mcu-grade-badge grade-${gradeClass}">
+        <span class="mcu-grade-letter">${escapeHtml(gradeLetter)}</span>
+        <span class="mcu-grade-cap">${escapeHtml(t.gradeLabel)}</span>
+      </div>`
+    : "";
 
   const header = `
     <div class="mcu-head">
-      <h3>${r.patient_name ? `${escapeHtml(t.forPatient)}: ${escapeHtml(r.patient_name)}` : escapeHtml(t.resultTitle)}</h3>
-      ${meta.length ? `<div class="mcu-meta">${meta.join("")}</div>` : ""}
+      ${gradeBadge}
+      <div class="mcu-head-main">
+        <h3>${r.patient_name ? `${escapeHtml(t.forPatient)}: ${escapeHtml(r.patient_name)}` : escapeHtml(t.resultTitle)}</h3>
+        ${meta.length ? `<div class="mcu-meta">${meta.join("")}</div>` : ""}
+      </div>
     </div>`;
 
   const summary = r.summary

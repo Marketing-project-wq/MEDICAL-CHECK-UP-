@@ -192,6 +192,46 @@ function scanSection(s, loginUrl, returnToUrl) {
             <h3>${escapeHtml(s.historyHeading)}</h3>
             <div data-role="history"></div>
           </div>
+
+          <div class="confirm-overlay" data-role="confirm-modal" hidden>
+            <div class="confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+              <div class="confirm-grip" aria-hidden="true"></div>
+              <h3 id="confirm-title">${escapeHtml(s.confirmTitle)}</h3>
+
+              <div class="confirm-warn" data-role="confirm-name-mismatch" hidden>
+                <strong>${escapeHtml(s.confirmNameMismatchTitle)}</strong>
+                <p>${escapeHtml(s.confirmNameDoc)}: <b data-role="confirm-name-doc"></b><br>
+                  ${escapeHtml(s.confirmNameAccount)}: <b data-role="confirm-name-account"></b></p>
+                <p>${escapeHtml(s.confirmNameMismatchHint)}</p>
+              </div>
+
+              <dl class="confirm-facts">
+                <div class="confirm-fact" data-role="confirm-name-row" hidden>
+                  <dt>${escapeHtml(s.confirmDetectedName)}</dt>
+                  <dd data-role="confirm-detected-name"></dd>
+                </div>
+                <div class="confirm-fact">
+                  <dt>${escapeHtml(s.confirmDocType)}</dt>
+                  <dd>${escapeHtml(s.confirmDocTypeValue)}</dd>
+                </div>
+                <div class="confirm-fact" data-role="confirm-grade-row" hidden>
+                  <dt>${escapeHtml(s.confirmGradeLabel)}</dt>
+                  <dd data-role="confirm-grade"></dd>
+                </div>
+              </dl>
+
+              <div class="confirm-consents">
+                <label class="confirm-consent"><input type="checkbox" data-role="consent"><span>${escapeHtml(s.consent1)}</span></label>
+                <label class="confirm-consent"><input type="checkbox" data-role="consent"><span>${escapeHtml(s.consent2)}</span></label>
+                <label class="confirm-consent"><input type="checkbox" data-role="consent"><span>${escapeHtml(s.consent3)}</span></label>
+              </div>
+
+              <button class="btn btn-primary btn-block" data-act="confirm-save" type="button" disabled>${escapeHtml(s.confirmSave)}</button>
+              <button class="btn btn-ghost btn-block confirm-cancel" data-act="confirm-cancel" type="button">${escapeHtml(s.confirmCancel)}</button>
+            </div>
+          </div>
+
+          <div class="toast" data-role="toast" role="status" aria-live="polite" hidden></div>
         </div>
       </div>
     </div>

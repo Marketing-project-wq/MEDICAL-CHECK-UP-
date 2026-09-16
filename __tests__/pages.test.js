@@ -86,6 +86,14 @@ test("Check MCU page: §0.1 gate (login gate, uploader hidden, one file input) +
   assert.match(p.bodyHtml, /doctor-cta/);
   assert.match(p.bodyHtml, /book-doctor/);
 
+  // Confirmation modal (my.20fit parity): consent gate before a result is saved.
+  assert.match(p.bodyHtml, /data-role="confirm-modal" hidden>/, "confirm modal present and hidden by default");
+  assert.match(p.bodyHtml, /data-role="confirm-name-mismatch" hidden>/, "name-mismatch warning present, hidden");
+  assert.equal((p.bodyHtml.match(/data-role="consent"/g) || []).length, 3, "exactly three consent checkboxes");
+  assert.match(p.bodyHtml, /data-act="confirm-save"[^>]*disabled/, "save button disabled until consents checked");
+  assert.match(p.bodyHtml, /data-act="confirm-cancel"/, "cancel button present");
+  assert.match(p.bodyHtml, /data-role="toast"/, "toast element present");
+
   // The return-to for the login gate is the tool page itself.
   assert.match(p.bodyHtml, /data-return-to="https:\/\/medicalcheckup\.20fit\.id\/check-mcu"/);
 });

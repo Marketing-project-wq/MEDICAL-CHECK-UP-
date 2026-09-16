@@ -17,6 +17,12 @@ import { LOCAL_ARTICLES } from "../shared/localArticles.js";
 const LIST_COLS = "title,slug,excerpt,category,persona,meta_description,published_at,published_url";
 const ONE_COLS =
   "title,slug,body_html,meta_title,meta_description,excerpt,category,tags,author_name,published_at,published_url";
+// mcu_articles: this subdomain's OWN article table (published via /api/articles),
+// isolated from the shared media_articles pipeline. `cover_image_url` maps to the
+// article object's `image` so the cover renderer uses it.
+const MCU_LIST_COLS = "title,slug,excerpt,category,author_name,published_at,published_url,cover_image_url";
+const MCU_ONE_COLS =
+  "title,slug,excerpt,category,author_name,published_at,published_url,cover_image_url,body_html,meta_title,meta_description,tags";
 
 export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60 * 1000, fetchImpl = fetch }) {
   const restBase = `${String(supabaseUrl).replace(/\/$/, "")}/rest/v1`;
@@ -43,11 +49,74 @@ export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60
     return res.json();
   }
 
-  // mcu-original drafts are listed FIRST, then the media_articles rows.
+  // mcu-original drafts FIRST, then this subdomain's own mcu_articles, then the
+  // shared media_articles rows.
   async function listPublished({ limit = 30, category = null } = {}) {
     const local = LOCAL_ARTICLES.filter((a) => !category || a.category === category);
-    const media = await listMedia({ limit, category });
-    return [...local, ...media].slice(0, limit);
+    const [mcu, media] = await Promise.all([listMcu({ limit, category }), listMedia({ limit, category })]);
+    return [...local, ...mcu, ...media].slice(0, limit);
+  }
+
+  function mapMcuRow(r) {
+    // `cover_image_url` → `image` (the field the cover renderer reads); a null
+    // cover just falls back to the generated cover, same as any other article.
+    return r && r.cover_image_url ? { ...r, image: r.cover_image_url } : { ...r };
+  }
+
+  async function listMcu({ limit = 30, category = null } = {}) {
+    if (!serviceRoleKey) return [];
+    const key = `mcu:${category || "all"}:${limit}`;
+    const hit = getCached(key);
+    if (hit !== undefined) return hit;
+    try {
+      let q = `/mcu_articles?status=eq.published&select=${MCU_LIST_COLS}&order=published_at.desc.nullslast&limit=${limit}`;
+      if (category) q += `&category=eq.${encodeURIComponent(category)}`;
+      const rows = await rest(q);
+      return setCached(key, Array.isArray(rows) ? rows.map(mapMcuRow) : []);
+    } catch (e) {
+      console.error("articles.listMcu failed:", e.message);
+      return []; // graceful empty — never 500 the page
+    }
+  }
+
+  async function getMcuBySlug(slug) {
+    if (!serviceRoleKey) return null;
+    const key = `mcu-slug:${slug}`;
+    const hit = getCached(key);
+    if (hit !== undefined) return hit;
+    try {
+      const rows = await rest(
+        `/mcu_articles?status=eq.published&slug=eq.${encodeURIComponent(slug)}&select=${MCU_ONE_COLS}&limit=1`,
+      );
+      const row = Array.isArray(rows) && rows[0] ? mapMcuRow(rows[0]) : null;
+      return setCached(key, row);
+    } catch (e) {
+      console.error("articles.getMcuBySlug failed:", e.message);
+      return null;
+    }
+  }
+
+  // Upsert an article into mcu_articles (unique slug). Used by the /api/articles
+  // publish endpoint. Requires the service-role key (server-side only).
+  async function createArticle(row) {
+    if (!serviceRoleKey) throw new Error("no_service_role");
+    const res = await fetchImpl(`${restBase}/mcu_articles?on_conflict=slug`, {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify([row]),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`mcu_articles upsert ${res.status}: ${text.slice(0, 200)}`);
+    }
+    const rows = await res.json().catch(() => []);
+    cache.clear(); // the new/updated article must show on the next page view
+    return Array.isArray(rows) && rows[0] ? rows[0] : null;
   }
 
   async function listMedia({ limit = 30, category = null } = {}) {
@@ -73,6 +142,8 @@ export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60
     if (typeof slug !== "string" || slug.length === 0) return null;
     const local = LOCAL_ARTICLES.find((a) => a.slug === slug);
     if (local) return local;
+    const mcu = await getMcuBySlug(slug);
+    if (mcu) return mcu;
     const key = `slug:${slug}`;
     const hit = getCached(key);
     if (hit !== undefined) return hit;
@@ -88,5 +159,5 @@ export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60
     }
   }
 
-  return { listPublished, getBySlug };
+  return { listPublished, getBySlug, createArticle };
 }

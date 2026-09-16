@@ -17,6 +17,7 @@ import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
 import { createArticleStore } from "./server/articles.js";
+import { createArticleHandlers } from "./server/articleHandlers.js";
 import { createQuizStore } from "./server/quizzes.js";
 import { createQuizHandlers } from "./server/quizHandlers.js";
 import { LOCAL_ARTICLES } from "./shared/localArticles.js";
@@ -31,6 +32,9 @@ const MY20FIT_ORIGIN = (process.env.MY20FIT_ORIGIN || "https://my.20fit.id").rep
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://cpvzwqptzcxnwzfzgrmt.supabase.co").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// Shared secret external sites send (Authorization: Bearer <token>) to
+// POST /api/articles. Unset → the publish endpoint is inert (503).
+const ARTICLES_PUBLISH_TOKEN = process.env.ARTICLES_PUBLISH_TOKEN || "";
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fit.id").replace(/\/$/, "");
 // Official escalation target for every health tool (spec: awareness tools must
 // route "want more? consult a doctor" to the real in-app Book Doctor flow).
@@ -116,6 +120,21 @@ function getArticleStore() {
   if (articleStore) return articleStore;
   articleStore = createArticleStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
   return articleStore;
+}
+
+// Publish API (POST /api/articles): external sites publish into this subdomain's
+// own mcu_articles table. The handler self-gates (503) when the publish token or
+// service-role key is missing, so it stays inert until deliberately configured.
+let articleHandlers = null;
+function getArticleHandlers() {
+  if (articleHandlers) return articleHandlers;
+  articleHandlers = createArticleHandlers({
+    articleStore: getArticleStore(),
+    publishToken: ARTICLES_PUBLISH_TOKEN,
+    publicOrigin: PUBLIC_ORIGIN,
+    hasServiceRole: Boolean(SUPABASE_SERVICE_ROLE_KEY),
+  });
+  return articleHandlers;
 }
 
 function safeOrigin(u) {
@@ -399,6 +418,15 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     await handlers.handleScan(req, res);
+    return;
+  }
+
+  // POST /api/articles: external sites publish an article into this subdomain's
+  // own mcu_articles table (Bearer token required; body_html sanitized; writes
+  // via the server-side service-role key only). Self-gates to 503 until the
+  // publish token + service-role key are configured.
+  if (req.method === "POST" && pathname === "/api/articles") {
+    await getArticleHandlers().handlePublish(req, res);
     return;
   }
 

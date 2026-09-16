@@ -14,26 +14,31 @@ function fakeFetch(handler) {
 }
 const ok = (data) => ({ ok: true, status: 200, json: async () => data });
 
-test("listPublished queries only published rows via service-role auth", async () => {
+test("listPublished queries published rows from mcu_articles + media_articles via service-role auth", async () => {
   const fetchImpl = fakeFetch(() => ok([{ title: "A", slug: "a" }, { title: "B", slug: "b" }]));
   const store = createArticleStore({ supabaseUrl: "https://x.supabase.co", serviceRoleKey: "svc", fetchImpl });
   // limit above the local-article count so media rows survive the local-first slice
   const rows = await store.listPublished({ limit: 100 });
-  assert.ok(rows.some((r) => r.slug === "a") && rows.some((r) => r.slug === "b"), "media rows queried & included");
-  const { url, opts } = fetchImpl.calls[0];
-  assert.match(url, /\/rest\/v1\/media_articles\?/);
-  assert.match(url, /status=eq\.published/);
-  assert.match(url, /limit=100/);
-  assert.equal(opts.headers.apikey, "svc");
-  assert.equal(opts.headers.Authorization, "Bearer svc");
+  assert.ok(rows.some((r) => r.slug === "a") && rows.some((r) => r.slug === "b"), "rows queried & included");
+  const urls = fetchImpl.calls.map((c) => c.url);
+  assert.ok(urls.some((u) => /\/rest\/v1\/media_articles\?/.test(u)), "media_articles queried");
+  assert.ok(urls.some((u) => /\/rest\/v1\/mcu_articles\?/.test(u)), "mcu_articles queried");
+  assert.ok(urls.every((u) => /status=eq\.published/.test(u)), "only published rows");
+  assert.ok(urls.every((u) => /limit=100/.test(u)), "limit forwarded to both");
+  for (const c of fetchImpl.calls) {
+    assert.equal(c.opts.headers.apikey, "svc");
+    assert.equal(c.opts.headers.Authorization, "Bearer svc");
+  }
 });
 
 test("listPublished caches within TTL (second call makes no network request)", async () => {
   const fetchImpl = fakeFetch(() => ok([{ slug: "a" }]));
   const store = createArticleStore({ supabaseUrl: "https://x.supabase.co", serviceRoleKey: "svc", fetchImpl });
   await store.listPublished();
+  const afterFirst = fetchImpl.calls.length; // one mcu_articles + one media_articles fetch
   await store.listPublished();
-  assert.equal(fetchImpl.calls.length, 1, "second call served from cache");
+  assert.equal(fetchImpl.calls.length, afterFirst, "second call served entirely from cache");
+  assert.equal(afterFirst, 2, "first call fetches both article sources");
 });
 
 test("listPublished degrades to local-only when media upstream errors (never throws)", async () => {

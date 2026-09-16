@@ -421,12 +421,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /api/articles: external sites publish an article into this subdomain's
-  // own mcu_articles table (Bearer token required; body_html sanitized; writes
-  // via the server-side service-role key only). Self-gates to 503 until the
-  // publish token + service-role key are configured.
-  if (req.method === "POST" && pathname === "/api/articles") {
-    await getArticleHandlers().handlePublish(req, res);
+  // /api/articles[/:slug]: the article publish/management API for external
+  // developers (Bearer token; body_html sanitized; writes via the server-side
+  // service-role key only, into this subdomain's own mcu_articles table).
+  //   POST /api/articles        create or update (upsert on slug)
+  //   GET  /api/articles        list (?status=all|draft|published&limit=&offset=)
+  //   GET  /api/articles/:slug  read one
+  //   PATCH /api/articles/:slug partial update
+  //   DELETE /api/articles/:slug delete
+  // Self-gates to 503 until the publish token + service-role key are configured.
+  if (pathname === "/api/articles" || pathname.startsWith("/api/articles/")) {
+    const h = getArticleHandlers();
+    const slug = pathname.startsWith("/api/articles/")
+      ? decodeURIComponent(pathname.slice("/api/articles/".length)).replace(/\/+$/, "")
+      : "";
+    if (!slug) {
+      if (req.method === "POST") { await h.handlePublish(req, res); return; }
+      if (req.method === "GET") { await h.handleList(req, res); return; }
+    } else {
+      if (req.method === "GET") { await h.handleGetOne(req, res, slug); return; }
+      if (req.method === "PATCH") { await h.handleUpdate(req, res, slug); return; }
+      if (req.method === "DELETE") { await h.handleDelete(req, res, slug); return; }
+    }
+    res
+      .writeHead(405, { "Content-Type": "application/json", Allow: "GET, POST, PATCH, DELETE" })
+      .end(JSON.stringify({ ok: false, code: "method_not_allowed" }));
     return;
   }
 

@@ -23,6 +23,10 @@ const ONE_COLS =
 const MCU_LIST_COLS = "title,slug,excerpt,category,author_name,published_at,published_url,cover_image_url";
 const MCU_ONE_COLS =
   "title,slug,excerpt,category,author_name,published_at,published_url,cover_image_url,body_html,meta_title,meta_description,tags";
+// Management (publish API) reads: include id/status/timestamps, any status.
+const MCU_ADMIN_LIST_COLS =
+  "id,slug,title,excerpt,category,tags,author_name,status,source,published_url,published_at,created_at,updated_at";
+const MCU_ADMIN_ONE_COLS = MCU_ADMIN_LIST_COLS + ",body_html,meta_title,meta_description,cover_image_url";
 
 export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60 * 1000, fetchImpl = fetch }) {
   const restBase = `${String(supabaseUrl).replace(/\/$/, "")}/rest/v1`;
@@ -159,5 +163,53 @@ export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60
     }
   }
 
-  return { listPublished, getBySlug, createArticle };
+  // ── Management reads/writes (publish API; any status, uncached) ──────────
+  const svcHeaders = () => ({ apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` });
+
+  async function listArticlesAdmin({ status = "all", limit = 50, offset = 0 } = {}) {
+    if (!serviceRoleKey) return [];
+    let q = `/mcu_articles?select=${MCU_ADMIN_LIST_COLS}&order=updated_at.desc&limit=${limit}&offset=${offset}`;
+    if (status && status !== "all") q += `&status=eq.${encodeURIComponent(status)}`;
+    const rows = await rest(q);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function getArticleAdmin(slug) {
+    if (!serviceRoleKey) return null;
+    const rows = await rest(`/mcu_articles?slug=eq.${encodeURIComponent(slug)}&select=${MCU_ADMIN_ONE_COLS}&limit=1`);
+    return Array.isArray(rows) && rows[0] ? rows[0] : null;
+  }
+
+  async function updateArticle(slug, patch) {
+    if (!serviceRoleKey) throw new Error("no_service_role");
+    const res = await fetchImpl(`${restBase}/mcu_articles?slug=eq.${encodeURIComponent(slug)}`, {
+      method: "PATCH",
+      headers: { ...svcHeaders(), "Content-Type": "application/json", Prefer: "return=representation" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      throw new Error(`mcu_articles patch ${res.status}: ${t.slice(0, 200)}`);
+    }
+    const rows = await res.json().catch(() => []);
+    cache.clear();
+    return Array.isArray(rows) && rows[0] ? rows[0] : null;
+  }
+
+  async function deleteArticle(slug) {
+    if (!serviceRoleKey) throw new Error("no_service_role");
+    const res = await fetchImpl(`${restBase}/mcu_articles?slug=eq.${encodeURIComponent(slug)}`, {
+      method: "DELETE",
+      headers: { ...svcHeaders(), Prefer: "return=representation" },
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      throw new Error(`mcu_articles delete ${res.status}: ${t.slice(0, 200)}`);
+    }
+    const rows = await res.json().catch(() => []);
+    cache.clear();
+    return Array.isArray(rows) ? rows.length : 0;
+  }
+
+  return { listPublished, getBySlug, createArticle, listArticlesAdmin, getArticleAdmin, updateArticle, deleteArticle };
 }

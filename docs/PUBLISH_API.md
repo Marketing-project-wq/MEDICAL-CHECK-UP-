@@ -5,7 +5,17 @@ article is stored in this subdomain's own `mcu_articles` table (isolated from th
 shared `media_articles` / media.20fit.id pipeline) and appears at
 `/articles` and `/articles/<slug>` (and `/id/...`).
 
-## Endpoint
+All endpoints require `Authorization: Bearer <ARTICLES_PUBLISH_TOKEN>`.
+
+| method | path | purpose |
+|---|---|---|
+| `POST` | `/api/articles` | create or update (upsert on `slug`) |
+| `GET` | `/api/articles?status=&limit=&offset=` | list articles (any status) |
+| `GET` | `/api/articles/:slug` | read one (full body) |
+| `PATCH` | `/api/articles/:slug` | partial update |
+| `DELETE` | `/api/articles/:slug` | delete |
+
+## Endpoint (create / update)
 
 ```
 POST https://medicalcheckup.20fit.id/api/articles
@@ -65,6 +75,37 @@ curl -sS -X POST https://medicalcheckup.20fit.id/api/articles \
     "body_html": "<p>Gula darah puasa adalah…</p><h2>Rentang rujukan</h2><p>…</p>"
   }'
 ```
+
+`status` may be `"published"` (default, shown on the site) or `"draft"` (stored,
+not shown publicly until published).
+
+## Manage: list / read / update / delete
+
+```bash
+# List (newest first). status = all (default) | draft | published
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://medicalcheckup.20fit.id/api/articles?status=all&limit=50&offset=0"
+# → { ok:true, count, articles:[ { id, slug, title, status, category, url, … } ] }
+
+# Read one (full body_html)
+curl -H "Authorization: Bearer $TOKEN" \
+  https://medicalcheckup.20fit.id/api/articles/<slug>
+# → { ok:true, article:{ … } }   (404 { code:"not_found" } if missing)
+
+# Partial update — only the fields you send change
+curl -X PATCH -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "status":"published", "excerpt":"revisi" }' \
+  https://medicalcheckup.20fit.id/api/articles/<slug>
+# → { ok:true, article:{ … } }
+
+# Delete
+curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+  https://medicalcheckup.20fit.id/api/articles/<slug>
+# → { ok:true, deleted:"<slug>" }
+```
+
+PATCH accepts any of the create fields plus `status`; sending `{}` returns
+`400 empty_patch`. An unknown method on these paths returns `405`.
 
 ## Security notes
 

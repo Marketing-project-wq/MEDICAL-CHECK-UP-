@@ -11,7 +11,7 @@
 // in (my20fit_claim_anon on the my.20fit side — see TAHAP-1 report).
 
 import { evaluateOutcome, validateAnswers } from "./quizzes.js";
-import { bearerToken, readJsonBody, sendJson, createRateLimiter } from "./httpUtil.js";
+import { bearerToken, apiKeyHeader, readJsonBody, sendJson, createRateLimiter } from "./httpUtil.js";
 
 const MAX_BODY_BYTES = 32 * 1024; // answers are small JSON; generous cap against abuse
 const WINDOW_MS = 10 * 60 * 1000;
@@ -33,8 +33,20 @@ function localizedOutcome(row, lang) {
   };
 }
 
-export function createQuizHandlers({ quizStore, supabaseAdmin }) {
+export function createQuizHandlers({ quizStore, supabaseAdmin, partnerAuth }) {
   async function handleSubmit(req, res) {
+    // Optional partner API key — see partnerAuth.js for why this is scoped to
+    // THIS endpoint only. Purely additive: absent (the normal case for this
+    // site's own browser client), behavior is unchanged. Present but invalid
+    // (unknown/revoked/typo'd) fails loudly rather than silently degrading to
+    // an ordinary anonymous request.
+    const apiKey = apiKeyHeader(req);
+    let partner = null;
+    if (apiKey) {
+      partner = partnerAuth ? await partnerAuth.verifyApiKey(apiKey) : null;
+      if (!partner) return sendJson(res, 401, { ok: false, code: "invalid_api_key" });
+    }
+
     let body;
     try {
       body = await readJsonBody(req, MAX_BODY_BYTES);
@@ -89,6 +101,8 @@ export function createQuizHandlers({ quizStore, supabaseAdmin }) {
       // history page doesn't need to re-evaluate anything.
       outcome: { key: matched.key, title_id: matched.title_id, title_en: matched.title_en, advice_id: matched.advice_id, advice_en: matched.advice_en, computed },
     });
+
+    if (partner) console.log(`quiz "${slug}" submitted via partner API key "${partner.label}" (${partner.id})`);
 
     return sendJson(res, 200, {
       ok: true,

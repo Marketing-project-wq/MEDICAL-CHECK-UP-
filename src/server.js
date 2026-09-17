@@ -21,6 +21,7 @@ import { createScanHandlers } from "./server/scanHandlers.js";
 import { createArticleStore } from "./server/articles.js";
 import { createQuizStore } from "./server/quizzes.js";
 import { createQuizHandlers } from "./server/quizHandlers.js";
+import { createPartnerAuth } from "./server/partnerAuth.js";
 import { LOCAL_ARTICLES } from "./shared/localArticles.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -107,12 +108,23 @@ function getQuizStore() {
   return quizStore;
 }
 
+// Optional partner API-key verifier for /api/quiz/submit ONLY — see
+// server/partnerAuth.js for why this never applies to /api/scan or
+// /api/quiz/history. Same lazy-construct pattern as the rest of this file.
+let partnerAuth = null;
+function getPartnerAuth() {
+  if (partnerAuth) return partnerAuth;
+  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+  partnerAuth = createPartnerAuth({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
+  return partnerAuth;
+}
+
 let quizHandlers = null;
 function getQuizHandlers() {
   if (quizHandlers) return quizHandlers;
   const admin = getSupabaseAdmin();
   if (!admin) return null;
-  quizHandlers = createQuizHandlers({ quizStore: getQuizStore(), supabaseAdmin: admin });
+  quizHandlers = createQuizHandlers({ quizStore: getQuizStore(), supabaseAdmin: admin, partnerAuth: getPartnerAuth() });
   return quizHandlers;
 }
 

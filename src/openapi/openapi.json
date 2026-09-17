@@ -85,8 +85,8 @@
         "operationId": "submitQuiz",
         "tags": ["Quizzes"],
         "summary": "Submit answers to a health quiz and get a result",
-        "description": "🟡 **Sensitive** (self-reported health data). Answerable anonymously by design — quiz results are shown in full to every visitor; only saving a history across devices requires signing in. Outcome matching (including safety-sensitive branches — e.g. the BMI quiz's \"withhold the number, suggest a professional\" path, or injury-history overriding a training suggestion) is evaluated **server-side only** and is driven by CMS content, so exact outcome keys/copy can change without a deploy.\n\nQuestion `id`s are defined by each quiz's CMS content and are only exposed via this site's own server-rendered quiz pages (not a separate public JSON endpoint) — this operation is documented here for completeness and API audit purposes, not as a fully self-describing integration surface.",
-        "security": [{ "supabaseBearerAuth": [] }, {}],
+        "description": "🟡 **Sensitive** (self-reported health data). Answerable anonymously by design — quiz results are shown in full to every visitor; only saving a history across devices requires signing in. Outcome matching (including safety-sensitive branches — e.g. the BMI quiz's \"withhold the number, suggest a professional\" path, or injury-history overriding a training suggestion) is evaluated **server-side only** and is driven by CMS content, so exact outcome keys/copy can change without a deploy.\n\nQuestion `id`s are defined by each quiz's CMS content and are only exposed via this site's own server-rendered quiz pages (not a separate public JSON endpoint) — this operation is documented here for completeness and API audit purposes, not as a fully self-describing integration surface.\n\n**External integration partners:** this is the only endpoint in this API that accepts a partner API key (`X-API-Key` header) as an alternative to a member Bearer token. It's optional and purely additive — omit it entirely for a normal anonymous or member submission. It exists only to identify which external integration is calling; it does NOT grant access to any other member's data (this endpoint never returns another person's results). `/api/scan` and `/api/quiz/history` do not accept it and never will, since those return one specific member's own health data.",
+        "security": [{ "supabaseBearerAuth": [] }, { "partnerApiKeyAuth": [] }, {}],
         "requestBody": {
           "required": true,
           "content": {
@@ -111,6 +111,10 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "An `X-API-Key` header was sent but is unknown, revoked, or malformed. Omit the header entirely for a normal anonymous/member request instead of sending an invalid one.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "invalid_api_key" } } }
           },
           "404": {
             "description": "No active quiz with this slug.",
@@ -175,6 +179,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "A Supabase access token for a signed-in 20FIT member, obtained by logging in on my.20fit.id. This service verifies the token server-side; it does not issue, refresh, or store credentials."
+      },
+      "partnerApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Optional, for external integration partners only, and only on POST /api/quiz/submit (see that operation's description for scope and why it's never accepted elsewhere). Issued out-of-band by 20FIT; only its SHA-256 hash is stored server-side. Send `X-API-Key: <PLACEHOLDER_KEY>`."
       }
     },
     "schemas": {

@@ -4,6 +4,7 @@
 
 import http from "node:http";
 import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
@@ -11,6 +12,7 @@ import crypto from "node:crypto";
 import { renderLayout } from "./views/layout.js";
 import { renderHomeHubPage, renderCheckMcuPage } from "./views/pages.js";
 import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
+import { renderApiDocsPage } from "./views/docsPage.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
 import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
@@ -60,6 +62,14 @@ const LOGO_DARK_URL =
   process.env.LOGO_DARK_URL || "https://media.20fit.id/wp-content/uploads/2026/05/Copy-of-new-logo-20fit-putih-3.png";
 
 const supabaseOrigin = safeOrigin(SUPABASE_URL);
+
+// OpenAPI spec for this app's 3 JSON API endpoints (src/openapi/), served at
+// /api/openapi.json + /api/openapi.yaml + /api/docs. Loaded once at startup —
+// these are small static files, not user content. openapi.yaml is generated
+// FROM openapi.json (see its header comment); both are hand-reviewed, never
+// contain real secrets/credentials (placeholders only).
+const OPENAPI_JSON_TEXT = readFileSync(path.join(SRC_DIR, "openapi", "openapi.json"), "utf8");
+const OPENAPI_YAML_TEXT = readFileSync(path.join(SRC_DIR, "openapi", "openapi.yaml"), "utf8");
 
 // Service-role client: server-only, used to verify a member's token and
 // (for /api/scan) write the AI-access audit log. Lazily constructed so a
@@ -426,6 +436,26 @@ const server = http.createServer(async (req, res) => {
   // Health check
   if (pathname === "/healthz") {
     res.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
+    return;
+  }
+
+  // OpenAPI docs for this app's 3 JSON API endpoints — additive, read-only
+  // exposure of the spec; does not affect any existing endpoint's behavior.
+  if (pathname === "/api/openapi.json") {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" }).end(
+      OPENAPI_JSON_TEXT,
+    );
+    return;
+  }
+  if (pathname === "/api/openapi.yaml") {
+    res.writeHead(200, { "Content-Type": "application/yaml; charset=utf-8", "Cache-Control": "public, max-age=300" }).end(
+      OPENAPI_YAML_TEXT,
+    );
+    return;
+  }
+  if (pathname === "/api/docs") {
+    const nonce = crypto.randomBytes(16).toString("base64");
+    sendHtml(res, 200, renderApiDocsPage(nonce), nonce);
     return;
   }
 

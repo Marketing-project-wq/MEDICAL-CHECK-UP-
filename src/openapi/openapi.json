@@ -1,0 +1,278 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "medicalcheckup.20fit.id API",
+    "version": "1.0.0",
+    "description": "Public JSON API for medicalcheckup.20fit.id (20FIT's medical check-up awareness site). This service is otherwise a server-rendered site (educational pages, the health quizzes, the Scan MCU tool UI) — this spec documents only its 3 JSON endpoints, not the HTML page routes.\n\n**Sensitivity.** `POST /api/scan` handles real, member-linked medical check-up data (patient name, clinical notes) and is treated as highly sensitive: its response schema is intentionally not published here. `POST /api/quiz/submit` and `GET /api/quiz/history` handle self-reported health-quiz answers and are documented in full, but are still personal health data — treat responses accordingly.\n\n**Auth.** Bearer tokens are Supabase access tokens issued by the member's session on my.20fit.id; this service does not issue or refresh tokens itself.\n\n**Safety note.** The health quizzes (e.g. the BMI quiz) are understanding tools, not medical exams, and never return calorie or weight-loss targets. Some quiz outcomes deliberately withhold computed values (e.g. the BMI number) in favor of a calm, non-alarming suggestion to talk to a health professional — see the `computed` field description on `QuizSubmitResponse`.",
+    "contact": { "name": "20FIT" }
+  },
+  "servers": [
+    { "url": "https://medicalcheckup.20fit.id", "description": "Production" }
+  ],
+  "tags": [
+    { "name": "MCU Scan", "description": "Member-only analysis of an uploaded medical check-up document. 🔴 Sensitive — real health-record data." },
+    { "name": "Quizzes", "description": "CMS-driven health awareness quizzes (BMI, runner, HYROX, etc). 🟡 Sensitive — self-reported health data." }
+  ],
+  "paths": {
+    "/api/scan": {
+      "post": {
+        "operationId": "scanMcu",
+        "tags": ["MCU Scan"],
+        "summary": "Analyze an uploaded medical check-up document",
+        "description": "🔴 **Sensitive.** Members-only — an anonymous request is rejected before any file is read or analyzed (this service never processes anonymous health data). The uploaded document is forwarded server-side to 20FIT's internal analysis backend; no analysis key or credential is ever exposed to the browser.\n\nThe full response schema is intentionally not published in this document, since a successful result contains patient-identifying and clinical fields (patient name, doctor's notes, metrics). See `ScanSuccessResponse` below for the outer envelope only.",
+        "security": [{ "supabaseBearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ScanRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis succeeded.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ScanSuccessResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — invalid JSON body, missing file, unsupported file type, or the upstream analyzer could not read the document as an MCU report.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "examples": {
+                  "no_file": { "value": { "ok": false, "code": "no_file" } },
+                  "unsupported_type": { "value": { "ok": false, "code": "unsupported_type" } },
+                  "invalid_body": { "value": { "ok": false, "code": "invalid_body" } },
+                  "not_mcu": { "value": { "ok": false, "code": "not_mcu" }, "description": "The uploaded document doesn't look like a medical check-up report." },
+                  "incomplete_mcu": { "value": { "ok": false, "code": "incomplete_mcu" }, "description": "Recognized as an MCU report, but missing fields needed to analyze it." }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token — anonymous requests are always rejected here.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "auth_required" } } }
+          },
+          "413": {
+            "description": "File too large (request body, or the decoded file, exceeds the ~10MB limit).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "file_too_large" } } }
+          },
+          "429": {
+            "description": "This member has exceeded the scan rate limit.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "rate_limited_member" } } }
+          },
+          "502": {
+            "description": "The upstream analysis backend failed.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "analyze_failed" } } }
+          },
+          "503": {
+            "description": "This service isn't configured/available right now (e.g. missing server credentials).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "service_unavailable" } } }
+          },
+          "504": {
+            "description": "The upstream analysis backend timed out.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "analyze_timeout" } } }
+          }
+        }
+      }
+    },
+    "/api/quiz/submit": {
+      "post": {
+        "operationId": "submitQuiz",
+        "tags": ["Quizzes"],
+        "summary": "Submit answers to a health quiz and get a result",
+        "description": "🟡 **Sensitive** (self-reported health data). Answerable anonymously by design — quiz results are shown in full to every visitor; only saving a history across devices requires signing in. Outcome matching (including safety-sensitive branches — e.g. the BMI quiz's \"withhold the number, suggest a professional\" path, or injury-history overriding a training suggestion) is evaluated **server-side only** and is driven by CMS content, so exact outcome keys/copy can change without a deploy.\n\nQuestion `id`s are defined by each quiz's CMS content and are only exposed via this site's own server-rendered quiz pages (not a separate public JSON endpoint) — this operation is documented here for completeness and API audit purposes, not as a fully self-describing integration surface.",
+        "security": [{ "supabaseBearerAuth": [] }, {}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/QuizSubmitRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A matching outcome was found and (if an identity was available) the result was saved.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/QuizSubmitResponse" } } }
+          },
+          "400": {
+            "description": "Invalid request body or answers (missing required answer, out-of-range number, unknown option id, or neither a Bearer token nor an anonId was supplied).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "examples": {
+                  "invalid_body": { "value": { "ok": false, "code": "invalid_body" } },
+                  "invalid_answers": { "value": { "ok": false, "code": "invalid_answers" } }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active quiz with this slug.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "quiz_not_found" } } }
+          },
+          "413": {
+            "description": "Request body too large.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "body_too_large" } } }
+          },
+          "429": {
+            "description": "Rate limit exceeded for this identity (member or anonymous id).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "rate_limited_quiz" } } }
+          },
+          "500": {
+            "description": "Content-configuration error: the quiz has no catch-all outcome configured in the CMS, so nothing matched. Not a client error.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "quiz_not_found" } } }
+          },
+          "503": {
+            "description": "This service isn't configured/available right now.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "service_unavailable" } } }
+          }
+        }
+      }
+    },
+    "/api/quiz/history": {
+      "get": {
+        "operationId": "getQuizHistory",
+        "tags": ["Quizzes"],
+        "summary": "List the authenticated member's past quiz results",
+        "description": "🟡 **Sensitive** (self-reported health data). Members only.",
+        "security": [{ "supabaseBearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["en", "id"], "default": "en" },
+            "description": "Language for quiz/outcome titles in the response."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/QuizHistoryResponse" } } }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "auth_required" } } }
+          },
+          "503": {
+            "description": "This service isn't configured/available right now.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" }, "example": { "ok": false, "code": "service_unavailable" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "supabaseBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "A Supabase access token for a signed-in 20FIT member, obtained by logging in on my.20fit.id. This service verifies the token server-side; it does not issue, refresh, or store credentials."
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["ok", "code"],
+        "properties": {
+          "ok": { "type": "boolean", "enum": [false] },
+          "code": { "type": "string", "description": "Stable machine-readable error code — see each response's examples for the codes an endpoint can actually return." }
+        }
+      },
+      "ScanRequest": {
+        "type": "object",
+        "required": ["file", "mime"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "The document as a base64 data: URL. Decoded size must be at most ~10MB.",
+            "example": "data:image/jpeg;base64,<PLACEHOLDER_BASE64>"
+          },
+          "mime": {
+            "type": "string",
+            "enum": ["image/jpeg", "image/png", "application/pdf"]
+          }
+        }
+      },
+      "ScanSuccessResponse": {
+        "type": "object",
+        "description": "Envelope only — see the operation description for why `result`'s inner schema isn't published here.",
+        "required": ["ok", "mode", "result"],
+        "properties": {
+          "ok": { "type": "boolean", "enum": [true] },
+          "mode": { "type": "string", "enum": ["member"] },
+          "result": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The full MCU analysis result. Intentionally undocumented here — contains patient-identifying and clinical fields."
+          }
+        }
+      },
+      "QuizSubmitRequest": {
+        "type": "object",
+        "required": ["slug", "answers"],
+        "properties": {
+          "slug": { "type": "string", "description": "Quiz slug, e.g. \"cek-bmi\".", "example": "cek-bmi" },
+          "lang": { "type": "string", "enum": ["en", "id"], "default": "en" },
+          "answers": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Map of question id → answer value. Value type depends on the question's type: a number for \"number\" questions, an option id (string) for \"single_choice\", or an array of option ids for \"multi_choice\". Question ids/types come from the quiz's CMS content, rendered on this site's own quiz pages."
+          },
+          "anonId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Client-generated id identifying an anonymous visitor across quizzes on this device, so results can later be claimed after signing in. Required when no Bearer token is present."
+          }
+        }
+      },
+      "QuizOutcome": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string", "description": "Stable outcome key, defined in the CMS." },
+          "title": { "type": "string" },
+          "advice": { "type": "string", "description": "Localized advice text for the matched outcome. Never includes a calorie or weight-loss target." }
+        }
+      },
+      "QuizSubmitResponse": {
+        "type": "object",
+        "required": ["ok", "outcome", "computed"],
+        "properties": {
+          "ok": { "type": "boolean", "enum": [true] },
+          "resultId": { "type": ["string", "null"], "format": "uuid", "description": "Id of the saved result row, if it could be saved." },
+          "outcome": { "$ref": "#/components/schemas/QuizOutcome" },
+          "computed": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Derived values the quiz needed to evaluate outcomes (e.g. `{ bmi, age }` for the BMI quiz). Some fields are deliberately withheld for safety: e.g. `bmi` is omitted here whenever the matched outcome is one of the BMI quiz's gentle-redirect branches, so a concerning pattern never surfaces a bare number — the `outcome.advice` text carries the message instead."
+          }
+        }
+      },
+      "QuizHistoryItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "quizSlug": { "type": ["string", "null"] },
+          "quizTitle": { "type": ["string", "null"] },
+          "outcomeTitle": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "QuizHistoryResponse": {
+        "type": "object",
+        "required": ["ok", "items"],
+        "properties": {
+          "ok": { "type": "boolean", "enum": [true] },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/QuizHistoryItem" } }
+        }
+      }
+    }
+  }
+}

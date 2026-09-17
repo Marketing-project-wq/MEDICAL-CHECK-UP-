@@ -105,6 +105,20 @@ Browser (medicalcheckup.20fit.id)
 - **Graceful** — if Supabase is unreachable the list shows an empty state and a
   bad slug 404s; never a 500.
 
+## API docs
+
+This app's 3 JSON endpoints (`POST /api/scan`, `POST /api/quiz/submit`,
+`GET /api/quiz/history`) are documented as an OpenAPI 3.1 spec, served at:
+
+- `GET /api/docs` — interactive Swagger UI
+- `GET /api/openapi.json` / `GET /api/openapi.yaml` — the raw spec
+
+Source of truth is `src/openapi/openapi.json`; `openapi.yaml` is generated
+from it (see the header comment in that file for how to regenerate after
+editing the JSON). `/api/scan`'s full response schema is intentionally not
+published there — it carries patient-identifying/clinical fields — only its
+request shape and the outer envelope are documented.
+
 ## Run locally
 
 ```bash

@@ -14,7 +14,7 @@ const spec = JSON.parse(jsonText);
 // This app has exactly 4 JSON API endpoints — everything else is server-rendered
 // HTML. The spec must document exactly these, nothing more (no accidental
 // exposure of an internal-only route) and nothing less.
-const EXPECTED_PATHS = ["/api/scan", "/api/quiz/submit", "/api/quiz/history", "/api/articles"];
+const EXPECTED_PATHS = ["/api/scan", "/api/quiz/submit", "/api/quiz/history", "/api/public/articles"];
 
 test("openapi.json documents exactly the app's 4 real JSON API endpoints", () => {
   assert.deepEqual(Object.keys(spec.paths).sort(), [...EXPECTED_PATHS].sort());
@@ -31,8 +31,14 @@ test("openapi.json declares bearer-JWT auth and requires it on the sensitive end
   // Quiz submission is intentionally answerable anonymously — auth is optional,
   // and also accepts a partner API key (see the dedicated test below).
   assert.deepEqual(spec.paths["/api/quiz/submit"].post.security, [{ supabaseBearerAuth: [] }, { partnerApiKeyAuth: [] }, {}]);
-  // Article listing is public content — no auth at all, by design.
-  assert.deepEqual(spec.paths["/api/articles"].get.security, []);
+  // Article listing is public content — no auth at all, by design. It's
+  // deliberately NOT at /api/articles (main's authenticated publish/manage
+  // CRUD API, out of scope for this spec) — see the path test above.
+  assert.deepEqual(spec.paths["/api/public/articles"].get.security, []);
+});
+
+test("openapi.json's public article feed is never at the same path as the authenticated publish API", () => {
+  assert.equal(spec.paths["/api/articles"], undefined, "the publish/management API is a separate, deliberately undocumented-here surface");
 });
 
 test("openapi.json declares the partner API key scheme and scopes it to /api/quiz/submit only", () => {

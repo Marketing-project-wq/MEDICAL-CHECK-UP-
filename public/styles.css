@@ -615,3 +615,62 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 .quiz-bmi-label { font-size: 0.82rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .quiz-restart { margin-top: 14px; }
 .quiz-restart a { color: var(--red-text); font-family: var(--font-mono); }
+
+/* ── MCU result header: colored grade badge (my.20fit parity) ── */
+.mcu-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+.mcu-head-main { min-width: 0; }
+.mcu-grade-badge {
+  flex: none; width: 64px; height: 64px; border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; text-align: center;
+}
+.mcu-grade-letter { font-family: var(--font-display); font-size: 2rem; line-height: 1; }
+.mcu-grade-cap { font-size: 0.5rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+.mcu-grade-badge.grade-a { background: rgba(34, 197, 94, 0.14); color: #1c9c4b; }
+.mcu-grade-badge.grade-b { background: rgba(41, 82, 227, 0.14); color: var(--blue); }
+.mcu-grade-badge.grade-c { background: rgba(249, 115, 22, 0.16); color: #d9660f; }
+.mcu-grade-badge.grade-d { background: rgba(214, 40, 40, 0.16); color: var(--red); }
+.mcu-grade-badge.grade-na { background: var(--unk-bg); color: var(--muted); }
+
+/* ── Confirmation modal (bottom sheet) shown before a result is saved ── */
+.confirm-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(20, 20, 20, 0.55);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.confirm-overlay[hidden] { display: none; }
+.confirm-sheet {
+  background: var(--card); color: var(--ink);
+  width: 100%; max-width: 480px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  border: 1px solid var(--border); border-bottom: none;
+  padding: 20px 20px 28px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.25);
+}
+.confirm-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 0 auto 16px; }
+.confirm-sheet h3 { font-family: var(--font-display); letter-spacing: 0.02em; margin-bottom: 14px; }
+.confirm-warn {
+  background: var(--attn-bg); border: 1px solid var(--attn-border); color: var(--attn-text);
+  border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px; font-size: 0.9rem;
+}
+.confirm-warn[hidden] { display: none; }
+.confirm-warn strong { display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.8rem; }
+.confirm-warn p { margin: 0 0 4px; }
+.confirm-facts { background: var(--bg-alt); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
+.confirm-fact { display: flex; gap: 10px; align-items: baseline; }
+.confirm-fact[hidden] { display: none; }
+.confirm-fact dt { flex: none; min-width: 120px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-family: var(--font-mono); }
+.confirm-fact dd { margin: 0; color: var(--ink); }
+.confirm-consents { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.confirm-consent { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 0.92rem; line-height: 1.45; }
+.confirm-consent input { margin-top: 3px; flex: none; width: 18px; height: 18px; accent-color: var(--red); }
+.confirm-cancel { margin-top: 10px; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  z-index: 70; background: var(--ink); color: var(--bg);
+  padding: 12px 18px; border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  font-weight: 600; font-size: 0.92rem; max-width: 90vw; text-align: center;
+}
+.toast[hidden] { display: none; }

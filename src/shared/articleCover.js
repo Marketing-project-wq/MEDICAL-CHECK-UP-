@@ -66,16 +66,94 @@ export function coverTheme(a) {
   return "mcu";
 }
 
+// Deterministic per-article variation, so two articles that share a theme —
+// especially the ones that fall back to the generated cover — never look
+// identical. An FNV-1a hash of the slug seeds a bounded hue/lightness shift
+// (kept inside the theme's own colour family) plus the decorative layout. Same
+// input always yields the same cover, so it's stable across renders.
+function hashStr(s) {
+  let h = 2166136261 >>> 0;
+  const str = String(s || "");
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToHex(r, g, b) {
+  const h = (x) => clampN(Math.round(x), 0, 255).toString(16).padStart(2, "0");
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
+function rgbToHsl(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return [h * 360, s, l];
+}
+function hslToRgb(h, s, l) {
+  h /= 360;
+  if (s === 0) return [l * 255, l * 255, l * 255];
+  const hue2rgb = (p, q, t) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return [hue2rgb(p, q, h + 1 / 3) * 255, hue2rgb(p, q, h) * 255, hue2rgb(p, q, h - 1 / 3) * 255];
+}
+// Shift a hex colour by dh degrees of hue and dl lightness, staying in the
+// theme's hue family (just a different shade).
+function shiftColor(hex, dh, dl) {
+  const [r, g, b] = hexToRgb(hex);
+  const [h0, s, l0] = rgbToHsl(r, g, b);
+  const h = (h0 + dh + 360) % 360;
+  const l = clampN(l0 + dl, 0.14, 0.6);
+  const [R, G, B] = hslToRgb(h, s, l);
+  return rgbToHex(R, G, B);
+}
+
 // Flat, on-brand cover SVG (16:9-ish). No <defs>/ids, so it is safe to inline
-// many times on one page (the list).
-export function articleCoverSvg(theme) {
+// many times on one page (the list). `seed` (the article slug) makes each cover
+// visually distinct; omit it and you get the plain theme cover.
+export function articleCoverSvg(theme, seed) {
   const t = THEMES[theme] || THEMES.mcu;
   const motif = iconInner(t.icon) || "";
+  const hasSeed = seed !== undefined && seed !== null && String(seed).length > 0;
+  const h = hasSeed ? hashStr(seed) : 0;
+  const bg = hasSeed ? shiftColor(t.bg, (h % 45) - 22, (((h >>> 6) % 13) - 6) / 100) : t.bg;
+  const cx1 = 300 + ((h >>> 3) % 90);
+  const cy1 = (h >>> 9) % 70;
+  const r1 = 96 + ((h >>> 12) % 48);
+  const cx2 = (h >>> 15) % 110;
+  const cy2 = 180 + ((h >>> 20) % 60);
+  const r2 = 66 + ((h >>> 23) % 46);
   return (
     `<svg class="cover-svg" viewBox="0 0 400 220" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid slice">` +
-    `<rect width="400" height="220" fill="${t.bg}"/>` +
-    `<circle cx="338" cy="30" r="120" fill="#ffffff" opacity="0.07"/>` +
-    `<circle cx="54" cy="212" r="88" fill="#000000" opacity="0.06"/>` +
+    `<rect width="400" height="220" fill="${bg}"/>` +
+    `<circle cx="${cx1}" cy="${cy1}" r="${r1}" fill="#ffffff" opacity="0.07"/>` +
+    `<circle cx="${cx2}" cy="${cy2}" r="${r2}" fill="#000000" opacity="0.06"/>` +
     `<g transform="translate(150,60) scale(4.15)" fill="none" stroke="#ffffff" stroke-width="1.5" ` +
     `stroke-linecap="round" stroke-linejoin="round" opacity="0.96">${motif}</g>` +
     `</svg>`
@@ -94,15 +172,15 @@ const CSS_URL_OK = /^https:\/\/[^\s'"()<>\\]+$/;
 // the article still wins over this.
 const ARTICLE_PHOTO = {
   "memahami-angka-tekanan-darah": "https://images.unsplash.com/photo-1725870953863-4ad4db0acfc2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "pentingnya-serat-sayur-dan-buah": "https://images.pexels.com/photos/25315522/pexels-photo-25315522.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "pentingnya-serat-sayur-dan-buah": "https://images.unsplash.com/photo-1487795924438-a3cb4b7a5556?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
   "prinsip-makan-seimbang-isi-piringku": "https://images.pexels.com/photos/25315522/pexels-photo-25315522.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   "jalan-kaki-untuk-pemula": "https://images.unsplash.com/photo-1678681211549-34714ff68568?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
   "kenapa-aktivitas-fisik-penting": "https://images.unsplash.com/photo-1752619122458-b6c7f357b5e9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
   "membangun-kebiasaan-olahraga": "https://media.20fit.id/wp-content/uploads/2026/06/30-hari-workout-plan-pemula-efektif.jpg",
-  "menjaga-berat-badan-sehat": "https://images.pexels.com/photos/4587379/pexels-photo-4587379.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  "menjaga-berat-badan-sehat": "https://images.unsplash.com/photo-1635863870541-286925d89030?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
   "peran-gaya-hidup-pada-hasil-mcu": "https://images.pexels.com/photos/4587379/pexels-photo-4587379.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   "pentingnya-riwayat-kesehatan-keluarga": "https://images.pexels.com/photos/5082869/pexels-photo-5082869.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-  "pertanyaan-untuk-dokter-tentang-hasil-mcu": "https://images.unsplash.com/photo-1649751361457-01d3a696c7e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "pertanyaan-untuk-dokter-tentang-hasil-mcu": "https://images.pexels.com/photos/4506160/pexels-photo-4506160.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   "kapan-tidak-menunda-ke-dokter": "https://images.unsplash.com/photo-1649751361457-01d3a696c7e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
   "faktor-risiko-yang-bisa-diubah": "https://images.pexels.com/photos/5793649/pexels-photo-5793649.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   // Activity — real gym photos (the 20FIT library's strongest area).
@@ -117,12 +195,12 @@ const ARTICLE_PHOTO = {
   "arti-tanda-h-dan-l-di-hasil-lab": "https://images.pexels.com/photos/6129197/pexels-photo-6129197.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   "memahami-profil-lipid-kolesterol": "https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   "memahami-pemeriksaan-gula-darah": "https://images.pexels.com/photos/19243767/pexels-photo-19243767.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-  "memahami-tes-fungsi-hati": "https://images.pexels.com/photos/7578815/pexels-photo-7578815.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-  "memahami-tes-fungsi-ginjal": "https://images.pexels.com/photos/7579828/pexels-photo-7579828.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-  "memahami-hasil-darah-lengkap": "https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-  "memahami-asam-urat": "https://images.pexels.com/photos/6129197/pexels-photo-6129197.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-  "memahami-hasil-tes-urin": "https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-  "hasil-di-luar-rentang-belum-tentu-sakit": "https://images.pexels.com/photos/7579828/pexels-photo-7579828.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+  // Liver / kidney / CBC / uric-acid / urinalysis / out-of-range: 20FIT's
+  // free-license library has no distinct lab imagery, and external photo
+  // sources aren't reachable here to verify a fit — so rather than reuse one
+  // generic lab photo across all of them, these fall back to their (now
+  // per-article distinct) generated covers. Drop a verified URL per slug here
+  // to give any of them a real photo.
 
   // Nutrition.
   "kenapa-membatasi-gula-berlebih": "https://images.pexels.com/photos/2523650/pexels-photo-2523650.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
@@ -176,7 +254,7 @@ export function photoUrl(a) {
 // through — so the cover is never broken.
 export function articleCover(a, { hero = false } = {}) {
   const cls = hero ? "article-cover article-cover-hero" : "article-cover";
-  const svg = articleCoverSvg(coverTheme(a || {}));
+  const svg = articleCoverSvg(coverTheme(a || {}), (a && a.slug) || (a && a.title) || "");
   const url = photoUrl(a || {});
   const photo = url ? `<div class="cover-photo" style="background-image:url('${escapeHtml(url)}')"></div>` : "";
   return `<div class="${cls}">${svg}${photo}</div>`;

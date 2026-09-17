@@ -198,6 +198,18 @@ function setupUploadWidget(root, restoreState) {
   const loginGateEl = q('[data-role="login-gate"]');
   const uploaderEl = q('[data-role="uploader"]');
   const whoEl = q('[data-role="who"]');
+  const confirmModal = q('[data-role="confirm-modal"]');
+  const confirmMismatch = q('[data-role="confirm-name-mismatch"]');
+  const confirmNameRow = q('[data-role="confirm-name-row"]');
+  const confirmDetectedName = q('[data-role="confirm-detected-name"]');
+  const confirmNameDoc = q('[data-role="confirm-name-doc"]');
+  const confirmNameAccount = q('[data-role="confirm-name-account"]');
+  const confirmGradeRow = q('[data-role="confirm-grade-row"]');
+  const confirmGradeEl = q('[data-role="confirm-grade"]');
+  const consentInputs = Array.from(root.querySelectorAll('[data-role="consent"]'));
+  const confirmSaveBtn = q('[data-act="confirm-save"]');
+  const confirmCancelBtn = q('[data-act="confirm-cancel"]');
+  const toastEl = q('[data-role="toast"]');
   const loginHref = root.dataset.loginHref || "#";
 
   function isMember() {
@@ -286,6 +298,100 @@ function setupUploadWidget(root, restoreState) {
     if (scroll) resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // ── Confirmation modal (my.20fit parity) ──────────────────────────────
+  // After a successful analysis, the member must confirm this is their own
+  // document (name check) and tick three consent boxes before the result is
+  // saved to their history. Nothing is persisted until they confirm.
+  let pendingResult = null;
+
+  function accountName() {
+    const u = currentSession && currentSession.user;
+    if (!u) return "";
+    const m = u.user_metadata || {};
+    return String(m.full_name || m.name || (u.email ? u.email.split("@")[0] : "") || "").trim();
+  }
+
+  // Loose name match (ported from the my.20fit dashboard): exact, substring, or
+  // word-overlap. Only used to decide whether to SHOW a soft warning — it never
+  // blocks saving, since a legitimate document can differ from the account name.
+  function nameSimilarity(a, b) {
+    const n1 = String(a || "").toLowerCase().trim();
+    const n2 = String(b || "").toLowerCase().trim();
+    if (!n1 || !n2) return 0;
+    if (n1 === n2) return 1;
+    if (n1.includes(n2) || n2.includes(n1)) return 0.8;
+    const w1 = n1.split(/\s+/);
+    const w2 = n2.split(/\s+/);
+    const overlap = w1.filter((w) => w2.includes(w)).length;
+    return overlap / Math.max(w1.length, w2.length);
+  }
+
+  function updateConsentState() {
+    const all = consentInputs.length > 0 && consentInputs.every((c) => c.checked);
+    confirmSaveBtn.disabled = !all;
+  }
+
+  function closeConfirm() {
+    confirmModal.hidden = true;
+    pendingResult = null;
+  }
+
+  function openConfirm(result) {
+    pendingResult = result;
+    const detected = result && result.patient_name ? String(result.patient_name) : "";
+    confirmNameRow.hidden = !detected;
+    if (detected) confirmDetectedName.textContent = detected;
+
+    const grade = result && result.grade ? String(result.grade) : "";
+    confirmGradeRow.hidden = !grade;
+    if (grade) confirmGradeEl.textContent = grade;
+
+    const acct = accountName();
+    const mismatch = Boolean(detected) && Boolean(acct) && nameSimilarity(detected, acct) < 0.5;
+    confirmMismatch.hidden = !mismatch;
+    if (mismatch) {
+      confirmNameDoc.textContent = detected;
+      confirmNameAccount.textContent = acct;
+    }
+
+    consentInputs.forEach((c) => {
+      c.checked = false;
+    });
+    updateConsentState();
+    confirmModal.hidden = false;
+  }
+
+  function showToast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => {
+      toastEl.hidden = true;
+    }, 3500);
+  }
+
+  consentInputs.forEach((c) => c.addEventListener("change", updateConsentState));
+  confirmCancelBtn.addEventListener("click", () => {
+    closeConfirm();
+    setStatus("");
+  });
+  confirmModal.addEventListener("click", (e) => {
+    if (e.target === confirmModal) {
+      closeConfirm();
+      setStatus("");
+    }
+  });
+  confirmSaveBtn.addEventListener("click", async () => {
+    const result = pendingResult;
+    closeConfirm();
+    if (!result) return;
+    showResult(result);
+    await saveResult(result, setStatus);
+    await loadHistory();
+    showToast(S.savedToast);
+  });
+
   analyzeBtn.addEventListener("click", () => runAnalyze());
 
   async function runAnalyze() {
@@ -349,9 +455,8 @@ function setupUploadWidget(root, restoreState) {
       }
 
       setBusy(false);
-      showResult(data.result);
-      await saveResult(data.result, setStatus);
-      await loadHistory();
+      // Do not persist yet — the member confirms ownership + consent first.
+      openConfirm(data.result);
     } catch (e) {
       console.error("MCU scan request failed:", e);
       setBusy(false);

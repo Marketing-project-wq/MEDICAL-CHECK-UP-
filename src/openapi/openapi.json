@@ -172,12 +172,12 @@
         }
       }
     },
-    "/api/articles": {
+    "/api/public/articles": {
       "get": {
-        "operationId": "listArticles",
+        "operationId": "listPublicArticles",
         "tags": ["Articles"],
         "summary": "List the latest published health articles",
-        "description": "🟢 **Public, no auth.** A listing feed over the same published health-education content already visible on `/articles` — this exposes nothing that isn't already public. Never returns unpublished content, and never contains patient/health-record data (that's `/api/scan`, which is separate and much more restricted).",
+        "description": "🟢 **Public, no auth.** A listing feed over the same published health-education content already visible on `/articles` — this exposes nothing that isn't already public. Never returns unpublished content, and never contains patient/health-record data (that's `/api/scan`, which is separate and much more restricted).\n\nNot to be confused with `/api/articles` (a separate, Bearer-token-authenticated publish/management API — see that operation for create/update/delete). This one is deliberately at a different path: same path with two different auth models would be a security hazard, and this feed must never require a credential.",
         "security": [],
         "parameters": [
           {

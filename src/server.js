@@ -19,6 +19,7 @@ import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
 import { createArticleStore, toPublicJson } from "./server/articles.js";
+import { createArticleHandlers } from "./server/articleHandlers.js";
 import { createQuizStore } from "./server/quizzes.js";
 import { createQuizHandlers } from "./server/quizHandlers.js";
 import { createPartnerAuth } from "./server/partnerAuth.js";
@@ -34,6 +35,9 @@ const MY20FIT_ORIGIN = (process.env.MY20FIT_ORIGIN || "https://my.20fit.id").rep
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://cpvzwqptzcxnwzfzgrmt.supabase.co").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// Shared secret external sites send (Authorization: Bearer <token>) to
+// POST /api/articles. Unset → the publish endpoint is inert (503).
+const ARTICLES_PUBLISH_TOKEN = process.env.ARTICLES_PUBLISH_TOKEN || "";
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fit.id").replace(/\/$/, "");
 // Official escalation target for every health tool (spec: awareness tools must
 // route "want more? consult a doctor" to the real in-app Book Doctor flow).
@@ -138,6 +142,21 @@ function getArticleStore() {
   if (articleStore) return articleStore;
   articleStore = createArticleStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
   return articleStore;
+}
+
+// Publish API (POST /api/articles): external sites publish into this subdomain's
+// own mcu_articles table. The handler self-gates (503) when the publish token or
+// service-role key is missing, so it stays inert until deliberately configured.
+let articleHandlers = null;
+function getArticleHandlers() {
+  if (articleHandlers) return articleHandlers;
+  articleHandlers = createArticleHandlers({
+    articleStore: getArticleStore(),
+    publishToken: ARTICLES_PUBLISH_TOKEN,
+    publicOrigin: PUBLIC_ORIGIN,
+    hasServiceRole: Boolean(SUPABASE_SERVICE_ROLE_KEY),
+  });
+  return articleHandlers;
 }
 
 function safeOrigin(u) {
@@ -424,6 +443,34 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // /api/articles[/:slug]: the article publish/management API for external
+  // developers (Bearer token; body_html sanitized; writes via the server-side
+  // service-role key only, into this subdomain's own mcu_articles table).
+  //   POST /api/articles        create or update (upsert on slug)
+  //   GET  /api/articles        list (?status=all|draft|published&limit=&offset=)
+  //   GET  /api/articles/:slug  read one
+  //   PATCH /api/articles/:slug partial update
+  //   DELETE /api/articles/:slug delete
+  // Self-gates to 503 until the publish token + service-role key are configured.
+  if (pathname === "/api/articles" || pathname.startsWith("/api/articles/")) {
+    const h = getArticleHandlers();
+    const slug = pathname.startsWith("/api/articles/")
+      ? decodeURIComponent(pathname.slice("/api/articles/".length)).replace(/\/+$/, "")
+      : "";
+    if (!slug) {
+      if (req.method === "POST") { await h.handlePublish(req, res); return; }
+      if (req.method === "GET") { await h.handleList(req, res); return; }
+    } else {
+      if (req.method === "GET") { await h.handleGetOne(req, res, slug); return; }
+      if (req.method === "PATCH") { await h.handleUpdate(req, res, slug); return; }
+      if (req.method === "DELETE") { await h.handleDelete(req, res, slug); return; }
+    }
+    res
+      .writeHead(405, { "Content-Type": "application/json", Allow: "GET, POST, PATCH, DELETE" })
+      .end(JSON.stringify({ ok: false, code: "method_not_allowed" }));
+    return;
+  }
+
   // /api/quiz/submit: answerable anonymously by design (spec: the result is
   // shown in full to everyone; only saving/history is gated). The outcome
   // evaluation (including the BMI safety branches) happens only inside the
@@ -471,10 +518,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // GET /api/articles — public, read-only listing of published health
+  // GET /api/public/articles — public, read-only listing of published health
   // articles (the same content already public on /articles; nothing new is
   // exposed). No auth: it's a content feed, not personal/health-record data.
-  if (pathname === "/api/articles") {
+  // Deliberately NOT at /api/articles: that path is main's authenticated
+  // publish/management CRUD API (see createArticleHandlers above) — same
+  // path with two different auth models would be a real security hazard.
+  if (pathname === "/api/public/articles") {
     const q = url.searchParams;
     const lang = q.get("lang") === "id" ? "id" : "en";
     const limit = Math.min(Math.max(parseInt(q.get("limit"), 10) || 10, 1), 50);

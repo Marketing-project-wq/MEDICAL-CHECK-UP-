@@ -18,7 +18,7 @@ import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
-import { createArticleStore } from "./server/articles.js";
+import { createArticleStore, toPublicJson } from "./server/articles.js";
 import { createQuizStore } from "./server/quizzes.js";
 import { createQuizHandlers } from "./server/quizHandlers.js";
 import { createPartnerAuth } from "./server/partnerAuth.js";
@@ -468,6 +468,22 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/api/docs") {
     const nonce = crypto.randomBytes(16).toString("base64");
     sendHtml(res, 200, renderApiDocsPage(nonce), nonce);
+    return;
+  }
+
+  // GET /api/articles — public, read-only listing of published health
+  // articles (the same content already public on /articles; nothing new is
+  // exposed). No auth: it's a content feed, not personal/health-record data.
+  if (pathname === "/api/articles") {
+    const q = url.searchParams;
+    const lang = q.get("lang") === "id" ? "id" : "en";
+    const limit = Math.min(Math.max(parseInt(q.get("limit"), 10) || 10, 1), 50);
+    const category = q.get("category") || null;
+    const store = getArticleStore();
+    const rows = store ? await store.listPublished({ limit, category }) : [];
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" }).end(
+      JSON.stringify({ articles: rows.map((a) => toPublicJson(a, { publicOrigin: PUBLIC_ORIGIN, lang })) }),
+    );
     return;
   }
 

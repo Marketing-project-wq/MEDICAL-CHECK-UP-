@@ -13,10 +13,30 @@
 // Dependency-free ESM (Node built-in fetch).
 
 import { LOCAL_ARTICLES } from "../shared/localArticles.js";
+import { photoUrl } from "../shared/articleCover.js";
 
-const LIST_COLS = "title,slug,excerpt,category,persona,meta_description,published_at,published_url";
+// media_assets(url) is an embedded resource via the cover_asset_id FK — only
+// used by the JSON API (toPublicJson below); the SSR pages don't read it, so
+// adding it here is additive and doesn't change existing page rendering.
+const LIST_COLS = "title,slug,excerpt,category,persona,meta_description,published_at,published_url,media_assets(url)";
 const ONE_COLS =
   "title,slug,body_html,meta_title,meta_description,excerpt,category,tags,author_name,published_at,published_url";
+
+// Normalizes either a LOCAL_ARTICLES entry or a media_articles row into the
+// shape served by GET /api/articles — see server.js for the route. Never
+// includes body_html/tags/etc: this is a listing feed, not the full article.
+export function toPublicJson(a, { publicOrigin, lang }) {
+  const listPath = lang === "id" ? "/id/articles" : "/articles";
+  return {
+    title: a.title || "",
+    slug: a.slug || "",
+    excerpt: a.excerpt || "",
+    category: a.category || null,
+    cover_image_url: photoUrl(a) || (a.media_assets && a.media_assets.url) || null,
+    published_at: a.published_at || null,
+    url: a.published_url || `${publicOrigin}${listPath}/${encodeURIComponent(a.slug || "")}`,
+  };
+}
 
 export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60 * 1000, fetchImpl = fetch }) {
   const restBase = `${String(supabaseUrl).replace(/\/$/, "")}/rest/v1`;

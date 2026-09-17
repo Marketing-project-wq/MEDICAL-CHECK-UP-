@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createArticleStore } from "../src/server/articles.js";
+import { createArticleStore, toPublicJson } from "../src/server/articles.js";
 import { LOCAL_ARTICLES } from "../src/shared/localArticles.js";
 
 function fakeFetch(handler) {
@@ -108,4 +108,27 @@ test("local articles are well-formed (unique slugs, body present, no scripts)", 
     slugs.add(a.slug);
     assert.doesNotMatch(a.body_html, /<script/i, "no scripts in body");
   }
+});
+
+test("toPublicJson: a local (self-canonical) article links to this site's own page", () => {
+  const a = LOCAL_ARTICLES[0];
+  const out = toPublicJson(a, { publicOrigin: "https://medicalcheckup.20fit.id", lang: "en" });
+  assert.equal(out.title, a.title);
+  assert.equal(out.slug, a.slug);
+  assert.equal(out.excerpt, a.excerpt || "");
+  assert.equal(out.url, `https://medicalcheckup.20fit.id/articles/${a.slug}`);
+  assert.ok(!("body_html" in out), "listing never includes the full body");
+});
+
+test("toPublicJson: a republished media article links to its published_url (anti-cannibalization)", () => {
+  const media = { title: "T", slug: "t", excerpt: "e", category: "nutrition", published_url: "https://media.20fit.id/t", media_assets: { url: "https://media.20fit.id/img.jpg" } };
+  const out = toPublicJson(media, { publicOrigin: "https://medicalcheckup.20fit.id", lang: "en" });
+  assert.equal(out.url, "https://media.20fit.id/t");
+  assert.equal(out.cover_image_url, "https://media.20fit.id/img.jpg");
+});
+
+test("toPublicJson: cover_image_url is null (not broken/fabricated) when no real photo exists", () => {
+  const a = { title: "T", slug: "no-such-slug-xyz", excerpt: "e" };
+  const out = toPublicJson(a, { publicOrigin: "https://medicalcheckup.20fit.id", lang: "en" });
+  assert.equal(out.cover_image_url, null);
 });

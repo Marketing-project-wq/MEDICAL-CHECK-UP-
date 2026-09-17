@@ -6,7 +6,7 @@ info:
   description: >-
     Public JSON API for medicalcheckup.20fit.id (20FIT's medical check-up awareness site). This
     service is otherwise a server-rendered site (educational pages, the health quizzes, the Scan MCU
-    tool UI) — this spec documents only its 3 JSON endpoints, not the HTML page routes.
+    tool UI) — this spec documents only its JSON endpoints, not the HTML page routes.
 
 
     **Sensitivity.** `POST /api/scan` handles real, member-linked medical check-up data (patient
@@ -38,6 +38,8 @@ tags:
     description: >-
       CMS-driven health awareness quizzes (BMI, runner, HYROX, etc). 🟡 Sensitive — self-reported
       health data.
+  - name: Articles
+    description: Published health-education articles. 🟢 Public, same content already on /articles.
 paths:
   /api/scan:
     post:
@@ -178,11 +180,11 @@ paths:
 
         **External integration partners:** this is the only endpoint in this API that accepts a
         partner API key (`X-API-Key` header) as an alternative to a member Bearer token. It's
-        optional and purely additive — omit it entirely for a normal anonymous or member
-        submission. It exists only to identify which external integration is calling; it does NOT
-        grant access to any other member's data (this endpoint never returns another person's
-        results). `/api/scan` and `/api/quiz/history` do not accept it and never will, since those
-        return one specific member's own health data.
+        optional and purely additive — omit it entirely for a normal anonymous or member submission.
+        It exists only to identify which external integration is calling; it does NOT grant access
+        to any other member's data (this endpoint never returns another person's results).
+        `/api/scan` and `/api/quiz/history` do not accept it and never will, since those return one
+        specific member's own health data.
       security:
         - supabaseBearerAuth: []
         - partnerApiKeyAuth: []
@@ -320,6 +322,53 @@ paths:
               example:
                 ok: false
                 code: service_unavailable
+  /api/articles:
+    get:
+      operationId: listArticles
+      tags:
+        - Articles
+      summary: List the latest published health articles
+      description: >-
+        🟢 **Public, no auth.** A listing feed over the same published health-education content
+        already visible on `/articles` — this exposes nothing that isn't already public. Never
+        returns unpublished content, and never contains patient/health-record data (that's
+        `/api/scan`, which is separate and much more restricted).
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Max number of articles to return.
+        - name: lang
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - en
+              - id
+            default: en
+          description: >-
+            Language for the article's own-site URL (`url`) when the article doesn't have an
+            external canonical URL.
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter to one article category (matches the `category` field on the response).
+      responses:
+        '200':
+          description: OK. Always 200 — an unreachable content store degrades to an empty list, never an error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlesListResponse'
 components:
   securitySchemes:
     supabaseBearerAuth:
@@ -499,3 +548,43 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QuizHistoryItem'
+    Article:
+      type: object
+      properties:
+        title:
+          type: string
+        slug:
+          type: string
+        excerpt:
+          type: string
+        category:
+          type:
+            - string
+            - 'null'
+        cover_image_url:
+          type:
+            - string
+            - 'null'
+          description: >-
+            Absolute URL, or null when the article has no photo (its page still shows a generated
+            themed cover, which isn't a URL).
+        published_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        url:
+          type: string
+          description: >-
+            Where to read the full article. This is the article's real canonical URL — on
+            media.20fit.id for republished content (to avoid duplicate-content SEO issues), or this
+            site's own /articles/<slug> page for content that originates here.
+    ArticlesListResponse:
+      type: object
+      required:
+        - articles
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Article'

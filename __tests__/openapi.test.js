@@ -11,12 +11,12 @@ const jsonText = readFileSync(path.join(OPENAPI_DIR, "openapi.json"), "utf8");
 const yamlText = readFileSync(path.join(OPENAPI_DIR, "openapi.yaml"), "utf8");
 const spec = JSON.parse(jsonText);
 
-// This app has exactly 3 JSON API endpoints — everything else is server-rendered
+// This app has exactly 4 JSON API endpoints — everything else is server-rendered
 // HTML. The spec must document exactly these, nothing more (no accidental
 // exposure of an internal-only route) and nothing less.
-const EXPECTED_PATHS = ["/api/scan", "/api/quiz/submit", "/api/quiz/history"];
+const EXPECTED_PATHS = ["/api/scan", "/api/quiz/submit", "/api/quiz/history", "/api/articles"];
 
-test("openapi.json documents exactly the app's 3 real JSON API endpoints", () => {
+test("openapi.json documents exactly the app's 4 real JSON API endpoints", () => {
   assert.deepEqual(Object.keys(spec.paths).sort(), [...EXPECTED_PATHS].sort());
 });
 
@@ -28,8 +28,23 @@ test("openapi.json declares bearer-JWT auth and requires it on the sensitive end
 
   assert.deepEqual(spec.paths["/api/scan"].post.security, [{ supabaseBearerAuth: [] }]);
   assert.deepEqual(spec.paths["/api/quiz/history"].get.security, [{ supabaseBearerAuth: [] }]);
-  // Quiz submission is intentionally answerable anonymously — auth is optional.
-  assert.deepEqual(spec.paths["/api/quiz/submit"].post.security, [{ supabaseBearerAuth: [] }, {}]);
+  // Quiz submission is intentionally answerable anonymously — auth is optional,
+  // and also accepts a partner API key (see the dedicated test below).
+  assert.deepEqual(spec.paths["/api/quiz/submit"].post.security, [{ supabaseBearerAuth: [] }, { partnerApiKeyAuth: [] }, {}]);
+  // Article listing is public content — no auth at all, by design.
+  assert.deepEqual(spec.paths["/api/articles"].get.security, []);
+});
+
+test("openapi.json declares the partner API key scheme and scopes it to /api/quiz/submit only", () => {
+  const scheme = spec.components.securitySchemes.partnerApiKeyAuth;
+  assert.equal(scheme.type, "apiKey");
+  assert.equal(scheme.in, "header");
+  assert.equal(scheme.name, "X-API-Key");
+
+  const securedPaths = Object.entries(spec.paths).filter(([, methods]) =>
+    Object.values(methods).some((op) => (op.security || []).some((req) => "partnerApiKeyAuth" in req)),
+  );
+  assert.deepEqual(securedPaths.map(([p]) => p), ["/api/quiz/submit"]);
 });
 
 test("openapi.json never publishes the full /api/scan result schema (patient-identifying/clinical data)", () => {

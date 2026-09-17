@@ -3,7 +3,7 @@
   "info": {
     "title": "medicalcheckup.20fit.id API",
     "version": "1.0.0",
-    "description": "Public JSON API for medicalcheckup.20fit.id (20FIT's medical check-up awareness site). This service is otherwise a server-rendered site (educational pages, the health quizzes, the Scan MCU tool UI) — this spec documents only its 3 JSON endpoints, not the HTML page routes.\n\n**Sensitivity.** `POST /api/scan` handles real, member-linked medical check-up data (patient name, clinical notes) and is treated as highly sensitive: its response schema is intentionally not published here. `POST /api/quiz/submit` and `GET /api/quiz/history` handle self-reported health-quiz answers and are documented in full, but are still personal health data — treat responses accordingly.\n\n**Auth.** Bearer tokens are Supabase access tokens issued by the member's session on my.20fit.id; this service does not issue or refresh tokens itself.\n\n**Safety note.** The health quizzes (e.g. the BMI quiz) are understanding tools, not medical exams, and never return calorie or weight-loss targets. Some quiz outcomes deliberately withhold computed values (e.g. the BMI number) in favor of a calm, non-alarming suggestion to talk to a health professional — see the `computed` field description on `QuizSubmitResponse`.",
+    "description": "Public JSON API for medicalcheckup.20fit.id (20FIT's medical check-up awareness site). This service is otherwise a server-rendered site (educational pages, the health quizzes, the Scan MCU tool UI) — this spec documents only its JSON endpoints, not the HTML page routes.\n\n**Sensitivity.** `POST /api/scan` handles real, member-linked medical check-up data (patient name, clinical notes) and is treated as highly sensitive: its response schema is intentionally not published here. `POST /api/quiz/submit` and `GET /api/quiz/history` handle self-reported health-quiz answers and are documented in full, but are still personal health data — treat responses accordingly.\n\n**Auth.** Bearer tokens are Supabase access tokens issued by the member's session on my.20fit.id; this service does not issue or refresh tokens itself.\n\n**Safety note.** The health quizzes (e.g. the BMI quiz) are understanding tools, not medical exams, and never return calorie or weight-loss targets. Some quiz outcomes deliberately withhold computed values (e.g. the BMI number) in favor of a calm, non-alarming suggestion to talk to a health professional — see the `computed` field description on `QuizSubmitResponse`.",
     "contact": { "name": "20FIT" }
   },
   "servers": [
@@ -11,7 +11,8 @@
   ],
   "tags": [
     { "name": "MCU Scan", "description": "Member-only analysis of an uploaded medical check-up document. 🔴 Sensitive — real health-record data." },
-    { "name": "Quizzes", "description": "CMS-driven health awareness quizzes (BMI, runner, HYROX, etc). 🟡 Sensitive — self-reported health data." }
+    { "name": "Quizzes", "description": "CMS-driven health awareness quizzes (BMI, runner, HYROX, etc). 🟡 Sensitive — self-reported health data." },
+    { "name": "Articles", "description": "Published health-education articles. 🟢 Public, same content already on /articles." }
   ],
   "paths": {
     "/api/scan": {
@@ -170,6 +171,44 @@
           }
         }
       }
+    },
+    "/api/articles": {
+      "get": {
+        "operationId": "listArticles",
+        "tags": ["Articles"],
+        "summary": "List the latest published health articles",
+        "description": "🟢 **Public, no auth.** A listing feed over the same published health-education content already visible on `/articles` — this exposes nothing that isn't already public. Never returns unpublished content, and never contains patient/health-record data (that's `/api/scan`, which is separate and much more restricted).",
+        "security": [],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 },
+            "description": "Max number of articles to return."
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["en", "id"], "default": "en" },
+            "description": "Language for the article's own-site URL (`url`) when the article doesn't have an external canonical URL."
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Filter to one article category (matches the `category` field on the response)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK. Always 200 — an unreachable content store degrades to an empty list, never an error.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ArticlesListResponse" } } }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -281,6 +320,25 @@
         "properties": {
           "ok": { "type": "boolean", "enum": [true] },
           "items": { "type": "array", "items": { "$ref": "#/components/schemas/QuizHistoryItem" } }
+        }
+      },
+      "Article": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "slug": { "type": "string" },
+          "excerpt": { "type": "string" },
+          "category": { "type": ["string", "null"] },
+          "cover_image_url": { "type": ["string", "null"], "description": "Absolute URL, or null when the article has no photo (its page still shows a generated themed cover, which isn't a URL)." },
+          "published_at": { "type": ["string", "null"], "format": "date-time" },
+          "url": { "type": "string", "description": "Where to read the full article. This is the article's real canonical URL — on media.20fit.id for republished content (to avoid duplicate-content SEO issues), or this site's own /articles/<slug> page for content that originates here." }
+        }
+      },
+      "ArticlesListResponse": {
+        "type": "object",
+        "required": ["articles"],
+        "properties": {
+          "articles": { "type": "array", "items": { "$ref": "#/components/schemas/Article" } }
         }
       }
     }

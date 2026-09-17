@@ -161,7 +161,10 @@ const ARTICLE_PHOTO = {
 
 // The cover photo for an article: an explicit `image` wins; otherwise the
 // curated library match; otherwise "" → the themed SVG cover shows on its own.
-function photoUrl(a) {
+// Exported so the JSON API (server/articles.js) can expose a real URL too —
+// the HTML pages always have a themed SVG to fall back on, but a JSON
+// consumer needs a URL or nothing, never inline SVG markup.
+export function photoUrl(a) {
   const explicit = a && typeof a.image === "string" ? a.image.trim() : "";
   if (explicit) return CSS_URL_OK.test(explicit) ? explicit : "";
   const url = (a && ARTICLE_PHOTO[a.slug]) || "";

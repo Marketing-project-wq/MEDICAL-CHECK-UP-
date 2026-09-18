@@ -5,6 +5,11 @@ export function bearerToken(req) {
   return header && header.startsWith("Bearer ") ? header.slice(7).trim() : null;
 }
 
+export function apiKeyHeader(req) {
+  const header = req.headers["x-api-key"];
+  return typeof header === "string" && header.trim() ? header.trim() : null;
+}
+
 export function readJsonBody(req, maxBytes, overLimitCode = "body_too_large") {
   return new Promise((resolve, reject) => {
     const declaredLength = Number(req.headers["content-length"] || 0);

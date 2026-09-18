@@ -4,6 +4,7 @@
 
 import http from "node:http";
 import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
@@ -11,15 +12,17 @@ import crypto from "node:crypto";
 import { renderLayout } from "./views/layout.js";
 import { renderHomeHubPage, renderCheckMcuPage } from "./views/pages.js";
 import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
+import { renderApiDocsPage } from "./views/docsPage.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
 import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
-import { createArticleStore } from "./server/articles.js";
+import { createArticleStore, toPublicJson } from "./server/articles.js";
 import { createArticleHandlers } from "./server/articleHandlers.js";
 import { createQuizStore } from "./server/quizzes.js";
 import { createQuizHandlers } from "./server/quizHandlers.js";
+import { createPartnerAuth } from "./server/partnerAuth.js";
 import { LOCAL_ARTICLES } from "./shared/localArticles.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -65,6 +68,14 @@ const LOGO_DARK_URL =
 
 const supabaseOrigin = safeOrigin(SUPABASE_URL);
 
+// OpenAPI spec for this app's 3 JSON API endpoints (src/openapi/), served at
+// /api/openapi.json + /api/openapi.yaml + /api/docs. Loaded once at startup —
+// these are small static files, not user content. openapi.yaml is generated
+// FROM openapi.json (see its header comment); both are hand-reviewed, never
+// contain real secrets/credentials (placeholders only).
+const OPENAPI_JSON_TEXT = readFileSync(path.join(SRC_DIR, "openapi", "openapi.json"), "utf8");
+const OPENAPI_YAML_TEXT = readFileSync(path.join(SRC_DIR, "openapi", "openapi.yaml"), "utf8");
+
 // Service-role client: server-only, used to verify a member's token and
 // (for /api/scan) write the AI-access audit log. Lazily constructed so a
 // missing key doesn't crash page rendering — each route that needs it fails
@@ -101,12 +112,23 @@ function getQuizStore() {
   return quizStore;
 }
 
+// Optional partner API-key verifier for /api/quiz/submit ONLY — see
+// server/partnerAuth.js for why this never applies to /api/scan or
+// /api/quiz/history. Same lazy-construct pattern as the rest of this file.
+let partnerAuth = null;
+function getPartnerAuth() {
+  if (partnerAuth) return partnerAuth;
+  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+  partnerAuth = createPartnerAuth({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
+  return partnerAuth;
+}
+
 let quizHandlers = null;
 function getQuizHandlers() {
   if (quizHandlers) return quizHandlers;
   const admin = getSupabaseAdmin();
   if (!admin) return null;
-  quizHandlers = createQuizHandlers({ quizStore: getQuizStore(), supabaseAdmin: admin });
+  quizHandlers = createQuizHandlers({ quizStore: getQuizStore(), supabaseAdmin: admin, partnerAuth: getPartnerAuth() });
   return quizHandlers;
 }
 
@@ -473,6 +495,45 @@ const server = http.createServer(async (req, res) => {
   // Health check
   if (pathname === "/healthz") {
     res.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
+    return;
+  }
+
+  // OpenAPI docs for this app's 3 JSON API endpoints — additive, read-only
+  // exposure of the spec; does not affect any existing endpoint's behavior.
+  if (pathname === "/api/openapi.json") {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" }).end(
+      OPENAPI_JSON_TEXT,
+    );
+    return;
+  }
+  if (pathname === "/api/openapi.yaml") {
+    res.writeHead(200, { "Content-Type": "application/yaml; charset=utf-8", "Cache-Control": "public, max-age=300" }).end(
+      OPENAPI_YAML_TEXT,
+    );
+    return;
+  }
+  if (pathname === "/api/docs") {
+    const nonce = crypto.randomBytes(16).toString("base64");
+    sendHtml(res, 200, renderApiDocsPage(nonce), nonce);
+    return;
+  }
+
+  // GET /api/public/articles — public, read-only listing of published health
+  // articles (the same content already public on /articles; nothing new is
+  // exposed). No auth: it's a content feed, not personal/health-record data.
+  // Deliberately NOT at /api/articles: that path is main's authenticated
+  // publish/management CRUD API (see createArticleHandlers above) — same
+  // path with two different auth models would be a real security hazard.
+  if (pathname === "/api/public/articles") {
+    const q = url.searchParams;
+    const lang = q.get("lang") === "id" ? "id" : "en";
+    const limit = Math.min(Math.max(parseInt(q.get("limit"), 10) || 10, 1), 50);
+    const category = q.get("category") || null;
+    const store = getArticleStore();
+    const rows = store ? await store.listPublished({ limit, category }) : [];
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" }).end(
+      JSON.stringify({ articles: rows.map((a) => toPublicJson(a, { publicOrigin: PUBLIC_ORIGIN, lang })) }),
+    );
     return;
   }
 

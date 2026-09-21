@@ -19,6 +19,7 @@ import { renderResult } from "/shared/renderResult.js";
 import { summarizeMetrics } from "/shared/mcuSummary.js";
 import { buildManualResult } from "/shared/manualMcu.js";
 import { relatedCategories, renderRelatedArticles } from "/shared/relatedArticles.js";
+import { createMcuService } from "/shared/mcuService.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
 import { LANG_STORAGE_KEY, equivalentLangPath } from "/shared/langPref.js";
@@ -102,6 +103,10 @@ const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 // failure here only disables Supabase-dependent features (auth, history,
 // saving results); the base page (including both toggles) stays working.
 let supabase = null;
+// The shared MCU data-access layer (src/shared/mcuService.js), created once the
+// Supabase client is ready. All save/history/delete DB work goes through this,
+// so the exact same logic can live in my.20fit.id/mcu unchanged.
+let mcuService = null;
 async function initSupabase() {
   if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return null;
   try {
@@ -499,18 +504,10 @@ function setupUploadWidget(root, restoreState) {
   }
 
   async function saveResult(result, setStatusFn) {
-    if (!supabase || !currentSession) return;
+    if (!mcuService || !currentSession) return;
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const { error } = await supabase.from("my20fit_mcu_result").insert({
-        auth_user_id: user.id,
-        result,
-        analyzed_at: new Date().toISOString(),
-      });
-      if (error) setStatusFn(S.errSave, true);
+      const res = await mcuService.saveScan(result);
+      if (!res.ok) setStatusFn(S.errSave, true);
     } catch {
       setStatusFn(S.errSave, true);
     }
@@ -571,11 +568,11 @@ function setupUploadWidget(root, restoreState) {
   }
 
   async function deleteScan(id) {
-    if (!supabase || !currentSession || !id) return;
+    if (!mcuService || !currentSession || !id) return;
     if (typeof window.confirm === "function" && !window.confirm(S.historyDeleteConfirm)) return;
     try {
-      const { error } = await supabase.from("my20fit_mcu_result").delete().eq("id", id);
-      if (error) {
+      const res = await mcuService.deleteScan(id);
+      if (!res.ok) {
         setStatus(S.historyDeleteFailed, true);
         return;
       }
@@ -587,21 +584,15 @@ function setupUploadWidget(root, restoreState) {
   }
 
   async function loadHistory() {
-    if (!supabase || !currentSession) return;
+    if (!mcuService || !currentSession) return;
     try {
-      const { data, error } = await supabase
-        .from("my20fit_mcu_result")
-        .select("id, result, analyzed_at, created_at")
-        .eq("auth_user_id", currentSession.user.id)
-        .order("analyzed_at", { ascending: false })
-        .limit(20);
-      if (error) return;
-      if (!data || data.length === 0) {
+      const { scans } = await mcuService.getScanHistory({ limit: 20 });
+      if (!scans || scans.length === 0) {
         historyEl.innerHTML = `<p class="section-intro">${S.historyEmpty}</p>`;
         return;
       }
       historyEl.innerHTML = "";
-      for (const row of data) historyEl.appendChild(historyCard(row));
+      for (const row of scans) historyEl.appendChild(historyCard(row));
     } catch {
       /* history is best-effort */
     }
@@ -782,6 +773,7 @@ async function boot() {
   updateLoginCta();
 
   supabase = await initSupabase();
+  mcuService = supabase ? createMcuService(supabase) : null;
   await consumeSsoFragment();
   await consumeSsoQueryToken();
 

@@ -498,6 +498,37 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Config diagnostic — reports only whether each env var is PRESENT (never its
+  // value) plus a live count from the quiz read, so a misconfigured deploy env
+  // (e.g. a missing SUPABASE_ANON_KEY that leaves /quiz empty) can be spotted
+  // from the browser. No secrets are exposed; the quiz list is already public.
+  if (pathname === "/api/diag") {
+    let quiz;
+    try {
+      const rows = await getQuizStore().listActive();
+      quiz = { activeCount: Array.isArray(rows) ? rows.length : 0 };
+    } catch {
+      quiz = { error: "read_failed" };
+    }
+    const present = (v) => (v ? "set" : "MISSING");
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(
+      JSON.stringify({
+        ok: true,
+        service: "medicalcheckup",
+        build: "diag-1",
+        supabaseHost: supabaseOrigin,
+        env: {
+          SUPABASE_URL: present(SUPABASE_URL),
+          SUPABASE_ANON_KEY: present(SUPABASE_ANON_KEY),
+          SUPABASE_SERVICE_ROLE_KEY: present(SUPABASE_SERVICE_ROLE_KEY),
+          MY20FIT_ORIGIN: present(process.env.MY20FIT_ORIGIN),
+        },
+        quiz,
+      }),
+    );
+    return;
+  }
+
   // OpenAPI docs for this app's 3 JSON API endpoints — additive, read-only
   // exposure of the spec; does not affect any existing endpoint's behavior.
   if (pathname === "/api/openapi.json") {

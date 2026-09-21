@@ -182,6 +182,23 @@ function scanSection(s, loginUrl, returnToUrl) {
           <div class="member-actions">
             <button class="btn btn-primary btn-block" data-act="analyze" type="button" disabled>${escapeHtml(s.analyzeButton)}</button>
           </div>
+
+          <div class="manual-entry" data-role="manual-entry">
+            <button class="manual-toggle" data-act="manual-toggle" type="button" aria-expanded="false">${escapeHtml(s.manualToggle)}</button>
+            <div class="manual-form" data-role="manual-form" hidden>
+              <p class="manual-intro">${escapeHtml(s.manualIntro)}</p>
+              <div class="manual-meta">
+                <input type="text" class="manual-input" data-role="m-name" placeholder="${escapeHtml(s.manualName)}" aria-label="${escapeHtml(s.manualName)}" autocomplete="off">
+                <input type="text" class="manual-input" data-role="m-lab" placeholder="${escapeHtml(s.manualLab)}" aria-label="${escapeHtml(s.manualLab)}" autocomplete="off">
+              </div>
+              <div class="manual-rows" data-role="manual-rows"></div>
+              <button class="manual-add" data-act="manual-add" type="button">+ ${escapeHtml(s.manualAddRow)}</button>
+              <div class="member-actions">
+                <button class="btn btn-primary btn-block" data-act="manual-submit" type="button">${escapeHtml(s.manualSubmit)}</button>
+              </div>
+            </div>
+          </div>
+
           <span class="status-msg" data-role="status" role="status" aria-live="polite"></span>
 
           <div class="result-slot" data-role="result-slot" hidden>

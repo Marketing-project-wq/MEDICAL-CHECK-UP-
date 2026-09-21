@@ -17,6 +17,7 @@
 
 import { renderResult } from "/shared/renderResult.js";
 import { summarizeMetrics } from "/shared/mcuSummary.js";
+import { buildManualResult } from "/shared/manualMcu.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
 import { LANG_STORAGE_KEY, equivalentLangPath } from "/shared/langPref.js";
@@ -585,6 +586,75 @@ function setupUploadWidget(root, restoreState) {
     }
     analyzeBtn.disabled = !canAnalyze();
   }
+
+  // Manual-entry reader: type MCU values by hand -> the same result view. Status
+  // is computed ONLY from the reference range the member types (manualMcu.js) —
+  // no thresholds invented, no AI, no service-role key. Members-only (this whole
+  // uploader is member-gated, per spec §0.1).
+  const manualToggle = q('[data-act="manual-toggle"]');
+  const manualForm = q('[data-role="manual-form"]');
+  const manualRows = q('[data-role="manual-rows"]');
+  const manualAddBtn = q('[data-act="manual-add"]');
+  const manualSubmitBtn = q('[data-act="manual-submit"]');
+  const mNameEl = q('[data-role="m-name"]');
+  const mLabEl = q('[data-role="m-lab"]');
+
+  function manualMakeRow() {
+    if (!manualRows) return;
+    const inp = (role, ph) =>
+      el("input", { className: `manual-input mr-${role}`, type: "text", "data-role": `mr-${role}`, placeholder: ph, "aria-label": ph, autocomplete: "off" });
+    const del = el("button", { className: "manual-del", type: "button", "aria-label": S.manualRemoveRow, text: "×" });
+    const row = el("div", { className: "manual-row" }, [
+      inp("label", S.manualPhLabel),
+      inp("value", S.manualPhValue),
+      inp("unit", S.manualPhUnit),
+      inp("range", S.manualPhRange),
+      del,
+    ]);
+    del.addEventListener("click", () => {
+      row.remove();
+      if (!manualRows.querySelector(".manual-row")) manualMakeRow();
+    });
+    manualRows.appendChild(row);
+  }
+
+  function manualRunReading() {
+    const val = (r, role) => {
+      const input = r.querySelector(`[data-role="mr-${role}"]`);
+      return input ? input.value : "";
+    };
+    const rows = [...manualRows.querySelectorAll(".manual-row")]
+      .map((r) => ({ label: val(r, "label"), value: val(r, "value"), unit: val(r, "unit"), range: val(r, "range") }))
+      .filter((x) => x.label.trim() || x.value.trim());
+    if (!rows.length || !rows.some((x) => x.value.trim())) {
+      setStatus(S.manualEmpty, true);
+      return;
+    }
+    const result = buildManualResult({
+      patientName: mNameEl ? mNameEl.value : "",
+      laboratory: mLabEl ? mLabEl.value : "",
+      rows,
+      rangeLabel: S.manualRangeLabel,
+      summary: S.manualResultSummary,
+    });
+    setStatus("");
+    showResult(result);
+  }
+
+  if (manualToggle && manualForm) {
+    manualToggle.addEventListener("click", () => {
+      const opening = manualForm.hidden;
+      manualForm.hidden = !opening;
+      manualToggle.setAttribute("aria-expanded", String(opening));
+      if (opening && manualRows && !manualRows.querySelector(".manual-row")) {
+        manualMakeRow();
+        manualMakeRow();
+        manualMakeRow();
+      }
+    });
+  }
+  if (manualAddBtn) manualAddBtn.addEventListener("click", () => manualMakeRow());
+  if (manualSubmitBtn) manualSubmitBtn.addEventListener("click", manualRunReading);
 
   applySessionState(currentSession);
   return {

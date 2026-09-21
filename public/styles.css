@@ -660,6 +660,28 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
   .quiz-wizard-opt:has(input:checked) { background: var(--card); }
 }
 
+/* ── Manual MCU entry (see client/app.js manualRunReading) ── */
+.manual-entry { margin-top: 14px; }
+.manual-toggle { background: none; border: 0; color: var(--red-text); font-family: var(--font-mono); font-weight: 700; font-size: 0.84rem; cursor: pointer; padding: 4px 0; }
+.manual-toggle:hover { text-decoration: underline; }
+.manual-form { margin-top: 12px; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-alt); }
+.manual-intro { margin: 0 0 14px; color: var(--muted); font-size: 0.88rem; }
+.manual-meta { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
+@media (min-width: 560px) { .manual-meta { grid-template-columns: 1fr 1fr; } }
+.manual-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--card); color: var(--ink); font-size: 0.95rem; font-family: inherit; }
+.manual-input::placeholder { color: var(--muted-2); }
+.manual-input:focus { outline: 2px solid var(--red); outline-offset: 1px; border-color: var(--red); }
+.manual-rows { display: flex; flex-direction: column; gap: 12px; }
+.manual-row { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+.manual-del { align-self: flex-end; width: 34px; height: 34px; flex: none; border: 1px solid var(--border); background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; font-size: 1.15rem; line-height: 1; }
+.manual-del:hover { border-color: var(--red); color: var(--red-text); }
+@media (min-width: 640px) {
+  .manual-row { display: grid; grid-template-columns: 1.5fr 0.8fr 0.7fr 1fr auto; gap: 8px; align-items: center; border-bottom: 0; padding-bottom: 0; }
+  .manual-del { align-self: auto; }
+}
+.manual-add { margin: 14px 0 6px; background: none; border: 1px dashed var(--border-strong); border-radius: 10px; color: var(--muted); padding: 9px 14px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+.manual-add:hover { border-color: var(--red); color: var(--red-text); }
+
 /* ── MCU result header: colored grade badge (my.20fit parity) ── */
 .mcu-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
 .mcu-head-main { min-width: 0; }

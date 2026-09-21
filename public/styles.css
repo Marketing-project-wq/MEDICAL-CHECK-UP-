@@ -793,6 +793,15 @@ a.na-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); text-d
 .history-grade.grade-b { background: rgba(41, 82, 227, 0.14); color: var(--blue); }
 .history-grade.grade-c { background: rgba(249, 115, 22, 0.16); color: #d9660f; }
 .history-grade.grade-d { background: rgba(214, 40, 40, 0.16); color: var(--red); }
+
+/* ── Standalone /history + /scan/:id views ─────────────────────────────── */
+.mcu-view-head { margin: 0 0 6px; }
+.mcu-view-back { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); text-decoration: none; }
+.mcu-view-back:hover { color: var(--red); }
+a.history-main { color: inherit; text-decoration: none; display: block; }
+a.history-main:hover { text-decoration: none; }
+.mcu-view-actions { margin-top: 18px; }
+.mcu-view-disclaimer, .mcu-view-clinic { margin-top: 22px; }
 .history-grade.grade-na { background: var(--unk-bg); color: var(--muted); }
 .history-counts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .hc { font-size: 0.76rem; padding: 2px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; }

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
-import { renderHomeHubPage, renderCheckMcuPage } from "./views/pages.js";
+import { renderHomeHubPage, renderCheckMcuPage, renderHistoryPage, renderScanDetailPage } from "./views/pages.js";
 import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
 import { renderApiDocsPage } from "./views/docsPage.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
@@ -303,6 +303,31 @@ function renderCheckMcu(lang, canonicalPath) {
     loginUrl: MY20FIT_ORIGIN + "/login",
     canonicalPath,
     bookingUrl: DOCTOR_BOOKING_URL,
+    clinicContactUrl: CLINIC_CONTACT_URL,
+    clinicAddress: CLINIC_ADDRESS,
+  });
+  return wrapPage(lang, canonicalPath, page);
+}
+
+// MCU history — a dedicated, deep-linkable list of the member's saved scans.
+// Member-only content is fetched client-side (RLS); SSR only ships the shell.
+function renderHistory(lang, canonicalPath) {
+  const page = renderHistoryPage({
+    lang,
+    loginUrl: MY20FIT_ORIGIN + "/login",
+    returnToUrl: PUBLIC_ORIGIN + canonicalPath,
+  });
+  return wrapPage(lang, canonicalPath, page);
+}
+
+// One saved scan's detail (deep-linkable). `scanId` is echoed into the shell as
+// a data attribute for the client to fetch under the member's own session.
+function renderScanDetail(lang, canonicalPath, scanId) {
+  const page = renderScanDetailPage({
+    lang,
+    loginUrl: MY20FIT_ORIGIN + "/login",
+    returnToUrl: PUBLIC_ORIGIN + canonicalPath,
+    scanId,
     clinicContactUrl: CLINIC_CONTACT_URL,
     clinicAddress: CLINIC_ADDRESS,
   });
@@ -700,6 +725,39 @@ const server = http.createServer(async (req, res) => {
     const { html, nonce } = renderCheckMcu("id", "/id/check-mcu");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
+  }
+
+  // MCU history — dedicated, deep-linkable list of the member's saved scans.
+  // Member-only; the list is hydrated client-side (RLS), SSR ships only the
+  // shell + login gate. The /auth/callback variant renders (not redirects) so
+  // an SSO return lands the member straight back on their history.
+  if (pathname === "/history" || pathname === "/history/" || pathname === "/history/auth/callback") {
+    const { html, nonce } = renderHistory("en", "/history");
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/history" || pathname === "/id/history/" || pathname === "/id/history/auth/callback") {
+    const { html, nonce } = renderHistory("id", "/id/history");
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+
+  // One saved scan's detail: /scan/:id and /id/scan/:id (+ SSO callback suffix).
+  // The id is a Supabase row UUID; anything not matching that shape falls
+  // through to 404 rather than rendering a shell for a bogus id.
+  {
+    const scanPath = pathname.replace(/\/auth\/callback$/, "");
+    const scanMatch = scanPath.match(/^(\/id)?\/scan\/([^/]+)\/?$/);
+    if (scanMatch) {
+      const lang = scanMatch[1] ? "id" : "en";
+      const scanId = decodeURIComponent(scanMatch[2]);
+      if (/^[0-9a-fA-F-]{16,64}$/.test(scanId)) {
+        const canonicalPath = (lang === "id" ? "/id/scan/" : "/scan/") + scanId;
+        const { html, nonce } = renderScanDetail(lang, canonicalPath, scanId);
+        sendHtml(res, 200, html, nonce);
+        return;
+      }
+    }
   }
 
   // GET /api/quiz/history: member-only (Bearer token required inside the

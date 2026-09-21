@@ -817,6 +817,16 @@ async function boot() {
       .catch((e) => console.error("quiz wizard module failed to load:", e));
   }
 
+  // Standalone member-only routes (/history, /scan/:id) — hydrated by a separate
+  // lazy-loaded module so the uploader page stays untouched. Reuses the shared
+  // mcuService + renderResult so data and look match my.20fit.id/mcu exactly.
+  const scanView = document.getElementById("mcu-scan-view");
+  if (scanView) {
+    import("./scanViews.js")
+      .then((m) => m.setupScanViews(scanView, { supabase, mcuService, lang: LANG }))
+      .catch((e) => console.error("scan views module failed to load:", e));
+  }
+
   const root = document.getElementById("member-app");
   if (!root) return;
 

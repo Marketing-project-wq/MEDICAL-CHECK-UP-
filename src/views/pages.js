@@ -393,3 +393,63 @@ export function renderCheckMcuPage({ lang, publicOrigin, loginUrl, canonicalPath
   ].join("\n");
   return { title: `${s.pillarScanTitle} — ${s.brand}`, description: s.pillarScanDesc, bodyHtml };
 }
+
+// Login gate shared by the standalone member-only pages (/history, /scan/:id).
+// Same §0.1 posture as the uploader: a guest sees only this; the client
+// (scanViews.js) reveals the real view once a member session is confirmed.
+function memberViewGate(s, loginHref) {
+  return `<div class="login-gate" data-role="login-gate">
+    <p class="login-gate-intro">${escapeHtml(s.memberIntroAnon)}</p>
+    <a class="btn btn-primary btn-block" data-role="login-cta" href="${escapeHtml(loginHref)}">${escapeHtml(s.loginCta)}</a>
+  </div>`;
+}
+
+/**
+ * /history (EN) and /id/history (ID) — a dedicated, deep-linkable list of the
+ * member's saved scans. Member-only: the list is fetched client-side under the
+ * member's own Supabase session (RLS), never server-rendered, so no private
+ * health data touches SSR. Mirrors my.20fit.id/mcu's history view.
+ */
+export function renderHistoryPage({ lang, loginUrl, returnToUrl }) {
+  const s = getStrings(lang);
+  const loginHref = buildLoginUrl(loginUrl, returnToUrl);
+  const checkMcuHref = checkMcuHrefFor(lang);
+  const bodyHtml = `<section class="section"><div class="wrap wrap-narrow">
+    <div class="mcu-view-head"><a class="mcu-view-back" href="${escapeHtml(checkMcuHref)}">${escapeHtml(s.historyBackToScan)}</a></div>
+    <h1>${escapeHtml(s.historyPageHeading)}</h1>
+    <hr class="rule">
+    <div id="mcu-scan-view" data-mcu-view="history" data-check-href="${escapeHtml(checkMcuHref)}">
+      ${memberViewGate(s, loginHref)}
+      <div class="mcu-view-body" data-role="view-body" hidden>
+        <p class="section-intro" data-role="view-loading">${escapeHtml(s.scanLoading)}</p>
+      </div>
+    </div>
+    <div class="mcu-view-disclaimer">${healthDisclaimer(s)}</div>
+  </div></section>`;
+  return { title: `${s.historyPageTitle} — ${s.brand}`, description: s.historyPageDesc, bodyHtml };
+}
+
+/**
+ * /scan/:id (EN) and /id/scan/:id (ID) — a dedicated, deep-linkable detail view
+ * of ONE saved scan. Member-only and client-hydrated (RLS-scoped fetch), using
+ * the very same shared renderResult() as the live analysis, so a saved scan
+ * looks identical here and on my.20fit.id/mcu. The safety disclaimer is part of
+ * renderResult's own output; the clinic escalation is rendered in the shell.
+ */
+export function renderScanDetailPage({ lang, loginUrl, returnToUrl, scanId, clinicContactUrl, clinicAddress }) {
+  const s = getStrings(lang);
+  const loginHref = buildLoginUrl(loginUrl, returnToUrl);
+  const historyHref = lang === "id" ? "/id/history" : "/history";
+  const clinicSection = `<div class="mcu-view-clinic">${clinicCta(s, { contactUrl: clinicContactUrl, address: clinicAddress })}</div>`;
+  const bodyHtml = `<section class="section"><div class="wrap wrap-narrow">
+    <div class="mcu-view-head"><a class="mcu-view-back" href="${escapeHtml(historyHref)}">${escapeHtml(s.scanBackToHistory)}</a></div>
+    <div id="mcu-scan-view" data-mcu-view="scan" data-scan-id="${escapeHtml(scanId)}" data-history-href="${escapeHtml(historyHref)}">
+      ${memberViewGate(s, loginHref)}
+      <div class="mcu-view-body" data-role="view-body" hidden>
+        <p class="section-intro" data-role="view-loading">${escapeHtml(s.scanLoading)}</p>
+      </div>
+    </div>
+    ${clinicSection}
+  </div></section>`;
+  return { title: `${s.scanPageTitle} — ${s.brand}`, description: s.scanPageDesc, bodyHtml };
+}

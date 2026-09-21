@@ -15,7 +15,7 @@ import { getStrings, getRenderLabels } from "../shared/i18n.js";
 import { buildLoginUrl } from "../shared/returnTo.js";
 import { renderResult } from "../shared/renderResult.js";
 import { getSampleResult } from "../shared/sampleData.js";
-import { healthDisclaimer, doctorCta } from "../shared/health.js";
+import { healthDisclaimer, doctorCta, clinicCta } from "../shared/health.js";
 import { iconSvg } from "../shared/icons.js";
 import { articleCover, topicKey } from "../shared/articleCover.js";
 import { localizeArticle } from "../shared/localizeArticle.js";
@@ -203,6 +203,7 @@ function scanSection(s, loginUrl, returnToUrl) {
 
           <div class="result-slot" data-role="result-slot" hidden>
             <div data-role="result-body"></div>
+            <div data-role="related-articles"></div>
           </div>
 
           <div class="history" data-role="history-wrap" hidden>
@@ -375,14 +376,19 @@ export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath,
  * result, and the doctor escalation. checkMcuIntro owns the single <h1>.
  * @returns {{ title:string, description:string, bodyHtml:string }}
  */
-export function renderCheckMcuPage({ lang, publicOrigin, loginUrl, canonicalPath, bookingUrl }) {
+export function renderCheckMcuPage({ lang, publicOrigin, loginUrl, canonicalPath, bookingUrl, clinicContactUrl, clinicAddress }) {
   const s = getStrings(lang);
   const returnToUrl = publicOrigin + canonicalPath;
+  const clinicSection = `<section class="section"><div class="wrap wrap-narrow">${clinicCta(s, {
+    contactUrl: clinicContactUrl,
+    address: clinicAddress,
+  })}</div></section>`;
   const bodyHtml = [
     checkMcuIntro(s),
     scanSection(s, loginUrl, returnToUrl),
     howItWorksSection(s),
     sampleSection(s, lang),
+    clinicSection,
     escalationSection(s, bookingUrl),
   ].join("\n");
   return { title: `${s.pillarScanTitle} — ${s.brand}`, description: s.pillarScanDesc, bodyHtml };

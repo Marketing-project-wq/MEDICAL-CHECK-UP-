@@ -43,6 +43,18 @@ const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fi
 // route "want more? consult a doctor" to the real in-app Book Doctor flow).
 // Override once the exact my.20fit.id route is confirmed.
 const DOCTOR_BOOKING_URL = process.env.DOCTOR_BOOKING_URL || MY20FIT_ORIGIN + "/book-doctor";
+// 20FIT Sports Clinic escalation on the MCU page. The contact URL defaults to
+// the real doctor-booking flow (never a hardcoded phone number) — set
+// CLINIC_CONTACT_URL to a WhatsApp link (e.g. https://wa.me/<number>) to use
+// that instead. Address is overridable via CLINIC_ADDRESS.
+const CLINIC_CONTACT_URL = process.env.CLINIC_CONTACT_URL || DOCTOR_BOOKING_URL;
+const CLINIC_ADDRESS =
+  process.env.CLINIC_ADDRESS || "20FIT Sports Clinic — Jl. Sinabung No. 9, Kebayoran Baru, Jakarta Selatan";
+// "Related nutrition articles" link out to the calorietracker.20fit.id content
+// (nutrition_articles). The path is env-configurable ({slug} is substituted) so
+// no article URL is hardcoded/guessed in code — confirm/adjust to the real path.
+const NUTRITION_ARTICLES_URL_TEMPLATE =
+  process.env.NUTRITION_ARTICLES_URL_TEMPLATE || "https://calorietracker.20fit.id/artikel/{slug}";
 // Booking/info destinations for the "Program & Training" section (Tahap 3+4).
 // Real 20FIT service lines; no packages/prices are invented here. Each defaults
 // to my.20fit.id (a safe real destination) — override with the exact booking
@@ -236,6 +248,7 @@ function clientConfig(lang) {
     logoLightUrl: LOGO_LIGHT_URL,
     logoDarkUrl: LOGO_DARK_URL,
     doctorBookingUrl: DOCTOR_BOOKING_URL,
+    nutritionUrlTemplate: NUTRITION_ARTICLES_URL_TEMPLATE,
   };
 }
 
@@ -290,6 +303,8 @@ function renderCheckMcu(lang, canonicalPath) {
     loginUrl: MY20FIT_ORIGIN + "/login",
     canonicalPath,
     bookingUrl: DOCTOR_BOOKING_URL,
+    clinicContactUrl: CLINIC_CONTACT_URL,
+    clinicAddress: CLINIC_ADDRESS,
   });
   return wrapPage(lang, canonicalPath, page);
 }

@@ -18,6 +18,7 @@
 import { renderResult } from "/shared/renderResult.js";
 import { summarizeMetrics } from "/shared/mcuSummary.js";
 import { buildManualResult } from "/shared/manualMcu.js";
+import { relatedCategories, renderRelatedArticles } from "/shared/relatedArticles.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
 import { LANG_STORAGE_KEY, equivalentLangPath } from "/shared/langPref.js";
@@ -297,7 +298,37 @@ function setupUploadWidget(root, restoreState) {
     lastDisplay = { type: "result", data: result };
     resultBody.innerHTML = renderResult(result, T);
     resultSlot.hidden = false;
+    showRelatedArticles(result);
     if (scroll) resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Real nutrition_articles (RLS-public, anon key) relevant to the flagged
+  // markers, shown under a result. Best-effort: any failure just shows nothing.
+  async function showRelatedArticles(result) {
+    const relatedEl = q('[data-role="related-articles"]');
+    if (!relatedEl) return;
+    relatedEl.innerHTML = "";
+    if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return;
+    try {
+      const cats = relatedCategories(result && result.metrics);
+      const wanted = (cats.length ? cats : ["nutrition-basics", "meal-planning"]).slice(0, 4).join(",");
+      const base = String(CFG.supabaseUrl).replace(/\/$/, "");
+      const url =
+        `${base}/rest/v1/nutrition_articles?select=slug,title,excerpt,category,accent,read_time_minutes` +
+        `&is_premium=eq.false&category=in.(${wanted})&order=published_at.desc.nullslast&limit=3`;
+      const res = await fetch(url, { headers: { apikey: CFG.supabaseAnonKey, Authorization: `Bearer ${CFG.supabaseAnonKey}` } });
+      if (!res.ok) return;
+      const rows = await res.json();
+      relatedEl.innerHTML = renderRelatedArticles(rows, {
+        lang: LANG,
+        urlTemplate: CFG.nutritionUrlTemplate,
+        heading: S.relatedHeading,
+        readLabel: S.readMinutes,
+        max: 3,
+      });
+    } catch {
+      /* best effort — related articles are a nice-to-have */
+    }
   }
 
   // ── Confirmation modal (my.20fit parity) ──────────────────────────────

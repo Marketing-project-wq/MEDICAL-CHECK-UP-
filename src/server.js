@@ -108,7 +108,7 @@ function getScanHandlers() {
 let quizStore = null;
 function getQuizStore() {
   if (quizStore) return quizStore;
-  quizStore = createQuizStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
+  quizStore = createQuizStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY, anonKey: SUPABASE_ANON_KEY });
   return quizStore;
 }
 

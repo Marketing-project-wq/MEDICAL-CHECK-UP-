@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evaluateOutcome, validateAnswers } from "../src/server/quizzes.js";
+import { evaluateOutcome, validateAnswers, createQuizStore } from "../src/server/quizzes.js";
 
 // Fixtures mirror the REAL shape/order of the TAHAP-1 CMS content for
 // "cek-bmi" and "program-pelari" (see the session's DB report) — synthetic
@@ -175,4 +175,46 @@ test("evaluateOutcome always resolves to the catch-all default when nothing else
   const { matched } = evaluateOutcome(runnerQuiz, runnerOutcomes, answers);
   assert.ok(matched, "a catch-all outcome always matches");
   assert.equal(matched.key, "add_structure");
+});
+
+// ── store key routing ────────────────────────────────────────────────────────
+// Public quiz CONTENT (quizzes + questions) is RLS-public, so it must be read
+// with the anon key — that keeps the hub/wizard rendering even when the
+// service-role key is unset/misconfigured in the environment. Outcomes stay
+// service-role-only. Guards the medicalscanner.20fit.id empty-hub regression.
+function keyRecordingFetch(calls) {
+  return async (url, options) => {
+    calls.push({ url, apikey: options.headers.apikey });
+    return { ok: true, status: 200, json: async () => [] };
+  };
+}
+
+test("createQuizStore reads public content with the anon key, outcomes with the service key", async () => {
+  const calls = [];
+  const store = createQuizStore({
+    supabaseUrl: "https://proj.supabase.co",
+    serviceRoleKey: "SERVICE",
+    anonKey: "ANON",
+    fetchImpl: keyRecordingFetch(calls),
+  });
+
+  await store.listActive();
+  const listCall = calls.find((c) => c.url.includes("/my20fit_quizzes?is_active=eq.true&select=id"));
+  assert.ok(listCall, "listActive hit the quizzes endpoint");
+  assert.equal(listCall.apikey, "ANON", "hub list uses the anon key");
+
+  calls.length = 0;
+  await store.getOutcomesFor("quiz-1");
+  assert.equal(calls[0].apikey, "SERVICE", "outcomes use the service-role key");
+});
+
+test("createQuizStore falls back to the service key when no anon key is configured", async () => {
+  const calls = [];
+  const store = createQuizStore({
+    supabaseUrl: "https://proj.supabase.co",
+    serviceRoleKey: "SERVICE",
+    fetchImpl: keyRecordingFetch(calls),
+  });
+  await store.listActive();
+  assert.equal(calls[0].apikey, "SERVICE", "no anon key → falls back, never sends an empty key");
 });

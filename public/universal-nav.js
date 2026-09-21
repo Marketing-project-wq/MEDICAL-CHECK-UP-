@@ -88,6 +88,10 @@
     user: pre.user || null,
     loginUrl: pre.loginUrl || DEFAULT_LOGIN,
     onLogout: typeof pre.onLogout === "function" ? pre.onLogout : null,
+    // Optional cross-subdomain navigation handler (e.g. SSO token relay). When
+    // set, cross-app links call it instead of a plain redirect; unset -> the
+    // browser just follows the href, so the bar works with zero auth wiring.
+    navigate: typeof pre.onNavigate === "function" ? pre.onNavigate : null,
     open: null, // 'apps' | 'profile' | null
   };
 
@@ -179,7 +183,7 @@
       { t: "Pengaturan Akun", d: "Password, email, keamanan", url: PROFILE + "/settings", icon: "settings" },
     ].map(function (r) {
       return (
-        '<a class="_20fn-row" href="' + esc(r.url) + '">' +
+        '<a class="_20fn-row" href="' + esc(r.url) + '" data-go="' + esc(r.url) + '">' +
         '<span class="_20fn-ri">' + svg(r.icon, 20) + "</span>" +
         '<span><span class="_20fn-rt" style="display:block">' + esc(r.t) + "</span>" +
         '<span class="_20fn-rd">' + esc(r.d) + "</span></span></a>"
@@ -245,13 +249,19 @@
   }
 
   function onClick(e) {
-    var t = e.target.closest ? e.target.closest("[data-act],[data-nav]") : null;
+    var t = e.target.closest ? e.target.closest("[data-act],[data-nav],[data-go]") : null;
     if (!t) return;
     var act = t.getAttribute("data-act");
     var nav = t.getAttribute("data-nav");
+    var go = t.getAttribute("data-go");
     if (nav) {
-      if (nav === currentApp) { e.preventDefault(); close(); }
-      return; // other apps: let the browser follow the href
+      if (nav === currentApp) { e.preventDefault(); close(); return; } // already here
+      if (state.navigate) { e.preventDefault(); close(); state.navigate(t.getAttribute("href")); }
+      return; // no handler: let the browser follow the href
+    }
+    if (go) {
+      if (state.navigate) { e.preventDefault(); close(); state.navigate(go); }
+      return; // no handler: let the browser follow the href
     }
     if (act === "toggle-apps") { e.preventDefault(); setOpen("apps"); }
     else if (act === "toggle-profile") { e.preventDefault(); setOpen("profile"); }
@@ -287,6 +297,8 @@
     setUser: function (u) { state.user = u || null; render(); },
     setLoginUrl: function (url) { if (url) state.loginUrl = url; },
     setLogoutHandler: function (fn) { state.onLogout = typeof fn === "function" ? fn : null; },
+    // Cross-subdomain navigation handler (e.g. SSO token relay). fn(url).
+    setNavigate: function (fn) { state.navigate = typeof fn === "function" ? fn : null; },
   };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

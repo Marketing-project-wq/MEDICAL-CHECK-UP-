@@ -37,6 +37,7 @@ test("no emoji — icons are inline SVG only (spec: jangan pakai emoji)", () => 
 
 test("exposes the host-page API + profile links to my.20fit + active-state label", () => {
   assert.ok(SRC.includes("window.__20FIT_NAV_API__"), "exposes setUser/logout API");
+  assert.ok(SRC.includes("setNavigate"), "exposes a cross-subdomain navigate hook (for SSO relay)");
   assert.ok(SRC.includes("/profile") && SRC.includes("/purchases") && SRC.includes("/settings"), "profile hub links");
   assert.ok(SRC.includes("Kamu di sini"), "active app 'you are here' marker");
   assert.ok(SRC.includes("Masuk"), "logged-out sign-in button");

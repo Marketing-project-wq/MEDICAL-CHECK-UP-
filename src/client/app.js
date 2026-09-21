@@ -697,6 +697,85 @@ function setupUploadWidget(root, restoreState) {
   };
 }
 
+const SSO_FN_BASE = (CFG.supabaseUrl ? String(CFG.supabaseUrl).replace(/\/$/, "") : "") + "/functions/v1";
+
+// Redeem a one-time ?sso_token= (minted by another 20fit subdomain via the
+// shared sso-generate function) for this member's session, so they arrive
+// already signed in. Scrubs the token from the URL either way. This is the
+// query-param counterpart to consumeSsoFragment()'s hash-based SSO.
+async function consumeSsoQueryToken() {
+  const params = new URLSearchParams(location.search);
+  const token = params.get("sso_token");
+  if (!token) return false;
+  try {
+    if (supabase && CFG.supabaseUrl && CFG.supabaseAnonKey) {
+      const res = await fetch(`${SSO_FN_BASE}/sso-consume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: CFG.supabaseAnonKey },
+        body: JSON.stringify({ token }),
+      });
+      if (res.ok) {
+        const { access_token, refresh_token } = await res.json();
+        if (access_token && refresh_token) await supabase.auth.setSession({ access_token, refresh_token });
+      }
+    }
+  } catch (e) {
+    console.error("SSO consume failed:", e);
+  }
+  params.delete("sso_token");
+  const qs = params.toString();
+  history.replaceState({}, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+  return true;
+}
+
+// Navigate to another 20fit subdomain carrying this session via a one-time SSO
+// token (sso-generate), so the member isn't asked to sign in again. Same host,
+// no session, or any failure -> plain redirect (graceful, never blocks nav).
+async function navigateWithSSO(targetUrl) {
+  let targetHost;
+  try {
+    targetHost = new URL(targetUrl).hostname;
+  } catch {
+    location.href = targetUrl;
+    return;
+  }
+  if (targetHost === location.hostname || !supabase || !CFG.supabaseUrl) {
+    location.href = targetUrl;
+    return;
+  }
+  let session = null;
+  try {
+    ({
+      data: { session },
+    } = await supabase.auth.getSession());
+  } catch {
+    /* ignore */
+  }
+  if (!session) {
+    location.href = targetUrl; // not signed in here — let the target gate itself
+    return;
+  }
+  try {
+    const res = await fetch(`${SSO_FN_BASE}/sso-generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: CFG.supabaseAnonKey,
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ redirect_to: targetHost, refresh_token: session.refresh_token }),
+    });
+    if (!res.ok) throw new Error("sso-generate " + res.status);
+    const { token } = await res.json();
+    if (!token) throw new Error("no token");
+    const sep = targetUrl.includes("?") ? "&" : "?";
+    location.href = `${targetUrl}${sep}sso_token=${encodeURIComponent(token)}`;
+  } catch (e) {
+    console.error("SSO navigate failed; plain redirect:", e);
+    location.href = targetUrl;
+  }
+}
+
 async function boot() {
   wireLangToggleButtons();
   wireThemeToggle();
@@ -704,6 +783,7 @@ async function boot() {
 
   supabase = await initSupabase();
   await consumeSsoFragment();
+  await consumeSsoQueryToken();
 
   // Universal nav (public/universal-nav.js): show the signed-in member on the
   // shared top bar and wire its logout to THIS subdomain's session. Best-effort
@@ -712,6 +792,7 @@ async function boot() {
     const nav = window.__20FIT_NAV_API__;
     const loginUrl = CFG.loginUrl || "https://my.20fit.id/auth/login";
     nav.setLoginUrl(loginUrl);
+    nav.setNavigate(navigateWithSSO);
     nav.setLogoutHandler(async () => {
       try {
         await supabase.auth.signOut();

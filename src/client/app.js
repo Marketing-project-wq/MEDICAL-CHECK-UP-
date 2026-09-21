@@ -705,6 +705,36 @@ async function boot() {
   supabase = await initSupabase();
   await consumeSsoFragment();
 
+  // Universal nav (public/universal-nav.js): show the signed-in member on the
+  // shared top bar and wire its logout to THIS subdomain's session. Best-effort
+  // — the bar still renders (with a "Masuk" button) if any of this is absent.
+  if (supabase && window.__20FIT_NAV_API__) {
+    const nav = window.__20FIT_NAV_API__;
+    const loginUrl = CFG.loginUrl || "https://my.20fit.id/auth/login";
+    nav.setLoginUrl(loginUrl);
+    nav.setLogoutHandler(async () => {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore — still send them to login */
+      }
+      location.href = loginUrl;
+    });
+    const toNavUser = (session) => {
+      const u = session && session.user;
+      if (!u) return null;
+      const m = u.user_metadata || {};
+      return { name: m.full_name || m.name || (u.email ? u.email.split("@")[0] : "") || "User", email: u.email || "" };
+    };
+    try {
+      const { data } = await supabase.auth.getSession();
+      nav.setUser(toNavUser(data && data.session));
+    } catch {
+      /* ignore */
+    }
+    supabase.auth.onAuthStateChange((_e, session) => nav.setUser(toNavUser(session)));
+  }
+
   // Quiz wizard (quiz hub/detail pages only) — lazy-loaded, and given the
   // already-initialized Supabase client so it can tell a signed-in member
   // apart from an anonymous visitor without doing its own CDN load.

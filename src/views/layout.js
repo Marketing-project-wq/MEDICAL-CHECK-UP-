@@ -142,6 +142,8 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
 <script nonce="${escapeHtml(nonce)}">window.__MCU_CONFIG__ = ${escapeJsonForScript(clientConfig)};</script>
 </head>
 <body class="${escapeHtml(bodyClass)}">
+<div id="universal-nav-20fit" style="min-height:44px;background:#111"></div>
+<script src="/universal-nav.js" defer></script>
 <a class="skip-link" href="#main">${escapeHtml(s.skipToContent)}</a>
 <header class="site-header">
   <div class="wrap header-inner">

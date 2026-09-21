@@ -17,6 +17,7 @@
 
 import { escapeHtml } from "./escape.js";
 import { iconSvg } from "./icons.js";
+import { summarizeMetrics, attentionFilterUseful } from "./mcuSummary.js";
 
 // Known icon KEYS render as trusted inline SVG; any other value (e.g. an emoji
 // or arbitrary string from the upstream API) stays escaped — never rendered raw.
@@ -63,6 +64,19 @@ function list(items) {
     .join("");
 }
 
+// At-a-glance tally of how many markers are normal vs. above/below the printed
+// range. Purely counts what the backend already flagged — see mcuSummary.js.
+function summaryStrip(counts, t) {
+  if (!counts || counts.total === 0) return "";
+  const chip = (n, cls, cap) => `<span class="msc msc-${cls}"><b>${n}</b> ${escapeHtml(cap)}</span>`;
+  const parts = [chip(counts.ok, "ok", t.statusOk)];
+  if (counts.high > 0) parts.push(chip(counts.high, "attn", `▲ ${t.statusHigh}`));
+  if (counts.low > 0) parts.push(chip(counts.low, "attn", `▼ ${t.statusLow}`));
+  if (counts.warning > 0) parts.push(chip(counts.warning, "attn", t.statusWarning));
+  if (counts.unknown > 0) parts.push(chip(counts.unknown, "unk", t.statusUnknown));
+  return `<div class="mcu-summary-counts" role="group" aria-label="${escapeHtml(t.summaryCountsLabel)}">${parts.join("")}</div>`;
+}
+
 /**
  * @param {object} result  the raw /api/analyze-mcu response (or sample data)
  * @param {object} t       render labels for the language (getRenderLabels)
@@ -72,6 +86,7 @@ export function renderResult(result, t) {
   const r = result || {};
   const metrics = Array.isArray(r.metrics) ? r.metrics : [];
   const checklist = Array.isArray(r.checklist) ? r.checklist : [];
+  const counts = summarizeMetrics(metrics);
 
   const disclaimer = `
     <div class="mcu-disclaimer" role="note">
@@ -122,9 +137,15 @@ export function renderResult(result, t) {
         .join("")
     : `<tr><td colspan="4" class="muted">${escapeHtml(t.noMetrics)}</td></tr>`;
 
+  const attnToggle = attentionFilterUseful(counts)
+    ? `<label class="mcu-attn-filter"><input type="checkbox" class="mcu-attn-toggle"> ${escapeHtml(t.attnOnly)}</label>`
+    : "";
   const metricsHtml = `
     <section class="mcu-params">
-      <h4>${escapeHtml(t.metricsHeading)}</h4>
+      <div class="mcu-params-head">
+        <h4>${escapeHtml(t.metricsHeading)}</h4>
+        ${attnToggle}
+      </div>
       <div class="table-wrap">
         <table class="mcu-table">
           <thead>
@@ -176,6 +197,7 @@ export function renderResult(result, t) {
     ${disclaimer}
     ${header}
     ${summary}
+    ${summaryStrip(counts, t)}
     ${metricsHtml}
     ${recommendationsHtml}
     ${checklistHtml}

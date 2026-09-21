@@ -16,6 +16,7 @@
 // so the gate holds even if this client is bypassed.
 
 import { renderResult } from "/shared/renderResult.js";
+import { summarizeMetrics } from "/shared/mcuSummary.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
 import { buildLoginUrl } from "/shared/returnTo.js";
 import { LANG_STORAGE_KEY, equivalentLangPath } from "/shared/langPref.js";
@@ -483,6 +484,76 @@ function setupUploadWidget(root, restoreState) {
     }
   }
 
+  function gradeClassOf(grade) {
+    const g = typeof grade === "string" ? grade.trim().toUpperCase() : "";
+    return ["A", "B", "C", "D"].includes(g) ? { letter: g, cls: g.toLowerCase() } : null;
+  }
+
+  // Compact per-scan tally for a history card — same status counts as the
+  // full result's summary strip (see shared/mcuSummary.js), never a diagnosis.
+  function historyCounts(result) {
+    const c = summarizeMetrics(result && result.metrics);
+    if (!c.total) return null;
+    const chip = (cls, text) => el("span", { className: `hc hc-${cls}`, text });
+    const chips = [chip("ok", `${c.ok} ${T.statusOk}`)];
+    if (c.high > 0) chips.push(chip("attn", `▲ ${c.high}`));
+    if (c.low > 0) chips.push(chip("attn", `▼ ${c.low}`));
+    if (c.warning > 0) chips.push(chip("attn", `! ${c.warning}`));
+    if (c.unknown > 0) chips.push(chip("unk", `? ${c.unknown}`));
+    return el("div", { className: "history-counts" }, chips);
+  }
+
+  function historyCard(row) {
+    const when = row.analyzed_at || row.created_at || "";
+    const result = row.result || {};
+
+    const top = [el("span", { className: "history-date", text: formatDate(when) })];
+    const g = gradeClassOf(result.grade);
+    if (g) top.push(el("span", { className: `history-grade grade-${g.cls}`, text: g.letter }));
+
+    const mainChildren = [el("div", { className: "history-top" }, top)];
+    const counts = historyCounts(result);
+    if (counts) mainChildren.push(counts);
+    const label = result.patient_name || result.summary || "";
+    if (label) mainChildren.push(el("div", { className: "history-label", text: String(label).slice(0, 90) }));
+
+    const main = el("div", { className: "history-main", role: "button", tabindex: "0" }, mainChildren);
+    const open = () => showResult(result);
+    main.addEventListener("click", open);
+    main.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        open();
+      }
+    });
+
+    const del = el("button", {
+      className: "history-del",
+      type: "button",
+      "aria-label": S.historyDelete,
+      text: S.historyDelete,
+    });
+    del.addEventListener("click", () => deleteScan(row.id));
+
+    return el("div", { className: "history-item" }, [main, el("div", { className: "history-actions" }, [del])]);
+  }
+
+  async function deleteScan(id) {
+    if (!supabase || !currentSession || !id) return;
+    if (typeof window.confirm === "function" && !window.confirm(S.historyDeleteConfirm)) return;
+    try {
+      const { error } = await supabase.from("my20fit_mcu_result").delete().eq("id", id);
+      if (error) {
+        setStatus(S.historyDeleteFailed, true);
+        return;
+      }
+      setStatus(S.historyDeleted, false);
+      await loadHistory();
+    } catch {
+      setStatus(S.historyDeleteFailed, true);
+    }
+  }
+
   async function loadHistory() {
     if (!supabase || !currentSession) return;
     try {
@@ -498,16 +569,7 @@ function setupUploadWidget(root, restoreState) {
         return;
       }
       historyEl.innerHTML = "";
-      for (const row of data) {
-        const when = row.analyzed_at || row.created_at || "";
-        const label = (row.result && (row.result.summary || row.result.patient_name)) || "MCU";
-        const item = el("div", { className: "history-item", role: "button", tabindex: "0" }, [
-          el("div", { className: "history-date", text: formatDate(when) }),
-          el("div", { className: "history-label", text: String(label).slice(0, 90) }),
-        ]);
-        item.addEventListener("click", () => showResult(row.result));
-        historyEl.appendChild(item);
-      }
+      for (const row of data) historyEl.appendChild(historyCard(row));
     } catch {
       /* history is best-effort */
     }

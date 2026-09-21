@@ -40,6 +40,27 @@ test("renders the fictional sample (both languages) with all sections", () => {
   }
 });
 
+test("renders the at-a-glance counts strip and offers the needs-attention filter on a mix", () => {
+  const html = renderResult(fixture("id"), tId);
+  assert.match(html, /class="mcu-summary-counts"/, "summary counts strip present");
+  assert.match(html, /class="msc msc-ok"/, "normal count chip");
+  assert.match(html, /class="msc msc-attn"/, "attention count chip (LDL high)");
+  assert.match(html, /class="mcu-attn-toggle"/, "filter offered when normal + flagged both exist");
+});
+
+test("no needs-attention filter when there is nothing to filter (all one bucket)", () => {
+  const allOk = {
+    ...fixture("id"),
+    metrics: [
+      { label: "A", value: "1", status: "ok", note: "" },
+      { label: "B", value: "2", status: "ok", note: "" },
+    ],
+  };
+  const html = renderResult(allOk, tId);
+  assert.match(html, /class="mcu-summary-counts"/, "counts strip still shown");
+  assert.doesNotMatch(html, /mcu-attn-toggle/, "filter suppressed when all markers are normal");
+});
+
 test("the disclaimer is fixed copy — identical regardless of what the result contains", () => {
   const withDoctorNotes = renderResult({ ...fixture("id"), doctor_notes: "Sesuatu yang lain" }, tId);
   const withoutDoctorNotes = renderResult({ ...fixture("id"), doctor_notes: "" }, tId);

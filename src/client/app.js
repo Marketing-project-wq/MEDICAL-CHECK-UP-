@@ -139,6 +139,44 @@ function updateLoginCta() {
   });
 }
 
+// Header auth control (top nav, next to the language toggle). A guest sees a
+// "Masuk / Daftar" link (its return_to is set by updateLoginCta, since it
+// carries data-role="login-cta"); a signed-in member sees "Keluar" instead.
+// Present on every page, independent of the universal nav bar and the uploader.
+function setHeaderAuthState(isMember) {
+  const box = document.querySelector('[data-role="header-auth"]');
+  if (!box) return;
+  const login = box.querySelector('[data-role="login-cta"]');
+  const logout = box.querySelector('[data-role="header-logout"]');
+  if (login) login.hidden = Boolean(isMember);
+  if (logout) logout.hidden = !isMember;
+}
+
+function wireHeaderAuth() {
+  const box = document.querySelector('[data-role="header-auth"]');
+  if (!box) return;
+  const logout = box.querySelector('[data-role="header-logout"]');
+  if (logout) {
+    logout.addEventListener("click", async () => {
+      try {
+        if (supabase) await supabase.auth.signOut();
+      } finally {
+        window.location.reload();
+      }
+    });
+  }
+  const memberOf = (session) => Boolean(session && session.user);
+  if (supabase) {
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setHeaderAuthState(memberOf(data && data.session)))
+      .catch(() => setHeaderAuthState(false));
+    supabase.auth.onAuthStateChange((_e, session) => setHeaderAuthState(memberOf(session)));
+  } else {
+    setHeaderAuthState(false);
+  }
+}
+
 async function consumeSsoFragment() {
   const hash = window.location.hash || "";
   if (!hash.includes("access_token")) return;
@@ -776,6 +814,10 @@ async function boot() {
   mcuService = supabase ? createMcuService(supabase) : null;
   await consumeSsoFragment();
   await consumeSsoQueryToken();
+
+  // Top-nav login/logout control — reflects the (post-SSO) session on every page.
+  updateLoginCta();
+  wireHeaderAuth();
 
   // Universal nav (public/universal-nav.js): show the signed-in member on the
   // shared top bar and wire its logout to THIS subdomain's session. Best-effort

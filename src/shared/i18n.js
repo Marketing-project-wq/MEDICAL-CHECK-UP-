@@ -109,6 +109,7 @@ const STRINGS = {
     memberIntroMember:
       "Unggah foto atau PDF hasil MCU kamu. File diproses di browser lalu dianalisa — file aslinya tidak disimpan, hanya ringkasannya.",
     loginCta: "Masuk / Daftar untuk analisa",
+    navLogin: "Masuk / Daftar",
     uploadCta: "Pilih file hasil MCU",
     uploadHint: "Foto (JPG/PNG) atau PDF, maks 10MB. File tidak disimpan.",
     analyzeButton: "Analisa sekarang",
@@ -375,6 +376,7 @@ const STRINGS = {
     memberIntroMember:
       "Upload a photo or PDF of your MCU. It is processed in your browser then analyzed — the original file is not stored, only the summary.",
     loginCta: "Sign in / Register to analyze",
+    navLogin: "Log in / Sign up",
     uploadCta: "Choose your MCU file",
     uploadHint: "Photo (JPG/PNG) or PDF, max 10MB. Files are not stored.",
     analyzeButton: "Analyze now",

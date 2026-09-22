@@ -178,6 +178,17 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
 .site-nav .nav-current { color: var(--blue); font-weight: 700; }
 .site-nav .nav-cta { color: var(--white) !important; font-weight: 700; background: var(--red); padding: 8px 16px; border-radius: 999px; }
 .site-nav .nav-cta:hover { background: var(--red-dark); }
+/* Header login / logout control — a compact outlined pill next to the toggles.
+   Not a .nav-secondary, so it stays visible on mobile (unlike the page links). */
+.nav-auth { display: inline-flex; align-items: center; }
+.nav-login {
+  display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;
+  font-family: inherit; font-size: 0.86rem; font-weight: 600; line-height: 1;
+  padding: 9px 15px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--border-strong); background: transparent; color: var(--ink);
+  text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.site-nav .nav-login:hover { border-color: var(--red); color: var(--red-text); text-decoration: none; }
 .lang-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 999px; padding: 2px; gap: 2px; }
 .lang-btn {
   border: none; background: transparent; color: var(--muted); font-family: var(--font-mono); font-weight: 700;

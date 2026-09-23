@@ -143,7 +143,7 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
 </head>
 <body class="${escapeHtml(bodyClass)}">
 <script nonce="${escapeHtml(nonce)}">window.__20FIT_NAV_LOGIN__=${escapeJsonForScript(publicOrigin + "/login")};window.Auth={ready:new Promise(function(r){window.__navAuthReady=r;}),ssoTo:function(u){(window.__navSsoTo||function(x){location.href=x;})(u);},signOut:function(){return (window.__navSignOut||function(){})();}};</script>
-<script src="/universal-nav.js" defer></script>
+<script src="/universal-nav.js" data-no-bar defer></script>
 <a class="skip-link" href="#main">${escapeHtml(s.skipToContent)}</a>
 <header class="site-header">
   <div class="wrap header-inner">
@@ -159,6 +159,12 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
       <a href="${escapeHtml(articlesHref)}" class="nav-secondary">${escapeHtml(s.nav.articles)}</a>
       <a href="${escapeHtml(homeHref)}#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
       <a href="${escapeHtml(checkMcuHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>
+      <div class="nav-apps" data-role="nav-apps">
+        <button type="button" class="nav-apps-btn" data-act="apps-toggle" aria-label="${escapeHtml(s.navProductsLabel)}" aria-expanded="false" aria-haspopup="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+        </button>
+        <div class="nav-apps-panel" data-role="apps-panel" hidden></div>
+      </div>
       <div class="nav-auth" data-role="header-auth">
         <a class="nav-login" data-role="login-cta" href="${escapeHtml(publicOrigin + "/login")}">${escapeHtml(s.navLogin)}</a>
         <button type="button" class="nav-login nav-logout" data-role="header-logout" hidden>${escapeHtml(s.signOut)}</button>

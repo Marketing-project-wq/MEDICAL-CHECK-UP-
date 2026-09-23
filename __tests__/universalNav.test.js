@@ -31,11 +31,11 @@ test("current-app highlight covers medicalscanner + the recepie typo domain", ()
   assert.ok(SRC.includes("Kamu di sini"), "active-app 'you are here' marker");
 });
 
-test("branded product icons load from my.20fit.id (with a line-icon fallback)", () => {
+test("branded product icons are served locally (with a line-icon fallback)", () => {
   assert.ok(SRC.includes("/img/products/"), "branded PNG path");
-  assert.ok(SRC.includes("ICON_BASE"), "cross-subdomain icon base");
-  assert.ok(SRC.includes("https://my.20fit.id"), "icons served from my.20fit.id on other subdomains");
+  assert.ok(/var ICON_BASE = ""/.test(SRC), "icons load same-origin on medicalscanner (public/img/products)");
   assert.ok(/NO_ART\s*=\s*\{[^}]*bodyscan[^}]*talent/.test(SRC), "Body Scan + Talent fall back to line icons");
+  assert.ok(SRC.includes("renderAppsInto"), "exposes the embeddable grid used by the header dropdown");
 });
 
 test("login target is overridable so MCU uses its OWN local login", () => {

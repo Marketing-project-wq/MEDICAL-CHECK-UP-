@@ -140,7 +140,10 @@
   ITEMS.forEach(function (it) { if (!NO_ART[it.id]) it.img = "/img/products/" + it.id + ".png"; });
   // Base URL ikon: di my.20fit/staging = same-origin (""), di subdomain lain = absolut ke
   // my.20fit.id (tempat berkasnya) supaya bar universal tetap dapat ikon di mana pun dipasang.
-  var ICON_BASE = MY_HOSTS[location.hostname] ? "" : "https://my.20fit.id";
+  // medicalscanner serves its OWN copy of the branded icons under /img/products/
+  // (see public/img/products/), so load them same-origin — always available,
+  // no cross-origin dependency on my.20fit.id.
+  var ICON_BASE = "";
 
   // recepie.20fit.id = typo domain yang SUDAH terpasang di produksi; keduanya dipetakan
   // ke id yang sama supaya highlight "Kamu di sini" tetap benar.
@@ -311,8 +314,10 @@
   function renderAppsInto(el) {
     if (!el) return;
     injectCss();
-    el.classList.add("un-embed");
-    el.innerHTML = groupsHtml(24, true);
+    // Full cards (with the product descriptions), not the compact embed variant,
+    // so the header dropdown matches the my.20fit menu. The host panel is styled
+    // always-light, so the base .un-app colors (dark on white) read correctly.
+    el.innerHTML = groupsHtml(28, false);
     bindApps(el);
     return el;
   }

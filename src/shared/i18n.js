@@ -110,6 +110,7 @@ const STRINGS = {
       "Unggah foto atau PDF hasil MCU kamu. File diproses di browser lalu dianalisa — file aslinya tidak disimpan, hanya ringkasannya.",
     loginCta: "Masuk / Daftar untuk analisa",
     navLogin: "Masuk / Daftar",
+    navProductsLabel: "Semua produk 20FIT",
     auth: {
       brandNote: "Gunakan akun 20FIT kamu — akun yang sama untuk my.20fit.id dan layanan 20FIT lainnya.",
       emailLabel: "Email",
@@ -422,6 +423,7 @@ const STRINGS = {
       "Upload a photo or PDF of your MCU. It is processed in your browser then analyzed — the original file is not stored, only the summary.",
     loginCta: "Sign in / Register to analyze",
     navLogin: "Log in / Sign up",
+    navProductsLabel: "All 20FIT products",
     auth: {
       brandNote: "Use your 20FIT account — the same login as my.20fit.id and other 20FIT services.",
       emailLabel: "Email",

@@ -805,6 +805,42 @@ async function navigateWithSSO(targetUrl) {
   }
 }
 
+// White-header app switcher: the waffle button opens the shared 20FIT Products
+// mega-menu. universal-nav.js is loaded with data-no-bar (no black bar) and
+// exposes window.UniversalNav.renderAppsInto — we drop the categorized grid
+// into a dropdown panel on first open, then just toggle it.
+function wireProductsMenu() {
+  const wrap = document.querySelector('[data-role="nav-apps"]');
+  if (!wrap) return;
+  const btn = wrap.querySelector('[data-act="apps-toggle"]');
+  const panel = wrap.querySelector('[data-role="apps-panel"]');
+  if (!btn || !panel) return;
+  let filled = false;
+  const close = () => {
+    panel.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+  };
+  const openMenu = () => {
+    if (!filled && window.UniversalNav && typeof window.UniversalNav.renderAppsInto === "function") {
+      window.UniversalNav.renderAppsInto(panel);
+      filled = true;
+    }
+    panel.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (panel.hidden) openMenu();
+    else close();
+  });
+  document.addEventListener("click", (e) => {
+    if (!panel.hidden && !wrap.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !panel.hidden) close();
+  });
+}
+
 async function boot() {
   wireLangToggleButtons();
   wireThemeToggle();
@@ -825,6 +861,7 @@ async function boot() {
   // Top-nav login/logout control — reflects the (post-SSO) session on every page.
   updateLoginCta();
   wireHeaderAuth();
+  wireProductsMenu();
 
   // Built-in auth pages — hydrate the login/register/reset/callback forms.
   if (authPageEl) {

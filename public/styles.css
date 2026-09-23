@@ -850,6 +850,29 @@ a.history-main:hover { text-decoration: none; }
 .auth-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 0.8rem; margin: 14px 0; }
 .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 .btn.is-busy { opacity: 0.6; cursor: wait; }
+
+/* ── Header app switcher (20FIT Products mega-menu) ────────────────────── */
+.nav-apps { position: relative; display: inline-flex; }
+.nav-apps-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px;
+  border-radius: 10px; border: 1.5px solid var(--border-strong); background: transparent; color: var(--ink);
+  cursor: pointer; flex: none; padding: 0;
+}
+.nav-apps-btn:hover { border-color: var(--red); color: var(--red-text); }
+.nav-apps-btn[aria-expanded="true"] { background: var(--card-2); border-color: var(--red); }
+/* Panel is intentionally always light (like the my.20fit menu) so the colored
+   product artwork reads the same in light and dark themes. */
+.nav-apps-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 1200;
+  width: min(520px, 92vw); max-height: min(74vh, 640px); overflow-y: auto;
+  background: #fff; color: #1a1a1a;
+  border: 1px solid #eee; border-radius: 14px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 14px;
+}
+.nav-apps-panel * { box-sizing: border-box; }
+@media (max-width: 639px) {
+  .nav-apps-panel { position: fixed; top: 62px; right: 8px; left: 8px; width: auto; max-height: calc(100dvh - 78px); }
+}
 .history-grade.grade-na { background: var(--unk-bg); color: var(--muted); }
 .history-counts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .hc { font-size: 0.76rem; padding: 2px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; }

@@ -207,6 +207,9 @@ const STATIC_ROOTS = [
   // that could fall out of sync and silently miss a spot.
   { prefix: "/views/", dir: path.join(SRC_DIR, "views") },
   { prefix: "/public/", dir: PUBLIC_DIR },
+  // Branded product icons for the universal-nav app switcher, served locally
+  // (copied from the ecosystem) so they always load — no cross-origin fetch.
+  { prefix: "/img/", dir: path.join(PUBLIC_DIR, "img") },
 ];
 
 function securityHeaders(nonce, { relaxImg = false } = {}) {

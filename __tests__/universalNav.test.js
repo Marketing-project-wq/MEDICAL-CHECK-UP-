@@ -7,38 +7,51 @@ import path from "node:path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC = readFileSync(path.join(__dirname, "..", "public", "universal-nav.js"), "utf8");
 
-test("universal-nav bundles all 10 ecosystem apps with their subdomains", () => {
-  const urls = [
-    "https://20fit.id",
-    "https://my.20fit.id",
-    "https://recipe.20fit.id",
-    "https://calorietracker.20fit.id",
-    "https://medicalscanner.20fit.id",
-    "https://media.20fit.id",
-    "https://workout.20fit.id",
-    "https://photo.20fit.id",
-    "https://ticket.20fit.id",
-    "https://talent.20fit.id",
+test("universal-nav lists all 16 ecosystem products in five groups", () => {
+  const labels = [
+    "Home", "My 20FIT", "Recipe",
+    "Calorie Tracker", "MCU Scanner", "Body Scan",
+    "Workout", "Progress", "Media",
+    "Photo", "Ticket", "Talent",
+    "Book Class", "Book Coach", "Book Doctor", "Book Recovery",
   ];
-  for (const u of urls) assert.ok(SRC.includes('"' + u + '"'), `missing app url ${u}`);
+  for (const l of labels) assert.ok(SRC.includes('"' + l + '"'), `missing product ${l}`);
+  for (const g of ["main", "health", "activity", "event", "booking"]) {
+    assert.ok(SRC.includes('"' + g + '"'), `missing group ${g}`);
+  }
+  // Grouped labels shown in the mega-menu.
+  for (const g of ["Health", "Activity", "Event", "Booking"]) assert.ok(SRC.includes('"' + g + '"'));
 });
 
-test("host map covers every subdomain incl. the recepie typo + www/apex", () => {
-  for (const host of ["20fit.id", "www.20fit.id", "recepie.20fit.id", "medicalscanner.20fit.id", "calorietracker.20fit.id"]) {
+test("current-app highlight covers medicalscanner + the recepie typo domain", () => {
+  for (const host of ["20fit.id", "my.20fit.id", "recipe.20fit.id", "recepie.20fit.id", "medicalscanner.20fit.id", "calorietracker.20fit.id"]) {
     assert.ok(SRC.includes('"' + host + '"'), `host map missing ${host}`);
   }
+  assert.ok(SRC.includes("medicalscanner.20fit.id"), "medicalscanner mapped");
+  assert.ok(SRC.includes("Kamu di sini"), "active-app 'you are here' marker");
 });
 
-test("no emoji — icons are inline SVG only (spec: jangan pakai emoji)", () => {
+test("branded product icons load from my.20fit.id (with a line-icon fallback)", () => {
+  assert.ok(SRC.includes("/img/products/"), "branded PNG path");
+  assert.ok(SRC.includes("ICON_BASE"), "cross-subdomain icon base");
+  assert.ok(SRC.includes("https://my.20fit.id"), "icons served from my.20fit.id on other subdomains");
+  assert.ok(/NO_ART\s*=\s*\{[^}]*bodyscan[^}]*talent/.test(SRC), "Body Scan + Talent fall back to line icons");
+});
+
+test("login target is overridable so MCU uses its OWN local login", () => {
+  assert.ok(SRC.includes("__20FIT_NAV_LOGIN__"), "reads the host page's login override");
+  assert.ok(SRC.includes("LOGIN_URL"), "uses the resolved login url for Masuk/logout");
+});
+
+test("no emoji — icons are inline SVG or branded artwork only (spec: jangan pakai emoji)", () => {
   const emoji = SRC.match(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{2022}\u{22EE}]/gu);
   assert.equal(emoji, null, `found emoji/bullet chars: ${emoji && emoji.join(" ")}`);
   assert.ok(SRC.includes("<svg"), "uses inline SVG icons");
 });
 
-test("exposes the host-page API + profile links to my.20fit + active-state label", () => {
-  assert.ok(SRC.includes("window.__20FIT_NAV_API__"), "exposes setUser/logout API");
-  assert.ok(SRC.includes("setNavigate"), "exposes a cross-subdomain navigate hook (for SSO relay)");
-  assert.ok(SRC.includes("/profile") && SRC.includes("/purchases") && SRC.includes("/settings"), "profile hub links");
-  assert.ok(SRC.includes("Kamu di sini"), "active app 'you are here' marker");
+test("exposes UniversalNav + a Masuk sign-in for logged-out visitors", () => {
+  assert.ok(SRC.includes("window.UniversalNav"), "exposes the mount/renderAppsInto API");
   assert.ok(SRC.includes("Masuk"), "logged-out sign-in button");
+  assert.ok(SRC.includes("Keluar"), "logout row");
+  assert.ok(SRC.includes("/profile") && SRC.includes("/purchases") && SRC.includes("/settings"), "profile-hub links");
 });

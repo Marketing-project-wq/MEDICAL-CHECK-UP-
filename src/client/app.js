@@ -833,35 +833,16 @@ async function boot() {
       .catch((e) => console.error("auth module failed to load:", e));
   }
 
-  // Universal nav (public/universal-nav.js): show the signed-in member on the
-  // shared top bar and wire its logout to THIS subdomain's session. Best-effort
-  // — the bar still renders (with a "Masuk" button) if any of this is absent.
-  if (supabase && window.__20FIT_NAV_API__) {
-    const nav = window.__20FIT_NAV_API__;
-    const loginUrl = CFG.loginUrl || "https://my.20fit.id/auth/login";
-    nav.setLoginUrl(loginUrl);
-    nav.setNavigate(navigateWithSSO);
-    nav.setLogoutHandler(async () => {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        /* ignore — still send them to login */
-      }
-      location.href = loginUrl;
-    });
-    const toNavUser = (session) => {
-      const u = session && session.user;
-      if (!u) return null;
-      const m = u.user_metadata || {};
-      return { name: m.full_name || m.name || (u.email ? u.email.split("@")[0] : "") || "User", email: u.email || "" };
-    };
-    try {
-      const { data } = await supabase.auth.getSession();
-      nav.setUser(toNavUser(data && data.session));
-    } catch {
-      /* ignore */
-    }
-    supabase.auth.onAuthStateChange((_e, session) => nav.setUser(toNavUser(session)));
+  // Universal nav (public/universal-nav.js — the shared ecosystem bar, byte-for-
+  // byte the my.20fit one). It reads window.Auth (skeleton set inline in the
+  // layout) to show the signed-in member and route via SSO. Hand it THIS
+  // subdomain's Supabase client + SSO navigate + sign-out, then resolve
+  // Auth.ready so the bar fetches the session and renders the account button.
+  if (supabase && window.Auth) {
+    window.Auth.supabase = supabase;
+    window.__navSsoTo = navigateWithSSO;
+    window.__navSignOut = () => supabase.auth.signOut();
+    if (typeof window.__navAuthReady === "function") window.__navAuthReady();
   }
 
   // Quiz wizard (quiz hub/detail pages only) — lazy-loaded, and given the

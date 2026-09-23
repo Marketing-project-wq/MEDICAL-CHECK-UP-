@@ -216,7 +216,7 @@ function securityHeaders(nonce, { relaxImg = false } = {}) {
   // 'self' + nonce everywhere.
   const imgSrc = relaxImg
     ? "img-src 'self' data: blob: https:"
-    : `img-src 'self' data: blob: ${supabaseOrigin} https://media.20fit.id`;
+    : `img-src 'self' data: blob: ${supabaseOrigin} https://media.20fit.id ${MY20FIT_ORIGIN}`;
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -668,7 +668,7 @@ const server = http.createServer(async (req, res) => {
   // prefix) — logos in particular are referenced from the very first
   // pre-paint <script> in <head>, so they stay on the same simple,
   // well-tested path convention as styles.css rather than a nested prefix.
-  const ROOT_ALIASES = { "/styles.css": "styles.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg" };
+  const ROOT_ALIASES = { "/styles.css": "styles.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg", "/universal-nav.js": "universal-nav.js" };
   if (ROOT_ALIASES[pathname]) {
     try {
       const file = await readFile(path.join(PUBLIC_DIR, ROOT_ALIASES[pathname]));

@@ -139,17 +139,40 @@ function updateLoginCta() {
   });
 }
 
-// Header auth control (top nav, next to the language toggle). A guest sees a
-// "Masuk / Daftar" link (its return_to is set by updateLoginCta, since it
-// carries data-role="login-cta"); a signed-in member sees "Keluar" instead.
+// Header auth control (top nav, next to the language toggle). A guest sees the
+// "Masuk / Daftar" link; a signed-in member sees their avatar → a profile
+// dropdown (name/email, Profil Saya / Riwayat Pembelian / Pengaturan, Keluar).
 // Present on every page, independent of the universal nav bar and the uploader.
-function setHeaderAuthState(isMember) {
+function profileNameOf(user) {
+  const m = (user && user.user_metadata) || {};
+  return m.full_name || m.name || (user && user.email ? user.email.split("@")[0] : "") || "User";
+}
+
+function fillProfile(box, user) {
+  const name = profileNameOf(user);
+  const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
+  const avatarUrl = (user && user.user_metadata && user.user_metadata.avatar_url) || null;
+  box.querySelectorAll('[data-role="avatar-initial"]').forEach((el) => {
+    if (avatarUrl) el.innerHTML = `<img src="${encodeURI(avatarUrl)}" alt="">`;
+    else el.textContent = initial;
+  });
+  const fn = box.querySelector('[data-role="profile-firstname"]');
+  if (fn) fn.textContent = name.split(" ")[0] || "Profile";
+  const nm = box.querySelector('[data-role="profile-name"]');
+  if (nm) nm.textContent = name;
+  const em = box.querySelector('[data-role="profile-email"]');
+  if (em) em.textContent = (user && user.email) || "";
+}
+
+function setHeaderAuthState(session) {
   const box = document.querySelector('[data-role="header-auth"]');
   if (!box) return;
+  const member = Boolean(session && session.user);
   const login = box.querySelector('[data-role="login-cta"]');
-  const logout = box.querySelector('[data-role="header-logout"]');
-  if (login) login.hidden = Boolean(isMember);
-  if (logout) logout.hidden = !isMember;
+  const profile = box.querySelector('[data-role="nav-profile"]');
+  if (login) login.hidden = member;
+  if (profile) profile.hidden = !member;
+  if (member) fillProfile(box, session.user);
 }
 
 function wireHeaderAuth() {
@@ -165,16 +188,53 @@ function wireHeaderAuth() {
       }
     });
   }
-  const memberOf = (session) => Boolean(session && session.user);
   if (supabase) {
     supabase.auth
       .getSession()
-      .then(({ data }) => setHeaderAuthState(memberOf(data && data.session)))
-      .catch(() => setHeaderAuthState(false));
-    supabase.auth.onAuthStateChange((_e, session) => setHeaderAuthState(memberOf(session)));
+      .then(({ data }) => setHeaderAuthState(data && data.session))
+      .catch(() => setHeaderAuthState(null));
+    supabase.auth.onAuthStateChange((_e, session) => setHeaderAuthState(session));
   } else {
-    setHeaderAuthState(false);
+    setHeaderAuthState(null);
   }
+}
+
+// The header avatar's profile dropdown (name/email + hub links + logout).
+// Mutually exclusive with the Products menu; closes on outside-click / Esc.
+function wireProfileMenu() {
+  const wrap = document.querySelector('[data-role="nav-profile"]');
+  if (!wrap) return;
+  const btn = wrap.querySelector('[data-act="profile-toggle"]');
+  const panel = wrap.querySelector('[data-role="profile-panel"]');
+  if (!btn || !panel) return;
+  const close = () => {
+    panel.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+  };
+  const open = () => {
+    const apps = document.querySelector('[data-role="apps-panel"]');
+    if (apps) apps.hidden = true;
+    panel.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (panel.hidden) open();
+    else close();
+  });
+  document.addEventListener("click", (e) => {
+    if (!panel.hidden && !wrap.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !panel.hidden) close();
+  });
+  wrap.querySelectorAll('[data-role="profile-link"]').forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const url = a.getAttribute("data-url");
+      if (url) navigateWithSSO(url);
+    });
+  });
 }
 
 async function consumeSsoFragment() {
@@ -821,6 +881,8 @@ function wireProductsMenu() {
     btn.setAttribute("aria-expanded", "false");
   };
   const openMenu = () => {
+    const prof = document.querySelector('[data-role="profile-panel"]');
+    if (prof) prof.hidden = true;
     if (!filled && window.UniversalNav && typeof window.UniversalNav.renderAppsInto === "function") {
       window.UniversalNav.renderAppsInto(panel);
       filled = true;
@@ -862,6 +924,7 @@ async function boot() {
   updateLoginCta();
   wireHeaderAuth();
   wireProductsMenu();
+  wireProfileMenu();
 
   // Built-in auth pages — hydrate the login/register/reset/callback forms.
   if (authPageEl) {

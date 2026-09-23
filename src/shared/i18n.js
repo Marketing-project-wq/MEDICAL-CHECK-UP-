@@ -112,6 +112,10 @@ const STRINGS = {
     navLogin: "Masuk / Daftar",
     navProductsLabel: "Semua produk 20FIT",
     navProducts: "Produk",
+    accountLabel: "Akun saya",
+    profileMyProfile: "Profil Saya",
+    profilePurchases: "Riwayat Pembelian",
+    profileSettings: "Pengaturan",
     auth: {
       brandNote: "Gunakan akun 20FIT kamu — akun yang sama untuk my.20fit.id dan layanan 20FIT lainnya.",
       emailLabel: "Email",
@@ -426,6 +430,10 @@ const STRINGS = {
     navLogin: "Log in / Sign up",
     navProductsLabel: "All 20FIT products",
     navProducts: "Products",
+    accountLabel: "My account",
+    profileMyProfile: "My Profile",
+    profilePurchases: "Purchase History",
+    profileSettings: "Settings",
     auth: {
       brandNote: "Use your 20FIT account — the same login as my.20fit.id and other 20FIT services.",
       emailLabel: "Email",

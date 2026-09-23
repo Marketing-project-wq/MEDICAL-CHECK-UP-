@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
-import { renderHomeHubPage, renderCheckMcuPage, renderHistoryPage, renderScanDetailPage } from "./views/pages.js";
+import { renderHomeHubPage, renderCheckMcuPage } from "./views/pages.js";
 import { renderMedicalPage } from "./views/medical.js";
 import { renderLoginPage, renderRegisterPage, renderResetPage, renderCallbackPage } from "./views/authPages.js";
 import { safeNextPath } from "./shared/returnTo.js";
@@ -350,30 +350,9 @@ function authNext(url) {
   return "";
 }
 
-// MCU history — a dedicated, deep-linkable list of the member's saved scans.
-// Member-only content is fetched client-side (RLS); SSR only ships the shell.
-function renderHistory(lang, canonicalPath) {
-  const page = renderHistoryPage({
-    lang,
-    loginUrl: "/login",
-    returnToUrl: PUBLIC_ORIGIN + canonicalPath,
-  });
-  return wrapPage(lang, canonicalPath, page);
-}
-
-// One saved scan's detail (deep-linkable). `scanId` is echoed into the shell as
-// a data attribute for the client to fetch under the member's own session.
-function renderScanDetail(lang, canonicalPath, scanId) {
-  const page = renderScanDetailPage({
-    lang,
-    loginUrl: "/login",
-    returnToUrl: PUBLIC_ORIGIN + canonicalPath,
-    scanId,
-    clinicContactUrl: CLINIC_CONTACT_URL,
-    clinicAddress: CLINIC_ADDRESS,
-  });
-  return wrapPage(lang, canonicalPath, page);
-}
+// (MCU history + single-scan detail are no longer standalone pages — they live
+// inside the Medical Record page, mirroring my.20fit.id/medical. /history and
+// /scan/:id redirect to /medical; see the route table below.)
 
 // Quiz hub — lists every active CMS-driven quiz (BMI, Runner, HYROX, …).
 async function renderQuizHub(lang, canonicalPath) {
@@ -846,20 +825,19 @@ const server = http.createServer(async (req, res) => {
   // Member-only; the list is hydrated client-side (RLS), SSR ships only the
   // shell + login gate. The /auth/callback variant renders (not redirects) so
   // an SSO return lands the member straight back on their history.
+  // History + single-scan detail live INSIDE the Medical Record page now (the
+  // "All MCU" toggle + the detail modal), exactly like my.20fit.id/medical, which
+  // is a single page with no separate /history or /scan/:id routes. So these old
+  // standalone routes (which still used the pre-clone metrics/grade shape and
+  // would render empty against the real result shape) redirect to /medical.
   if (pathname === "/history" || pathname === "/history/" || pathname === "/history/auth/callback") {
-    const { html, nonce } = renderHistory("en", "/history");
-    sendHtml(res, 200, html, nonce);
+    res.writeHead(302, { Location: "/medical" }).end();
     return;
   }
   if (pathname === "/id/history" || pathname === "/id/history/" || pathname === "/id/history/auth/callback") {
-    const { html, nonce } = renderHistory("id", "/id/history");
-    sendHtml(res, 200, html, nonce);
+    res.writeHead(302, { Location: "/id/medical" }).end();
     return;
   }
-
-  // One saved scan's detail: /scan/:id and /id/scan/:id (+ SSO callback suffix).
-  // The id is a Supabase row UUID; anything not matching that shape falls
-  // through to 404 rather than rendering a shell for a bogus id.
   {
     const scanPath = pathname.replace(/\/auth\/callback$/, "");
     const scanMatch = scanPath.match(/^(\/id)?\/scan\/([^/]+)\/?$/);
@@ -867,9 +845,9 @@ const server = http.createServer(async (req, res) => {
       const lang = scanMatch[1] ? "id" : "en";
       const scanId = decodeURIComponent(scanMatch[2]);
       if (/^[0-9a-fA-F-]{16,64}$/.test(scanId)) {
-        const canonicalPath = (lang === "id" ? "/id/scan/" : "/scan/") + scanId;
-        const { html, nonce } = renderScanDetail(lang, canonicalPath, scanId);
-        sendHtml(res, 200, html, nonce);
+        // Carry the id as a hash so the Medical Record page can auto-open that
+        // scan's detail modal (see medical.js), preserving the deep link.
+        res.writeHead(302, { Location: (lang === "id" ? "/id/medical" : "/medical") + "#scan=" + encodeURIComponent(scanId) }).end();
         return;
       }
     }

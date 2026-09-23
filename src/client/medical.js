@@ -290,5 +290,13 @@ export function setupMedical(root, { supabase, lang }) {
     await loadHistory(); renderList();
     // After refresh: auto-show the newest saved result (like my.20fit.id/medical).
     if (history[0] && history[0].result) { showResult(history[0].result, true, history[0].id); }
+    // Deep link from the old /scan/:id route (now redirected here as #scan=<id>):
+    // open that scan's detail modal if it's one of the member's own rows.
+    const dm = /#scan=([^&]+)/.exec(location.hash || "");
+    if (dm) {
+      const wantId = decodeURIComponent(dm[1]);
+      const idx = history.findIndex((r) => String(r.id) === wantId);
+      if (idx >= 0) openHistory(idx);
+    }
   })();
 }

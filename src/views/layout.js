@@ -162,12 +162,19 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
       <div class="nav-apps" data-role="nav-apps">
         <button type="button" class="nav-apps-btn" data-act="apps-toggle" aria-label="${escapeHtml(s.navProductsLabel)}" aria-expanded="false" aria-haspopup="true">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          <span class="header-label">${escapeHtml(s.navProducts)}</span>
         </button>
         <div class="nav-apps-panel" data-role="apps-panel" hidden></div>
       </div>
       <div class="nav-auth" data-role="header-auth">
-        <a class="nav-login" data-role="login-cta" href="${escapeHtml(publicOrigin + "/login")}">${escapeHtml(s.navLogin)}</a>
-        <button type="button" class="nav-login nav-logout" data-role="header-logout" hidden>${escapeHtml(s.signOut)}</button>
+        <a class="nav-login" data-role="login-cta" href="${escapeHtml(publicOrigin + "/login")}" aria-label="${escapeHtml(s.navLogin)}">
+          <svg class="nav-ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+          <span class="header-label">${escapeHtml(s.navLogin)}</span>
+        </a>
+        <button type="button" class="nav-login nav-logout" data-role="header-logout" hidden aria-label="${escapeHtml(s.signOut)}">
+          <svg class="nav-ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span class="header-label">${escapeHtml(s.signOut)}</span>
+        </button>
       </div>
       ${langToggleMarkup(lang, s)}
       <button type="button" class="theme-toggle" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">

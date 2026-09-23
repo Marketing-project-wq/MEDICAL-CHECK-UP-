@@ -111,6 +111,7 @@ const STRINGS = {
     loginCta: "Masuk / Daftar untuk analisa",
     navLogin: "Masuk / Daftar",
     navProductsLabel: "Semua produk 20FIT",
+    navProducts: "Produk",
     auth: {
       brandNote: "Gunakan akun 20FIT kamu — akun yang sama untuk my.20fit.id dan layanan 20FIT lainnya.",
       emailLabel: "Email",
@@ -424,6 +425,7 @@ const STRINGS = {
     loginCta: "Sign in / Register to analyze",
     navLogin: "Log in / Sign up",
     navProductsLabel: "All 20FIT products",
+    navProducts: "Products",
     auth: {
       brandNote: "Use your 20FIT account — the same login as my.20fit.id and other 20FIT services.",
       emailLabel: "Email",

@@ -22,8 +22,10 @@ function render(lang) {
 test("header carries a login/logout control next to the language toggle", () => {
   const html = render("en");
   assert.match(html, /data-role="header-auth"/, "header auth container");
-  assert.match(html, /class="nav-login" data-role="login-cta"[^>]*>Log in \/ Sign up</, "guest login link");
-  assert.match(html, /data-role="header-logout" hidden>Sign out</, "member logout, hidden until JS confirms the session");
+  // Icon + a label span (the label hides on mobile via CSS → icon-only).
+  assert.match(html, /data-role="login-cta"[^>]*>\s*<svg class="nav-ic"/, "login control is an icon + label");
+  assert.ok(html.includes('<span class="header-label">Log in / Sign up</span>'), "login label text");
+  assert.ok(html.includes('data-role="header-logout"') && html.includes('<span class="header-label">Sign out</span>'), "logout control + label");
 
   // Sits immediately before the language toggle (i.e. right beside it).
   const authIdx = html.indexOf('data-role="header-auth"');
@@ -39,6 +41,7 @@ test("header carries the app-switcher (Products menu moved out of the black bar)
   const html = render("en");
   assert.match(html, /data-role="nav-apps"/, "app-switcher wrapper in the header");
   assert.match(html, /data-act="apps-toggle"/, "waffle toggle button");
+  assert.ok(html.includes('<span class="header-label">Products</span>'), "Products label (desktop; hidden on mobile)");
   assert.match(html, /data-role="apps-panel"[^>]*hidden/, "dropdown panel, hidden until opened");
   // The black universal-nav bar is suppressed (data-no-bar); only the header switcher remains.
   assert.match(html, /src="\/universal-nav\.js" data-no-bar/, "universal-nav loaded without its own bar");
@@ -46,6 +49,7 @@ test("header carries the app-switcher (Products menu moved out of the black bar)
 
 test("header login control is localized (ID)", () => {
   const html = render("id");
-  assert.match(html, />Masuk \/ Daftar</, "ID login label");
-  assert.match(html, /data-role="header-logout" hidden>Keluar</, "ID logout label");
+  assert.ok(html.includes('<span class="header-label">Masuk / Daftar</span>'), "ID login label");
+  assert.ok(html.includes('<span class="header-label">Keluar</span>'), "ID logout label");
+  assert.ok(html.includes('<span class="header-label">Produk</span>'), "ID products label");
 });

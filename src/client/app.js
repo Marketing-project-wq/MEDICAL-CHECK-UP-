@@ -361,6 +361,14 @@ function setupUploadWidget(root, restoreState) {
     document.querySelectorAll('[data-role="cta-banner"]').forEach((banner) => {
       banner.hidden = member;
     });
+    // For a member, /check-mcu becomes their Medical Record (like my.20fit.id/
+    // medical): drop the marketing/education blocks (how-it-works, the fictional
+    // sample) so the page is just their own scans + tool. Guests keep them as
+    // the product preview. No-op on pages without these sections.
+    ["how", "example"].forEach((id) => {
+      const sec = document.getElementById(id);
+      if (sec) sec.hidden = member;
+    });
     if (member) loadHistory();
   }
 
@@ -403,6 +411,7 @@ function setupUploadWidget(root, restoreState) {
   });
 
   let lastDisplay = null; // tracked so a language switch can re-render this same result in the new language, instead of it silently vanishing
+  let autoShownLatest = false; // once true, we've already surfaced the member's most recent saved scan (see loadHistory) — never yank the view back to it after that
 
   function showResult(result, { scroll = true } = {}) {
     lastDisplay = { type: "result", data: result };
@@ -698,6 +707,15 @@ function setupUploadWidget(root, restoreState) {
       }
       historyEl.innerHTML = "";
       for (const row of scans) historyEl.appendChild(historyCard(row));
+
+      // Like my.20fit.id/medical, a returning member lands straight on their
+      // Medical Record: surface the most recent saved result expanded, once,
+      // unless something is already on screen (a restored in-progress result,
+      // or a card the member just opened). Never scroll — they're at the top.
+      if (!autoShownLatest && !lastDisplay && scans[0] && scans[0].result) {
+        autoShownLatest = true;
+        showResult(scans[0].result, { scroll: false });
+      }
     } catch {
       /* history is best-effort */
     }
@@ -925,6 +943,24 @@ async function boot() {
   if (!authPageEl) {
     await consumeSsoFragment();
     await consumeSsoQueryToken();
+  }
+
+  // A logged-in member should not see the marketing landing — send them to their
+  // Medical Record (the scan tool, which auto-shows their latest saved result),
+  // like my.20fit.id/medical. Anonymous visitors keep the landing.
+  if (!authPageEl && supabase) {
+    const p = location.pathname.replace(/\/+$/, "") || "/";
+    if (p === "/" || p === "/id" || p === "/en") {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data && data.session && data.session.user) {
+          location.replace(p === "/id" ? "/id/check-mcu" : "/check-mcu");
+          return;
+        }
+      } catch {
+        /* ignore — stay on the landing */
+      }
+    }
   }
 
   // Top-nav login/logout control — reflects the (post-SSO) session on every page.

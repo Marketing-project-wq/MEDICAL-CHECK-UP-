@@ -812,12 +812,26 @@ async function boot() {
 
   supabase = await initSupabase();
   mcuService = supabase ? createMcuService(supabase) : null;
-  await consumeSsoFragment();
-  await consumeSsoQueryToken();
+
+  // Auth pages (/login, /register, /reset-password, /auth/callback) own their
+  // own URL-token handling, so the generic SSO-fragment consumer is skipped
+  // there to avoid racing with them.
+  const authPageEl = document.querySelector("[data-auth-page]");
+  if (!authPageEl) {
+    await consumeSsoFragment();
+    await consumeSsoQueryToken();
+  }
 
   // Top-nav login/logout control — reflects the (post-SSO) session on every page.
   updateLoginCta();
   wireHeaderAuth();
+
+  // Built-in auth pages — hydrate the login/register/reset/callback forms.
+  if (authPageEl) {
+    import("./auth.js")
+      .then((m) => m.setupAuth(authPageEl, { supabase, cfg: CFG, lang: LANG }))
+      .catch((e) => console.error("auth module failed to load:", e));
+  }
 
   // Universal nav (public/universal-nav.js): show the signed-in member on the
   // shared top bar and wire its logout to THIS subdomain's session. Best-effort

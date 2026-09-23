@@ -160,7 +160,7 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
       <a href="${escapeHtml(homeHref)}#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
       <a href="${escapeHtml(checkMcuHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>
       <div class="nav-auth" data-role="header-auth">
-        <a class="nav-login" data-role="login-cta" href="${escapeHtml(myOrigin + "/login")}">${escapeHtml(s.navLogin)}</a>
+        <a class="nav-login" data-role="login-cta" href="${escapeHtml(publicOrigin + "/login")}">${escapeHtml(s.navLogin)}</a>
         <button type="button" class="nav-login nav-logout" data-role="header-logout" hidden>${escapeHtml(s.signOut)}</button>
       </div>
       ${langToggleMarkup(lang, s)}

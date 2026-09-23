@@ -11,6 +11,8 @@ import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
 import { renderHomeHubPage, renderCheckMcuPage, renderHistoryPage, renderScanDetailPage } from "./views/pages.js";
+import { renderLoginPage, renderRegisterPage, renderResetPage, renderCallbackPage } from "./views/authPages.js";
+import { safeNextPath } from "./shared/returnTo.js";
 import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
 import { renderApiDocsPage } from "./views/docsPage.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
@@ -241,7 +243,7 @@ function clientConfig(lang) {
   return {
     lang,
     apiBase: MY20FIT_ORIGIN,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: PUBLIC_ORIGIN + "/login",
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,
     publicOrigin: PUBLIC_ORIGIN,
@@ -286,7 +288,7 @@ async function renderHomeHub(lang, canonicalPath) {
   const page = renderHomeHubPage({
     lang,
     publicOrigin: PUBLIC_ORIGIN,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: PUBLIC_ORIGIN + "/login",
     canonicalPath,
     featuredArticles,
     bookingUrl: DOCTOR_BOOKING_URL,
@@ -300,7 +302,7 @@ function renderCheckMcu(lang, canonicalPath) {
   const page = renderCheckMcuPage({
     lang,
     publicOrigin: PUBLIC_ORIGIN,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: PUBLIC_ORIGIN + "/login",
     canonicalPath,
     bookingUrl: DOCTOR_BOOKING_URL,
     clinicContactUrl: CLINIC_CONTACT_URL,
@@ -309,12 +311,31 @@ function renderCheckMcu(lang, canonicalPath) {
   return wrapPage(lang, canonicalPath, page);
 }
 
+// Built-in auth pages redirect a member back to where they were headed after
+// login. `next` accepts either ?next=<internal path> or a ?return_to on THIS
+// origin (so the existing return_to plumbing keeps working), validated to a
+// safe same-origin path — the open-redirect guard (spec Langkah 3).
+function authNext(url) {
+  const direct = url.searchParams.get("next");
+  if (direct) return safeNextPath(direct, "");
+  const rt = url.searchParams.get("return_to");
+  if (rt) {
+    try {
+      const u = new URL(rt);
+      if (u.origin === PUBLIC_ORIGIN) return safeNextPath(u.pathname + u.search, "");
+    } catch {
+      /* ignore a malformed return_to */
+    }
+  }
+  return "";
+}
+
 // MCU history — a dedicated, deep-linkable list of the member's saved scans.
 // Member-only content is fetched client-side (RLS); SSR only ships the shell.
 function renderHistory(lang, canonicalPath) {
   const page = renderHistoryPage({
     lang,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: PUBLIC_ORIGIN + "/login",
     returnToUrl: PUBLIC_ORIGIN + canonicalPath,
   });
   return wrapPage(lang, canonicalPath, page);
@@ -325,7 +346,7 @@ function renderHistory(lang, canonicalPath) {
 function renderScanDetail(lang, canonicalPath, scanId) {
   const page = renderScanDetailPage({
     lang,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: PUBLIC_ORIGIN + "/login",
     returnToUrl: PUBLIC_ORIGIN + canonicalPath,
     scanId,
     clinicContactUrl: CLINIC_CONTACT_URL,
@@ -349,7 +370,7 @@ async function renderQuizDetail(lang, canonicalPath, slug) {
   const page = renderQuizPage({
     lang,
     quiz,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: PUBLIC_ORIGIN + "/login",
     returnToUrl: PUBLIC_ORIGIN + canonicalPath,
     bookingUrl: DOCTOR_BOOKING_URL,
   });
@@ -673,15 +694,15 @@ const server = http.createServer(async (req, res) => {
   // widget behind the §0.1 login gate, real-program handoff, "Top 5 Articles",
   // a §0.1-safe sample result, FAQ, doctor escalation). English at /,
   // Indonesian at /id. Public; only the scan upload requires login (§0.1).
-  // /auth/callback shares the homepage so the client consumes the SSO fragment
-  // on the page the member returned to.
-  if (pathname === "/" || pathname === "/auth/callback") {
+  // Local auth now owns /auth/callback (see the auth routes below); the homepage
+  // no longer doubles as the SSO landing.
+  if (pathname === "/") {
     const { html, nonce } = await renderHomeHub("en", "/");
     // relaxImg: Top-5 article cards carry cover photos from other https hosts.
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
-  if (pathname === "/id" || pathname === "/id/" || pathname === "/id/auth/callback") {
+  if (pathname === "/id" || pathname === "/id/") {
     const { html, nonce } = await renderHomeHub("id", "/id");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
@@ -724,6 +745,51 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/id/check-mcu" || pathname === "/id/check-mcu/" || pathname === "/id/check-mcu/auth/callback") {
     const { html, nonce } = renderCheckMcu("id", "/id/check-mcu");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+
+  // ── Built-in auth (local — no more redirect to my.20fit for login) ───────
+  if (pathname === "/login" || pathname === "/login/") {
+    const { html, nonce } = wrapPage("en", "/login", renderLoginPage({ lang: "en", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/login" || pathname === "/id/login/") {
+    const { html, nonce } = wrapPage("id", "/id/login", renderLoginPage({ lang: "id", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/register" || pathname === "/register/") {
+    const { html, nonce } = wrapPage("en", "/register", renderRegisterPage({ lang: "en", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/register" || pathname === "/id/register/") {
+    const { html, nonce } = wrapPage("id", "/id/register", renderRegisterPage({ lang: "id", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/reset-password" || pathname === "/reset-password/") {
+    const { html, nonce } = wrapPage("en", "/reset-password", renderResetPage({ lang: "en" }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/reset-password" || pathname === "/id/reset-password/") {
+    const { html, nonce } = wrapPage("id", "/id/reset-password", renderResetPage({ lang: "id" }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  // OAuth / email-confirm / recovery landing. The client (auth.js) redeems the
+  // ?code= or #access_token here, then routes to `next` (or the uploader). Also
+  // handles the SSO fragment that used to land on the homepage.
+  if (pathname === "/auth/callback" || pathname === "/auth/callback/") {
+    const { html, nonce } = wrapPage("en", "/auth/callback", renderCallbackPage({ lang: "en", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/auth/callback" || pathname === "/id/auth/callback/") {
+    const { html, nonce } = wrapPage("id", "/id/auth/callback", renderCallbackPage({ lang: "id", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
     return;
   }
 

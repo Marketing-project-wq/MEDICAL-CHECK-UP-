@@ -30,8 +30,9 @@ test("header carries a login/logout control next to the language toggle", () => 
   const langIdx = html.indexOf('class="lang-toggle"');
   assert.ok(authIdx > -1 && langIdx > -1 && authIdx < langIdx, "auth control precedes the lang toggle");
 
-  // Login href falls back to my.20fit login; the client refines it with return_to.
-  assert.match(html, /class="nav-login" data-role="login-cta" href="https:\/\/my\.20fit\.id\/login"/, "login href fallback");
+  // Login href falls back to the LOCAL /login (built-in auth); the client
+  // refines it with a next/return_to.
+  assert.match(html, /class="nav-login" data-role="login-cta" href="https:\/\/medicalscanner\.20fit\.id\/login"/, "local login href fallback");
 });
 
 test("header login control is localized (ID)", () => {

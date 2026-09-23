@@ -100,6 +100,7 @@ export function renderLayout(opts) {
     logoDarkUrl,
     canonicalOverride = null,
     suppressAlternates = false,
+    extraStylesheets = [],
   } = opts;
 
   // Article detail pages pass canonicalOverride = the media.20fit published_url
@@ -139,6 +140,7 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
+${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href)}">`).join("\n")}
 <script nonce="${escapeHtml(nonce)}">window.__MCU_CONFIG__ = ${escapeJsonForScript(clientConfig)};</script>
 </head>
 <body class="${escapeHtml(bodyClass)}">

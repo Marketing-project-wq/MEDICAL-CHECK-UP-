@@ -945,21 +945,20 @@ async function boot() {
     await consumeSsoQueryToken();
   }
 
-  // A logged-in member should not see the marketing landing — send them to their
-  // Medical Record (the scan tool, which auto-shows their latest saved result),
-  // like my.20fit.id/medical. Anonymous visitors keep the landing.
+  // A logged-in member's home is their Medical Record — the faithful clone of
+  // my.20fit.id/medical (it auto-shows their latest saved result + history). Send
+  // members there from the marketing landing AND from the old /check-mcu tool page,
+  // so there is ONE member experience. Anonymous visitors keep both untouched.
   if (!authPageEl && supabase) {
     const p = location.pathname.replace(/\/+$/, "") || "/";
-    if (p === "/" || p === "/id" || p === "/en") {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data && data.session && data.session.user) {
-          location.replace(p === "/id" ? "/id/check-mcu" : "/check-mcu");
-          return;
-        }
-      } catch {
-        /* ignore — stay on the landing */
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data && data.session && data.session.user) {
+        if (p === "/" || p === "/en" || p === "/check-mcu") { location.replace("/medical"); return; }
+        if (p === "/id" || p === "/id/check-mcu") { location.replace("/id/medical"); return; }
       }
+    } catch {
+      /* ignore — stay where we are */
     }
   }
 
@@ -1005,6 +1004,16 @@ async function boot() {
     import("./scanViews.js")
       .then((m) => m.setupScanViews(scanView, { supabase, mcuService, lang: LANG }))
       .catch((e) => console.error("scan views module failed to load:", e));
+  }
+
+  // Medical Record page — the faithful clone of my.20fit.id/medical. Lazy-loaded
+  // (same pattern as scanViews/quizWizard) and handed this app's Supabase client
+  // so it shares the member session; it gates itself (guest → landing).
+  const medrec = document.querySelector("[data-medrec]");
+  if (medrec) {
+    import("./medical.js")
+      .then((m) => m.setupMedical(medrec, { supabase, lang: LANG }))
+      .catch((e) => console.error("medical module failed to load:", e));
   }
 
   const root = document.getElementById("member-app");

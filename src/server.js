@@ -11,6 +11,7 @@ import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
 import { renderHomeHubPage, renderCheckMcuPage, renderHistoryPage, renderScanDetailPage } from "./views/pages.js";
+import { renderMedicalPage } from "./views/medical.js";
 import { renderLoginPage, renderRegisterPage, renderResetPage, renderCallbackPage } from "./views/authPages.js";
 import { safeNextPath } from "./shared/returnTo.js";
 import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
@@ -20,6 +21,7 @@ import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
+import { createMcuProxyHandlers } from "./server/mcuProxy.js";
 import { createArticleStore, toPublicJson } from "./server/articles.js";
 import { createArticleHandlers } from "./server/articleHandlers.js";
 import { createQuizStore } from "./server/quizzes.js";
@@ -114,6 +116,11 @@ function getScanHandlers() {
   scanHandlers = createScanHandlers({ supabaseAdmin: admin, my20fitOrigin: MY20FIT_ORIGIN });
   return scanHandlers;
 }
+
+// /api/mcu + /api/translate — the Medical Record analysis/translation endpoints.
+// These just forward the member's Bearer token to my.20fit.id (same AI edge,
+// same prompts), so they need no Supabase admin or AI key and are always ready.
+const mcuProxyHandlers = createMcuProxyHandlers({ my20fitOrigin: MY20FIT_ORIGIN });
 
 // Quiz content store: needs the service-role key too (outcomes/results are
 // RLS service-role-only — see server/quizzes.js). Quizzes/questions still
@@ -266,7 +273,7 @@ function sendHtml(res, status, html, nonce, opts = {}) {
   res.end(html);
 }
 
-function wrapPage(lang, canonicalPath, page) {
+function wrapPage(lang, canonicalPath, page, opts = {}) {
   const nonce = crypto.randomBytes(16).toString("base64");
   const html = renderLayout({
     lang,
@@ -280,8 +287,18 @@ function wrapPage(lang, canonicalPath, page) {
     nonce,
     logoLightUrl: LOGO_LIGHT_URL,
     logoDarkUrl: LOGO_DARK_URL,
+    extraStylesheets: opts.extraStylesheets || [],
   });
   return { html, nonce };
+}
+
+// Medical Record — the member's faithful clone of my.20fit.id/medical. Pulls in
+// medical.css (the scoped port of that page's styles); the client controller
+// (medical.js, lazy-loaded by app.js on [data-medrec]) gates it to members and
+// redirects a guest to the landing.
+function renderMedical(lang, canonicalPath) {
+  const page = renderMedicalPage({ lang });
+  return wrapPage(lang, canonicalPath, page, { extraStylesheets: ["/medical.css"] });
 }
 
 async function renderHomeHub(lang, canonicalPath) {
@@ -507,6 +524,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // /api/mcu + /api/translate: the Medical Record endpoints (member Bearer token
+  // forwarded to my.20fit.id's identical endpoints — same AI edge + prompts, so
+  // results match my.20fit.id/medical exactly and stay in sync). The upload gate
+  // is at the member: no token → 401 before any upstream/AI call (spec §0.1).
+  if (req.method === "POST" && pathname === "/api/mcu") {
+    await mcuProxyHandlers.handleMcu(req, res);
+    return;
+  }
+  if (req.method === "POST" && pathname === "/api/translate") {
+    await mcuProxyHandlers.handleTranslate(req, res);
+    return;
+  }
+
   // /api/articles[/:slug]: the article publish/management API for external
   // developers (Bearer token; body_html sanitized; writes via the server-side
   // service-role key only, into this subdomain's own mcu_articles table).
@@ -671,7 +701,7 @@ const server = http.createServer(async (req, res) => {
   // prefix) — logos in particular are referenced from the very first
   // pre-paint <script> in <head>, so they stay on the same simple,
   // well-tested path convention as styles.css rather than a nested prefix.
-  const ROOT_ALIASES = { "/styles.css": "styles.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg", "/universal-nav.js": "universal-nav.js" };
+  const ROOT_ALIASES = { "/styles.css": "styles.css", "/medical.css": "medical.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg", "/universal-nav.js": "universal-nav.js" };
   if (ROOT_ALIASES[pathname]) {
     try {
       const file = await readFile(path.join(PUBLIC_DIR, ROOT_ALIASES[pathname]));
@@ -733,6 +763,22 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === "/en" || pathname === "/en/" || pathname === "/en/auth/callback") {
     res.writeHead(302, { Location: pathname.replace(/^\/en/, "") || "/" }).end();
+    return;
+  }
+
+  // Medical Record — the member's faithful clone of my.20fit.id/medical (upload,
+  // AI analysis, history, detail modal, two-language translation). Member-gated in
+  // the client (guest → landing). The /auth/callback variant renders (not
+  // redirects) so the SSO fragment is consumed here and the member lands on their
+  // record. relaxImg: the result cards use inline styles / data: images.
+  if (pathname === "/medical" || pathname === "/medical/" || pathname === "/medical/auth/callback") {
+    const { html, nonce } = renderMedical("en", "/medical");
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+  if (pathname === "/id/medical" || pathname === "/id/medical/" || pathname === "/id/medical/auth/callback") {
+    const { html, nonce } = renderMedical("id", "/id/medical");
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
 

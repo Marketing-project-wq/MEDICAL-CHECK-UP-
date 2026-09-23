@@ -40,7 +40,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 // Shared secret external sites send (Authorization: Bearer <token>) to
 // POST /api/articles. Unset → the publish endpoint is inert (503).
 const ARTICLES_PUBLISH_TOKEN = process.env.ARTICLES_PUBLISH_TOKEN || "";
-const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fit.id").replace(/\/$/, "");
+const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalscanner.20fit.id").replace(/\/$/, "");
 // Official escalation target for every health tool (spec: awareness tools must
 // route "want more? consult a doctor" to the real in-app Book Doctor flow).
 // Override once the exact my.20fit.id route is confirmed.
@@ -246,7 +246,7 @@ function clientConfig(lang) {
   return {
     lang,
     apiBase: MY20FIT_ORIGIN,
-    loginUrl: PUBLIC_ORIGIN + "/login",
+    loginUrl: "/login",
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,
     publicOrigin: PUBLIC_ORIGIN,
@@ -291,7 +291,7 @@ async function renderHomeHub(lang, canonicalPath) {
   const page = renderHomeHubPage({
     lang,
     publicOrigin: PUBLIC_ORIGIN,
-    loginUrl: PUBLIC_ORIGIN + "/login",
+    loginUrl: "/login",
     canonicalPath,
     featuredArticles,
     bookingUrl: DOCTOR_BOOKING_URL,
@@ -305,7 +305,7 @@ function renderCheckMcu(lang, canonicalPath) {
   const page = renderCheckMcuPage({
     lang,
     publicOrigin: PUBLIC_ORIGIN,
-    loginUrl: PUBLIC_ORIGIN + "/login",
+    loginUrl: "/login",
     canonicalPath,
     bookingUrl: DOCTOR_BOOKING_URL,
     clinicContactUrl: CLINIC_CONTACT_URL,
@@ -338,7 +338,7 @@ function authNext(url) {
 function renderHistory(lang, canonicalPath) {
   const page = renderHistoryPage({
     lang,
-    loginUrl: PUBLIC_ORIGIN + "/login",
+    loginUrl: "/login",
     returnToUrl: PUBLIC_ORIGIN + canonicalPath,
   });
   return wrapPage(lang, canonicalPath, page);
@@ -349,7 +349,7 @@ function renderHistory(lang, canonicalPath) {
 function renderScanDetail(lang, canonicalPath, scanId) {
   const page = renderScanDetailPage({
     lang,
-    loginUrl: PUBLIC_ORIGIN + "/login",
+    loginUrl: "/login",
     returnToUrl: PUBLIC_ORIGIN + canonicalPath,
     scanId,
     clinicContactUrl: CLINIC_CONTACT_URL,
@@ -373,7 +373,7 @@ async function renderQuizDetail(lang, canonicalPath, slug) {
   const page = renderQuizPage({
     lang,
     quiz,
-    loginUrl: PUBLIC_ORIGIN + "/login",
+    loginUrl: "/login",
     returnToUrl: PUBLIC_ORIGIN + canonicalPath,
     bookingUrl: DOCTOR_BOOKING_URL,
   });

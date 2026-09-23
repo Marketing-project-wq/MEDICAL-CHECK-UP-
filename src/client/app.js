@@ -21,7 +21,7 @@ import { buildManualResult } from "/shared/manualMcu.js";
 import { relatedCategories, renderRelatedArticles } from "/shared/relatedArticles.js";
 import { createMcuService } from "/shared/mcuService.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
-import { buildLoginUrl } from "/shared/returnTo.js";
+import { safeNextPath } from "/shared/returnTo.js";
 import { LANG_STORAGE_KEY, equivalentLangPath } from "/shared/langPref.js";
 import { THEME_STORAGE_KEY } from "/shared/themePref.js";
 
@@ -129,13 +129,20 @@ let selectedFile = null;
 let currentSession = null;
 let currentWidget = null;
 
-function currentReturnTo() {
-  return window.location.origin + window.location.pathname + window.location.search;
-}
-
+// Login is BUILT-IN and same-origin, so the link stays RELATIVE ("/login") —
+// it always resolves to the live host and never depends on PUBLIC_ORIGIN
+// (which on Railway may still read the old medicalcheckup domain). The current
+// page rides along as a safe internal ?next= so login returns the member here.
 function updateLoginCta() {
+  let next = "";
+  try {
+    next = safeNextPath(window.location.pathname + window.location.search, "");
+  } catch {
+    next = "";
+  }
+  const href = "/login" + (next && next !== "/" ? "?next=" + encodeURIComponent(next) : "");
   document.querySelectorAll('[data-role="login-cta"]').forEach((cta) => {
-    if (CFG.loginUrl) cta.href = buildLoginUrl(CFG.loginUrl, currentReturnTo());
+    cta.href = href;
   });
 }
 

@@ -35,9 +35,9 @@ test("header carries a login/logout control next to the language toggle", () => 
   const langIdx = html.indexOf('class="lang-toggle"');
   assert.ok(authIdx > -1 && langIdx > -1 && authIdx < langIdx, "auth control precedes the lang toggle");
 
-  // Login href falls back to the LOCAL /login (built-in auth); the client
-  // refines it with a next/return_to.
-  assert.match(html, /class="nav-login" data-role="login-cta" href="https:\/\/medicalscanner\.20fit\.id\/login"/, "local login href fallback");
+  // Login href is RELATIVE (/login) so it always hits the live host — never
+  // the stale PUBLIC_ORIGIN domain. The client refines it with a ?next=.
+  assert.match(html, /class="nav-login" data-role="login-cta" href="\/login"/, "relative login href");
 });
 
 test("header carries the app-switcher (Products menu moved out of the black bar)", () => {

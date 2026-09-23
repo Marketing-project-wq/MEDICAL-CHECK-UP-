@@ -47,7 +47,7 @@ test("POST /api/mcu with NO Bearer token → 401 and NEVER calls upstream (spec 
 
 test("POST /api/mcu forwards {file,mime,lang} + the Bearer token, and relays the upstream result", async () => {
   await withFakeUpstream(
-    (req, res) => { res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true,"result":{"document_type":"Lab","parameters":[]}}'); },
+    (req, res) => { res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true,"result":{"document_type":"Lab","parameters":[{"label":"Hb","value":"14 g/dL","status":"normal"}]}}'); },
     async (my20fitOrigin, seen) => {
       const { handleMcu } = createMcuProxyHandlers({ my20fitOrigin });
       await withProxy(handleMcu, async (proxy) => {
@@ -64,6 +64,23 @@ test("POST /api/mcu forwards {file,mime,lang} + the Bearer token, and relays the
       assert.equal(seen[0].url, "/api/mcu", "hits my.20fit's /api/mcu");
       assert.equal(seen[0].auth, "Bearer TOKEN123", "member token forwarded");
       assert.deepEqual(seen[0].body, { file: "data:image/jpeg;base64,AAAA", mime: "image/jpeg", lang: "en" }, "payload forwarded verbatim");
+    },
+  );
+});
+
+test("POST /api/mcu rejects a non-MCU upload: an empty extraction → 422 invalid_photo (keyless backstop, RULES.md §2)", async () => {
+  // With no OPENROUTER_API_KEY in the test env, the vision guard is skipped (fail-open);
+  // the empty-result net must still catch a document that yielded no parameters/findings.
+  await withFakeUpstream(
+    (req, res) => { res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true,"result":{"document_type":"Selfie","parameters":[],"abnormal_findings":[]}}'); },
+    async (my20fitOrigin) => {
+      const { handleMcu } = createMcuProxyHandlers({ my20fitOrigin });
+      await withProxy(handleMcu, async (proxy) => {
+        const r = await fetch(`${proxy}/api/mcu`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer X" }, body: JSON.stringify({ file: "data:image/jpeg;base64,AAAA", mime: "image/jpeg", lang: "id" }) });
+        assert.equal(r.status, 422);
+        const j = await r.json();
+        assert.equal(j.error, "invalid_photo");
+      });
     },
   );
 });

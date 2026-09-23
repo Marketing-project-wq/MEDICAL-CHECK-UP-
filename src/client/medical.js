@@ -52,6 +52,24 @@ export function setupMedical(root, { supabase, lang }) {
 
   function render(res) { return buildResultHTML(res, { lang: LANG, profile, caloriesUrl: CALORIES_URL }); }
 
+  // Shown when the upload isn't a Medical Check-Up (RULES.md §2). The "try again"
+  // button reuses the pick-file data-act (CSP-safe), reopening the file picker.
+  function invalidPhotoHTML() {
+    return '<div class="card" style="border:1.5px solid #f0b8b8;background:#fdecec">' +
+      '<div class="ch" style="color:var(--red)"><svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:var(--red);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>' +
+      L({ en: "Photo not valid", id: "Foto tidak valid" }) + "</div>" +
+      '<div style="margin-top:4px;line-height:1.55">' + L({ en: "The file you uploaded isn't a Medical Check-Up result. Please upload a photo or PDF of your lab / MCU result.", id: "Foto yang Anda upload bukan hasil Medical Check-Up. Silakan upload foto atau PDF hasil lab/MCU Anda." }) + "</div>" +
+      '<div class="muted" style="margin-top:10px;font-weight:700">' + L({ en: "What you can upload:", id: "Yang bisa diupload:" }) + "</div>" +
+      '<ul style="margin:6px 0 0 18px;line-height:1.6">' +
+      "<li>" + L({ en: "A photo of blood / lab test results", id: "Foto hasil lab darah / tes darah" }) + "</li>" +
+      "<li>" + L({ en: "A photo of a full medical check-up result", id: "Foto hasil medical check-up lengkap" }) + "</li>" +
+      "<li>" + L({ en: "A screenshot of lab results from a hospital app", id: "Screenshot hasil lab dari app rumah sakit" }) + "</li>" +
+      "<li>" + L({ en: "A PDF of a laboratory report", id: "PDF laporan hasil laboratorium" }) + "</li>" +
+      "</ul>" +
+      '<button class="btn" data-act="pick-file" type="button" style="margin-top:14px">' + L({ en: "Try uploading again", id: "Coba Upload Lagi" }) + "</button>" +
+      "</div>";
+  }
+
   // Read a file as a data URL — used only as the PDF fallback (mirrors medical.html).
   function readData(f) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }); }
 
@@ -77,6 +95,9 @@ export function setupMedical(root, { supabase, lang }) {
       const r = await fetch("/api/mcu", { method: "POST", signal: ctrl.signal, headers: { "Content-Type": "application/json", Authorization: "Bearer " + (tk || "") }, body: JSON.stringify({ file: url, mime: mime, lang: LANG }) });
       clearTimeout(to);
       const j = await r.json().catch(() => null);
+      // RULES.md §2 — the server rejected a non-MCU upload: show the guidance card,
+      // not a generic error, and let them retry.
+      if (j && j.error === "invalid_photo") { resultBox.innerHTML = invalidPhotoHTML(); fileInput.value = ""; return; }
       if (!r.ok || !j || !j.result) throw new Error((j && j.error) || L({ en: "Failed to analyse document", id: "Gagal menganalisa dokumen" }));
       j.result._lang = LANG;
       showResult(j.result);

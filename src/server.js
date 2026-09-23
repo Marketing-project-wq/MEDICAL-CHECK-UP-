@@ -11,6 +11,9 @@ import crypto from "node:crypto";
 
 import { renderLayout } from "./views/layout.js";
 import { renderHomeHubPage, renderCheckMcuPage } from "./views/pages.js";
+import { renderMedicalPage } from "./views/medical.js";
+import { renderLoginPage, renderRegisterPage, renderResetPage, renderCallbackPage } from "./views/authPages.js";
+import { safeNextPath } from "./shared/returnTo.js";
 import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
 import { renderApiDocsPage } from "./views/docsPage.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
@@ -18,6 +21,7 @@ import { getStrings } from "./shared/i18n.js";
 import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
+import { createMcuProxyHandlers } from "./server/mcuProxy.js";
 import { createArticleStore, listPublicArticles } from "./server/articles.js";
 import { createArticleHandlers } from "./server/articleHandlers.js";
 import { createQuizStore } from "./server/quizzes.js";
@@ -38,11 +42,23 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 // Shared secret external sites send (Authorization: Bearer <token>) to
 // POST /api/articles. Unset → the publish endpoint is inert (503).
 const ARTICLES_PUBLISH_TOKEN = process.env.ARTICLES_PUBLISH_TOKEN || "";
-const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalcheckup.20fit.id").replace(/\/$/, "");
+const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalscanner.20fit.id").replace(/\/$/, "");
 // Official escalation target for every health tool (spec: awareness tools must
 // route "want more? consult a doctor" to the real in-app Book Doctor flow).
 // Override once the exact my.20fit.id route is confirmed.
 const DOCTOR_BOOKING_URL = process.env.DOCTOR_BOOKING_URL || MY20FIT_ORIGIN + "/book-doctor";
+// 20FIT Sports Clinic escalation on the MCU page. The contact URL defaults to
+// the real doctor-booking flow (never a hardcoded phone number) — set
+// CLINIC_CONTACT_URL to a WhatsApp link (e.g. https://wa.me/<number>) to use
+// that instead. Address is overridable via CLINIC_ADDRESS.
+const CLINIC_CONTACT_URL = process.env.CLINIC_CONTACT_URL || DOCTOR_BOOKING_URL;
+const CLINIC_ADDRESS =
+  process.env.CLINIC_ADDRESS || "20FIT Sports Clinic — Jl. Sinabung No. 9, Kebayoran Baru, Jakarta Selatan";
+// "Related nutrition articles" link out to the calorietracker.20fit.id content
+// (nutrition_articles). The path is env-configurable ({slug} is substituted) so
+// no article URL is hardcoded/guessed in code — confirm/adjust to the real path.
+const NUTRITION_ARTICLES_URL_TEMPLATE =
+  process.env.NUTRITION_ARTICLES_URL_TEMPLATE || "https://calorietracker.20fit.id/artikel/{slug}";
 // Booking/info destinations for the "Program & Training" section (Tahap 3+4).
 // Real 20FIT service lines; no packages/prices are invented here. Each defaults
 // to my.20fit.id (a safe real destination) — override with the exact booking
@@ -101,6 +117,11 @@ function getScanHandlers() {
   return scanHandlers;
 }
 
+// /api/mcu + /api/translate — the Medical Record analysis/translation endpoints.
+// These just forward the member's Bearer token to my.20fit.id (same AI edge,
+// same prompts), so they need no Supabase admin or AI key and are always ready.
+const mcuProxyHandlers = createMcuProxyHandlers({ my20fitOrigin: MY20FIT_ORIGIN });
+
 // Quiz content store: needs the service-role key too (outcomes/results are
 // RLS service-role-only — see server/quizzes.js). Quizzes/questions still
 // render (publicly readable content) even without one; only submit/history
@@ -108,7 +129,7 @@ function getScanHandlers() {
 let quizStore = null;
 function getQuizStore() {
   if (quizStore) return quizStore;
-  quizStore = createQuizStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
+  quizStore = createQuizStore({ supabaseUrl: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY, anonKey: SUPABASE_ANON_KEY });
   return quizStore;
 }
 
@@ -193,6 +214,9 @@ const STATIC_ROOTS = [
   // that could fall out of sync and silently miss a spot.
   { prefix: "/views/", dir: path.join(SRC_DIR, "views") },
   { prefix: "/public/", dir: PUBLIC_DIR },
+  // Branded product icons for the universal-nav app switcher, served locally
+  // (copied from the ecosystem) so they always load — no cross-origin fetch.
+  { prefix: "/img/", dir: path.join(PUBLIC_DIR, "img") },
 ];
 
 function securityHeaders(nonce, { relaxImg = false } = {}) {
@@ -202,7 +226,7 @@ function securityHeaders(nonce, { relaxImg = false } = {}) {
   // 'self' + nonce everywhere.
   const imgSrc = relaxImg
     ? "img-src 'self' data: blob: https:"
-    : `img-src 'self' data: blob: ${supabaseOrigin} https://media.20fit.id`;
+    : `img-src 'self' data: blob: ${supabaseOrigin} https://media.20fit.id ${MY20FIT_ORIGIN}`;
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -229,13 +253,14 @@ function clientConfig(lang) {
   return {
     lang,
     apiBase: MY20FIT_ORIGIN,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: "/login",
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,
     publicOrigin: PUBLIC_ORIGIN,
     logoLightUrl: LOGO_LIGHT_URL,
     logoDarkUrl: LOGO_DARK_URL,
     doctorBookingUrl: DOCTOR_BOOKING_URL,
+    nutritionUrlTemplate: NUTRITION_ARTICLES_URL_TEMPLATE,
   };
 }
 
@@ -248,7 +273,7 @@ function sendHtml(res, status, html, nonce, opts = {}) {
   res.end(html);
 }
 
-function wrapPage(lang, canonicalPath, page) {
+function wrapPage(lang, canonicalPath, page, opts = {}) {
   const nonce = crypto.randomBytes(16).toString("base64");
   const html = renderLayout({
     lang,
@@ -262,8 +287,18 @@ function wrapPage(lang, canonicalPath, page) {
     nonce,
     logoLightUrl: LOGO_LIGHT_URL,
     logoDarkUrl: LOGO_DARK_URL,
+    extraStylesheets: opts.extraStylesheets || [],
   });
   return { html, nonce };
+}
+
+// Medical Record — the member's faithful clone of my.20fit.id/medical. Pulls in
+// medical.css (the scoped port of that page's styles); the client controller
+// (medical.js, lazy-loaded by app.js on [data-medrec]) gates it to members and
+// redirects a guest to the landing.
+function renderMedical(lang, canonicalPath) {
+  const page = renderMedicalPage({ lang });
+  return wrapPage(lang, canonicalPath, page, { extraStylesheets: ["/medical.css"] });
 }
 
 async function renderHomeHub(lang, canonicalPath) {
@@ -273,7 +308,7 @@ async function renderHomeHub(lang, canonicalPath) {
   const page = renderHomeHubPage({
     lang,
     publicOrigin: PUBLIC_ORIGIN,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: "/login",
     canonicalPath,
     featuredArticles,
     bookingUrl: DOCTOR_BOOKING_URL,
@@ -287,12 +322,37 @@ function renderCheckMcu(lang, canonicalPath) {
   const page = renderCheckMcuPage({
     lang,
     publicOrigin: PUBLIC_ORIGIN,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: "/login",
     canonicalPath,
     bookingUrl: DOCTOR_BOOKING_URL,
+    clinicContactUrl: CLINIC_CONTACT_URL,
+    clinicAddress: CLINIC_ADDRESS,
   });
   return wrapPage(lang, canonicalPath, page);
 }
+
+// Built-in auth pages redirect a member back to where they were headed after
+// login. `next` accepts either ?next=<internal path> or a ?return_to on THIS
+// origin (so the existing return_to plumbing keeps working), validated to a
+// safe same-origin path — the open-redirect guard (spec Langkah 3).
+function authNext(url) {
+  const direct = url.searchParams.get("next");
+  if (direct) return safeNextPath(direct, "");
+  const rt = url.searchParams.get("return_to");
+  if (rt) {
+    try {
+      const u = new URL(rt);
+      if (u.origin === PUBLIC_ORIGIN) return safeNextPath(u.pathname + u.search, "");
+    } catch {
+      /* ignore a malformed return_to */
+    }
+  }
+  return "";
+}
+
+// (MCU history + single-scan detail are no longer standalone pages — they live
+// inside the Medical Record page, mirroring my.20fit.id/medical. /history and
+// /scan/:id redirect to /medical; see the route table below.)
 
 // Quiz hub — lists every active CMS-driven quiz (BMI, Runner, HYROX, …).
 async function renderQuizHub(lang, canonicalPath) {
@@ -309,7 +369,7 @@ async function renderQuizDetail(lang, canonicalPath, slug) {
   const page = renderQuizPage({
     lang,
     quiz,
-    loginUrl: MY20FIT_ORIGIN + "/login",
+    loginUrl: "/login",
     returnToUrl: PUBLIC_ORIGIN + canonicalPath,
     bookingUrl: DOCTOR_BOOKING_URL,
   });
@@ -443,6 +503,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // /api/mcu + /api/translate: the Medical Record endpoints (member Bearer token
+  // forwarded to my.20fit.id's identical endpoints — same AI edge + prompts, so
+  // results match my.20fit.id/medical exactly and stay in sync). The upload gate
+  // is at the member: no token → 401 before any upstream/AI call (spec §0.1).
+  if (req.method === "POST" && pathname === "/api/mcu") {
+    await mcuProxyHandlers.handleMcu(req, res);
+    return;
+  }
+  if (req.method === "POST" && pathname === "/api/translate") {
+    await mcuProxyHandlers.handleTranslate(req, res);
+    return;
+  }
+
   // /api/articles[/:slug]: the article publish/management API for external
   // developers (Bearer token; body_html sanitized; writes via the server-side
   // service-role key only, into this subdomain's own mcu_articles table).
@@ -495,6 +568,37 @@ const server = http.createServer(async (req, res) => {
   // Health check
   if (pathname === "/healthz") {
     res.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
+    return;
+  }
+
+  // Config diagnostic — reports only whether each env var is PRESENT (never its
+  // value) plus a live count from the quiz read, so a misconfigured deploy env
+  // (e.g. a missing SUPABASE_ANON_KEY that leaves /quiz empty) can be spotted
+  // from the browser. No secrets are exposed; the quiz list is already public.
+  if (pathname === "/api/diag") {
+    let quiz;
+    try {
+      const rows = await getQuizStore().listActive();
+      quiz = { activeCount: Array.isArray(rows) ? rows.length : 0 };
+    } catch {
+      quiz = { error: "read_failed" };
+    }
+    const present = (v) => (v ? "set" : "MISSING");
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }).end(
+      JSON.stringify({
+        ok: true,
+        service: "medicalcheckup",
+        build: "diag-1",
+        supabaseHost: supabaseOrigin,
+        env: {
+          SUPABASE_URL: present(SUPABASE_URL),
+          SUPABASE_ANON_KEY: present(SUPABASE_ANON_KEY),
+          SUPABASE_SERVICE_ROLE_KEY: present(SUPABASE_SERVICE_ROLE_KEY),
+          MY20FIT_ORIGIN: present(process.env.MY20FIT_ORIGIN),
+        },
+        quiz,
+      }),
+    );
     return;
   }
 
@@ -576,7 +680,7 @@ const server = http.createServer(async (req, res) => {
   // prefix) — logos in particular are referenced from the very first
   // pre-paint <script> in <head>, so they stay on the same simple,
   // well-tested path convention as styles.css rather than a nested prefix.
-  const ROOT_ALIASES = { "/styles.css": "styles.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg" };
+  const ROOT_ALIASES = { "/styles.css": "styles.css", "/medical.css": "medical.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg", "/universal-nav.js": "universal-nav.js" };
   if (ROOT_ALIASES[pathname]) {
     try {
       const file = await readFile(path.join(PUBLIC_DIR, ROOT_ALIASES[pathname]));
@@ -602,15 +706,15 @@ const server = http.createServer(async (req, res) => {
   // widget behind the §0.1 login gate, real-program handoff, "Top 5 Articles",
   // a §0.1-safe sample result, FAQ, doctor escalation). English at /,
   // Indonesian at /id. Public; only the scan upload requires login (§0.1).
-  // /auth/callback shares the homepage so the client consumes the SSO fragment
-  // on the page the member returned to.
-  if (pathname === "/" || pathname === "/auth/callback") {
+  // Local auth now owns /auth/callback (see the auth routes below); the homepage
+  // no longer doubles as the SSO landing.
+  if (pathname === "/") {
     const { html, nonce } = await renderHomeHub("en", "/");
     // relaxImg: Top-5 article cards carry cover photos from other https hosts.
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
-  if (pathname === "/id" || pathname === "/id/" || pathname === "/id/auth/callback") {
+  if (pathname === "/id" || pathname === "/id/") {
     const { html, nonce } = await renderHomeHub("id", "/id");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
@@ -641,6 +745,22 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Medical Record — the member's faithful clone of my.20fit.id/medical (upload,
+  // AI analysis, history, detail modal, two-language translation). Member-gated in
+  // the client (guest → landing). The /auth/callback variant renders (not
+  // redirects) so the SSO fragment is consumed here and the member lands on their
+  // record. relaxImg: the result cards use inline styles / data: images.
+  if (pathname === "/medical" || pathname === "/medical/" || pathname === "/medical/auth/callback") {
+    const { html, nonce } = renderMedical("en", "/medical");
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+  if (pathname === "/id/medical" || pathname === "/id/medical/" || pathname === "/id/medical/auth/callback") {
+    const { html, nonce } = renderMedical("id", "/id/medical");
+    sendHtml(res, 200, html, nonce, { relaxImg: true });
+    return;
+  }
+
   // Check MCU — the standalone Scan MCU tool page (§0.1 gate). Its /auth/callback
   // variant renders (not redirects) so the SSO fragment is consumed here, and the
   // member returns to the tool they were using.
@@ -654,6 +774,83 @@ const server = http.createServer(async (req, res) => {
     const { html, nonce } = renderCheckMcu("id", "/id/check-mcu");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
+  }
+
+  // ── Built-in auth (local — no more redirect to my.20fit for login) ───────
+  if (pathname === "/login" || pathname === "/login/") {
+    const { html, nonce } = wrapPage("en", "/login", renderLoginPage({ lang: "en", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/login" || pathname === "/id/login/") {
+    const { html, nonce } = wrapPage("id", "/id/login", renderLoginPage({ lang: "id", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/register" || pathname === "/register/") {
+    const { html, nonce } = wrapPage("en", "/register", renderRegisterPage({ lang: "en", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/register" || pathname === "/id/register/") {
+    const { html, nonce } = wrapPage("id", "/id/register", renderRegisterPage({ lang: "id", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/reset-password" || pathname === "/reset-password/") {
+    const { html, nonce } = wrapPage("en", "/reset-password", renderResetPage({ lang: "en" }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/reset-password" || pathname === "/id/reset-password/") {
+    const { html, nonce } = wrapPage("id", "/id/reset-password", renderResetPage({ lang: "id" }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  // OAuth / email-confirm / recovery landing. The client (auth.js) redeems the
+  // ?code= or #access_token here, then routes to `next` (or the uploader). Also
+  // handles the SSO fragment that used to land on the homepage.
+  if (pathname === "/auth/callback" || pathname === "/auth/callback/") {
+    const { html, nonce } = wrapPage("en", "/auth/callback", renderCallbackPage({ lang: "en", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+  if (pathname === "/id/auth/callback" || pathname === "/id/auth/callback/") {
+    const { html, nonce } = wrapPage("id", "/id/auth/callback", renderCallbackPage({ lang: "id", next: authNext(url) }));
+    sendHtml(res, 200, html, nonce);
+    return;
+  }
+
+  // MCU history — dedicated, deep-linkable list of the member's saved scans.
+  // Member-only; the list is hydrated client-side (RLS), SSR ships only the
+  // shell + login gate. The /auth/callback variant renders (not redirects) so
+  // an SSO return lands the member straight back on their history.
+  // History + single-scan detail live INSIDE the Medical Record page now (the
+  // "All MCU" toggle + the detail modal), exactly like my.20fit.id/medical, which
+  // is a single page with no separate /history or /scan/:id routes. So these old
+  // standalone routes (which still used the pre-clone metrics/grade shape and
+  // would render empty against the real result shape) redirect to /medical.
+  if (pathname === "/history" || pathname === "/history/" || pathname === "/history/auth/callback") {
+    res.writeHead(302, { Location: "/medical" }).end();
+    return;
+  }
+  if (pathname === "/id/history" || pathname === "/id/history/" || pathname === "/id/history/auth/callback") {
+    res.writeHead(302, { Location: "/id/medical" }).end();
+    return;
+  }
+  {
+    const scanPath = pathname.replace(/\/auth\/callback$/, "");
+    const scanMatch = scanPath.match(/^(\/id)?\/scan\/([^/]+)\/?$/);
+    if (scanMatch) {
+      const lang = scanMatch[1] ? "id" : "en";
+      const scanId = decodeURIComponent(scanMatch[2]);
+      if (/^[0-9a-fA-F-]{16,64}$/.test(scanId)) {
+        // Carry the id as a hash so the Medical Record page can auto-open that
+        // scan's detail modal (see medical.js), preserving the deep link.
+        res.writeHead(302, { Location: (lang === "id" ? "/id/medical" : "/medical") + "#scan=" + encodeURIComponent(scanId) }).end();
+        return;
+      }
+    }
   }
 
   // GET /api/quiz/history: member-only (Bearer token required inside the

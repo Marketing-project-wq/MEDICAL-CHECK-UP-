@@ -15,7 +15,7 @@ import { getStrings, getRenderLabels } from "../shared/i18n.js";
 import { buildLoginUrl } from "../shared/returnTo.js";
 import { renderResult } from "../shared/renderResult.js";
 import { getSampleResult } from "../shared/sampleData.js";
-import { healthDisclaimer, doctorCta } from "../shared/health.js";
+import { healthDisclaimer, doctorCta, clinicCta } from "../shared/health.js";
 import { iconSvg } from "../shared/icons.js";
 import { articleCover, topicKey } from "../shared/articleCover.js";
 import { localizeArticle } from "../shared/localizeArticle.js";
@@ -182,10 +182,28 @@ function scanSection(s, loginUrl, returnToUrl) {
           <div class="member-actions">
             <button class="btn btn-primary btn-block" data-act="analyze" type="button" disabled>${escapeHtml(s.analyzeButton)}</button>
           </div>
+
+          <div class="manual-entry" data-role="manual-entry">
+            <button class="manual-toggle" data-act="manual-toggle" type="button" aria-expanded="false">${escapeHtml(s.manualToggle)}</button>
+            <div class="manual-form" data-role="manual-form" hidden>
+              <p class="manual-intro">${escapeHtml(s.manualIntro)}</p>
+              <div class="manual-meta">
+                <input type="text" class="manual-input" data-role="m-name" placeholder="${escapeHtml(s.manualName)}" aria-label="${escapeHtml(s.manualName)}" autocomplete="off">
+                <input type="text" class="manual-input" data-role="m-lab" placeholder="${escapeHtml(s.manualLab)}" aria-label="${escapeHtml(s.manualLab)}" autocomplete="off">
+              </div>
+              <div class="manual-rows" data-role="manual-rows"></div>
+              <button class="manual-add" data-act="manual-add" type="button">+ ${escapeHtml(s.manualAddRow)}</button>
+              <div class="member-actions">
+                <button class="btn btn-primary btn-block" data-act="manual-submit" type="button">${escapeHtml(s.manualSubmit)}</button>
+              </div>
+            </div>
+          </div>
+
           <span class="status-msg" data-role="status" role="status" aria-live="polite"></span>
 
           <div class="result-slot" data-role="result-slot" hidden>
             <div data-role="result-body"></div>
+            <div data-role="related-articles"></div>
           </div>
 
           <div class="history" data-role="history-wrap" hidden>
@@ -358,15 +376,80 @@ export function renderHomeHubPage({ lang, publicOrigin, loginUrl, canonicalPath,
  * result, and the doctor escalation. checkMcuIntro owns the single <h1>.
  * @returns {{ title:string, description:string, bodyHtml:string }}
  */
-export function renderCheckMcuPage({ lang, publicOrigin, loginUrl, canonicalPath, bookingUrl }) {
+export function renderCheckMcuPage({ lang, publicOrigin, loginUrl, canonicalPath, bookingUrl, clinicContactUrl, clinicAddress }) {
   const s = getStrings(lang);
   const returnToUrl = publicOrigin + canonicalPath;
+  const clinicSection = `<section class="section"><div class="wrap wrap-narrow">${clinicCta(s, {
+    contactUrl: clinicContactUrl,
+    address: clinicAddress,
+  })}</div></section>`;
   const bodyHtml = [
     checkMcuIntro(s),
     scanSection(s, loginUrl, returnToUrl),
     howItWorksSection(s),
     sampleSection(s, lang),
+    clinicSection,
     escalationSection(s, bookingUrl),
   ].join("\n");
   return { title: `${s.pillarScanTitle} — ${s.brand}`, description: s.pillarScanDesc, bodyHtml };
+}
+
+// Login gate shared by the standalone member-only pages (/history, /scan/:id).
+// Same §0.1 posture as the uploader: a guest sees only this; the client
+// (scanViews.js) reveals the real view once a member session is confirmed.
+function memberViewGate(s, loginHref) {
+  return `<div class="login-gate" data-role="login-gate">
+    <p class="login-gate-intro">${escapeHtml(s.memberIntroAnon)}</p>
+    <a class="btn btn-primary btn-block" data-role="login-cta" href="${escapeHtml(loginHref)}">${escapeHtml(s.loginCta)}</a>
+  </div>`;
+}
+
+/**
+ * /history (EN) and /id/history (ID) — a dedicated, deep-linkable list of the
+ * member's saved scans. Member-only: the list is fetched client-side under the
+ * member's own Supabase session (RLS), never server-rendered, so no private
+ * health data touches SSR. Mirrors my.20fit.id/mcu's history view.
+ */
+export function renderHistoryPage({ lang, loginUrl, returnToUrl }) {
+  const s = getStrings(lang);
+  const loginHref = buildLoginUrl(loginUrl, returnToUrl);
+  const checkMcuHref = checkMcuHrefFor(lang);
+  const bodyHtml = `<section class="section"><div class="wrap wrap-narrow">
+    <div class="mcu-view-head"><a class="mcu-view-back" href="${escapeHtml(checkMcuHref)}">${escapeHtml(s.historyBackToScan)}</a></div>
+    <h1>${escapeHtml(s.historyPageHeading)}</h1>
+    <hr class="rule">
+    <div id="mcu-scan-view" data-mcu-view="history" data-check-href="${escapeHtml(checkMcuHref)}">
+      ${memberViewGate(s, loginHref)}
+      <div class="mcu-view-body" data-role="view-body" hidden>
+        <p class="section-intro" data-role="view-loading">${escapeHtml(s.scanLoading)}</p>
+      </div>
+    </div>
+    <div class="mcu-view-disclaimer">${healthDisclaimer(s)}</div>
+  </div></section>`;
+  return { title: `${s.historyPageTitle} — ${s.brand}`, description: s.historyPageDesc, bodyHtml };
+}
+
+/**
+ * /scan/:id (EN) and /id/scan/:id (ID) — a dedicated, deep-linkable detail view
+ * of ONE saved scan. Member-only and client-hydrated (RLS-scoped fetch), using
+ * the very same shared renderResult() as the live analysis, so a saved scan
+ * looks identical here and on my.20fit.id/mcu. The safety disclaimer is part of
+ * renderResult's own output; the clinic escalation is rendered in the shell.
+ */
+export function renderScanDetailPage({ lang, loginUrl, returnToUrl, scanId, clinicContactUrl, clinicAddress }) {
+  const s = getStrings(lang);
+  const loginHref = buildLoginUrl(loginUrl, returnToUrl);
+  const historyHref = lang === "id" ? "/id/history" : "/history";
+  const clinicSection = `<div class="mcu-view-clinic">${clinicCta(s, { contactUrl: clinicContactUrl, address: clinicAddress })}</div>`;
+  const bodyHtml = `<section class="section"><div class="wrap wrap-narrow">
+    <div class="mcu-view-head"><a class="mcu-view-back" href="${escapeHtml(historyHref)}">${escapeHtml(s.scanBackToHistory)}</a></div>
+    <div id="mcu-scan-view" data-mcu-view="scan" data-scan-id="${escapeHtml(scanId)}" data-history-href="${escapeHtml(historyHref)}">
+      ${memberViewGate(s, loginHref)}
+      <div class="mcu-view-body" data-role="view-body" hidden>
+        <p class="section-intro" data-role="view-loading">${escapeHtml(s.scanLoading)}</p>
+      </div>
+    </div>
+    ${clinicSection}
+  </div></section>`;
+  return { title: `${s.scanPageTitle} — ${s.brand}`, description: s.scanPageDesc, bodyHtml };
 }

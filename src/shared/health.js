@@ -32,3 +32,23 @@ export function doctorCta(s, bookingUrl) {
     <a class="btn btn-primary" href="${escapeHtml(href)}">${escapeHtml(s.doctorCtaButton)}</a>
   </aside>`;
 }
+
+/**
+ * The 20FIT Sports Clinic escalation shown on the MCU page. The contact link is
+ * server config (a real booking / WhatsApp URL) — never a hardcoded number; the
+ * address is server config too. Renders nothing extra it wasn't given.
+ * @param {object} s getStrings(lang)
+ * @param {{contactUrl?:string, address?:string}} [opts]
+ */
+export function clinicCta(s, { contactUrl, address } = {}) {
+  const href = contactUrl || "#";
+  const addr = address ? `<p class="clinic-cta-addr">${escapeHtml(address)}</p>` : "";
+  return `<aside class="clinic-cta">
+    <div class="clinic-cta-body">
+      <strong>${escapeHtml(s.clinicCtaTitle)}</strong>
+      <p>${escapeHtml(s.clinicCtaText)}</p>
+      ${addr}
+    </div>
+    <a class="btn btn-primary" href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(s.clinicCtaButton)}</a>
+  </aside>`;
+}

@@ -1,0 +1,129 @@
+/* ===== 20FIT Medical Record — faithful port of my.20fit.id/medical's inline
+   <style> (profile20fit/medical.html), scoped under .medrec so it can't clash
+   with this app's global styles.css and so the class hooks
+   (.card/.ch/.param/.find/.ohstat/.prow/.rec …) render byte-for-byte like the
+   real page. Cards stay light in BOTH themes so AI-generated result text
+   remains readable (same choice as the source). Dark mode here is this app's
+   html[data-theme="dark"] (my.20fit used html:not(.theme-light)). */
+.medrec{
+  --red:#C41101;--red-ink:#B01C2E;--red-soft:#FCEBED;
+  --amber:#C87000;--amber-soft:#FDF1E2;--amber-ink:#9A5D12;
+  --blue:#2563eb;--blue-soft:#EAF1FF;--green:#2A7A4F;--green-soft:#E6F6EE;--green-ink:#1B7A4D;
+  --card:#FFFFFF;--txt:#15171C;--ink:#15171C;--muted:#8A8D94;--faint:#B7B9BF;--line:#EBEBEF;--inp:#F2F2F5;
+  --bg:#F3F2F0;--pagetx:#15171C;--dark:#141414;
+  --radius-lg:22px;--radius:14px;
+  --shadow:0 1px 2px rgba(16,18,22,.04),0 8px 26px rgba(16,18,22,.05);
+  background:var(--bg);color:var(--pagetx);
+  padding:20px 16px 40px;border-radius:18px;transition:background .3s ease;
+}
+/* Dark = app's data-theme. Keep cards light for readable AI content. */
+html[data-theme="dark"] .medrec{ --bg:#0C0D10;--pagetx:#F4F5F7;--dark:#000 }
+.medrec *{box-sizing:border-box}
+.medrec .wrap{max-width:640px;margin:0 auto}
+@media(min-width:900px){ .medrec .wrap{max-width:1000px} }
+.medrec a{text-decoration:none}
+
+/* ---- Hero header ---- */
+.medrec .hero{position:relative;padding:8px 4px 6px;margin:2px 0 8px;background:transparent;border:0}
+.medrec .hero .kick{color:var(--red);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
+.medrec h1{font-size:31px;font-weight:800;margin:2px 2px 4px;letter-spacing:-.03em;line-height:1.04;text-transform:none;color:var(--pagetx)}
+.medrec .muted{color:var(--muted);font-size:13px}
+
+/* ---- Card ---- */
+.medrec .card{background:var(--card);color:var(--txt);border:0;border-radius:var(--radius-lg);padding:20px;margin-top:14px;box-shadow:var(--shadow)}
+
+/* ---- Upload ---- */
+.medrec .up{border:1.5px dashed color-mix(in srgb,var(--red) 40%,var(--line));background:color-mix(in srgb,var(--red-soft) 55%,var(--card));text-align:center;cursor:pointer;transition:.15s}
+.medrec .up:active{transform:scale(.99)}
+.medrec .up .ic{width:50px;height:50px;border-radius:15px;background:var(--card);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;box-shadow:var(--shadow)}
+.medrec .up .ic svg{width:24px;height:24px;fill:none;stroke:var(--red);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.medrec .btn{margin-top:12px;padding:13px 20px;border:0;border-radius:var(--radius);background:var(--red);color:#fff;font-weight:800;font-size:14px;cursor:pointer;
+  box-shadow:0 8px 20px color-mix(in srgb,var(--red) 26%,transparent)}
+
+/* ---- Consult banner ---- */
+.medrec .consultbn{display:flex;align-items:center;gap:14px;margin-top:14px;padding:18px;border-radius:var(--radius-lg);
+  background:var(--card);color:var(--txt);box-shadow:var(--shadow)}
+.medrec .consultbn .cbic{width:46px;height:46px;border-radius:13px;background:var(--red-soft);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.medrec .consultbn .cbic svg{width:24px;height:24px;fill:none;stroke:var(--red);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.medrec .consultbn .cbt{font-weight:800;font-size:16px}
+.medrec .consultbn .cbs{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.medrec .cbbtn{flex:0 0 auto;background:var(--red);color:#fff;border-radius:12px;padding:12px 16px;font-weight:750;font-size:13px;text-decoration:none;white-space:nowrap;
+  box-shadow:0 8px 20px color-mix(in srgb,var(--red) 26%,transparent)}
+@media(max-width:560px){ .medrec .consultbn{flex-wrap:wrap} .medrec .cbbtn{width:100%;text-align:center} }
+
+/* ---- Dynamic result grid ---- */
+.medrec #result{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
+.medrec #result .card{margin-top:0}
+.medrec .rfull{grid-column:1/-1}
+@media(min-width:900px){ .medrec #result{grid-template-columns:1fr 1fr} }
+
+/* section header inside result cards */
+.medrec .ch{font-weight:800;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
+.medrec .ch svg{width:19px;height:19px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* overall summary tiles */
+.medrec .ohrow{display:flex;gap:0;margin-top:12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.medrec .ohstat{flex:1;padding:14px 8px;text-align:center;position:relative}
+.medrec .ohstat + .ohstat::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--line)}
+.medrec .ohstat .l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.medrec .ohstat .v{font-weight:800;font-size:22px;margin-top:6px;letter-spacing:-.02em}
+
+/* parameter rows */
+.medrec .param{padding:13px 0;border-bottom:1px solid var(--line)}
+.medrec .param:last-child{border-bottom:0}
+.medrec .param .ph{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.medrec .param .ph b{font-weight:700;font-size:14.5px;letter-spacing:-.01em}
+.medrec .param .pv{font-weight:800;display:flex;align-items:center;gap:6px;font-size:15px}
+.medrec .dot{width:9px;height:9px;border-radius:999px;flex:0 0 auto}
+
+/* findings */
+.medrec .find{border-left:3px solid;border-radius:12px;padding:13px 15px;margin-top:10px;background:var(--inp)}
+.medrec .find .ft{font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.medrec .sevtag{font-size:9px;font-weight:800;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.5px}
+
+/* plan bullet rows */
+.medrec .plan{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5}
+.medrec .plan:last-child{border-bottom:0}
+.medrec .plan .pi{width:28px;height:28px;border-radius:10px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:14px}
+
+/* bookable program rows */
+.medrec .prow{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.medrec .prow:last-child{border-bottom:0}
+.medrec .prow .pn{font-weight:700;font-size:14.5px;letter-spacing:-.01em}.medrec .prow .pd{font-size:12px;color:var(--muted);margin-top:1px}
+.medrec .bookchip{flex:0 0 auto;background:var(--red);color:#fff;border:0;border-radius:11px;padding:9px 15px;font-weight:750;font-size:12px;text-decoration:none;cursor:pointer}
+.medrec .bookchip.clinic{background:var(--blue)}
+
+/* history rows */
+.medrec .rec{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.medrec .rec:last-child{border-bottom:0}
+.medrec .grade{width:40px;height:40px;border-radius:12px;background:var(--red-soft);color:var(--red);display:flex;align-items:center;justify-content:center;font-weight:900;flex:0 0 auto}
+.medrec .seemore{flex:0 0 auto;color:var(--red);font-weight:800;font-size:12px;white-space:nowrap}
+.medrec .empty{text-align:center;color:var(--muted);padding:30px 10px}
+.medrec .emi{width:1.05em;height:1.05em;vertical-align:-.16em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline-block;flex:0 0 auto}
+
+/* Toggle "All MCU" + note after a scan */
+.medrec .mcu-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;background:transparent;color:var(--txt);font-weight:800;font-size:15px;cursor:pointer;padding:2px 0;text-align:left}
+.medrec .mcu-toggle .mcu-chev{width:20px;height:20px;flex:0 0 auto;transition:transform .2s}
+.medrec .mcu-toggle.open .mcu-chev{transform:rotate(180deg)}
+.medrec .mcu-list{margin-top:10px}
+.medrec .mcu-note{display:flex;align-items:center;gap:10px;margin-top:14px;padding:13px 15px;border-radius:14px;border:1px solid #bfe3cd;background:#eef8f1;color:#1d6b41;font-weight:700;font-size:13.5px;cursor:pointer}
+
+/* Modal detail from history */
+.medrec .mcu-bg{position:fixed;inset:0;z-index:200;background:rgba(10,12,16,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 14px}
+.medrec .mcu-bg.open{display:flex}
+.medrec .mcu-modal{width:100%;max-width:720px;background:var(--card,#fff);color:var(--txt);border-radius:20px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:mcuUp .28s cubic-bezier(.2,.85,.25,1);margin:auto}
+@keyframes mcuUp{from{transform:translateY(16px);opacity:.6}to{transform:translateY(0);opacity:1}}
+.medrec .mcu-hd{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:var(--card,#fff);border-bottom:1px solid var(--line);border-radius:20px 20px 0 0}
+.medrec .mcu-hd h3{margin:0;font-size:16px;font-weight:800}
+.medrec .mcu-body{padding:16px 20px 22px}
+.medrec .x-close{width:34px;height:34px;border:0;border-radius:10px;background:var(--inp);color:var(--txt);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.medrec .x-close svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Translation banner: AI disclaimer + view original/translation (or fallback warning) */
+.medrec .tbanner{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:11px 15px;border-radius:14px;background:var(--blue-soft);color:#1d3a8a;font-size:12.5px;font-weight:600;line-height:1.4;box-shadow:var(--shadow)}
+.medrec .tbanner.warn{background:#fbf3df;color:#8a6d1a}
+.medrec .tbanner span{flex:1;min-width:180px}
+.medrec .tlink{flex:0 0 auto;border:0;background:transparent;color:var(--red);font-weight:800;font-size:12.5px;cursor:pointer;text-decoration:none;padding:4px 2px}
+.medrec .tlink:hover{opacity:.75}
+.medrec .mcu-body .tbanner{margin-bottom:14px}

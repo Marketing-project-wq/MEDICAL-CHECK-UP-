@@ -18,9 +18,15 @@
 
 const TTL_MS = 5 * 60 * 1000;
 
-export function createQuizStore({ supabaseUrl, serviceRoleKey, fetchImpl = fetch }) {
+export function createQuizStore({ supabaseUrl, serviceRoleKey, anonKey = "", fetchImpl = fetch }) {
   const restBase = `${String(supabaseUrl).replace(/\/$/, "")}/rest/v1`;
   const cache = new Map();
+  // Quizzes + questions are RLS-public (is_active=true), so their CONTENT is
+  // read with the anon key. The public hub/wizard then render even if the
+  // service-role key is unset or misconfigured in this environment (falling
+  // back to the service key only when no anon key is present). Outcomes
+  // (match_rules/advice) and results stay service-role-only, per their RLS.
+  const publicKey = anonKey || serviceRoleKey;
 
   function getCached(key) {
     const e = cache.get(key);
@@ -32,13 +38,14 @@ export function createQuizStore({ supabaseUrl, serviceRoleKey, fetchImpl = fetch
   }
 
   async function rest(pathAndQuery, options = {}) {
+    const { key = serviceRoleKey, ...init } = options;
     const res = await fetchImpl(`${restBase}${pathAndQuery}`, {
-      ...options,
+      ...init,
       headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: key,
+        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
-        ...(options.headers || {}),
+        ...(init.headers || {}),
       },
     });
     if (!res.ok) throw new Error(`quiz REST ${res.status} ${pathAndQuery}`);
@@ -51,6 +58,7 @@ export function createQuizStore({ supabaseUrl, serviceRoleKey, fetchImpl = fetch
     try {
       const rows = await rest(
         "/my20fit_quizzes?is_active=eq.true&select=id,slug,title_id,title_en,description_id,description_en,category,cover_url,estimated_minutes,sort_order&order=sort_order.asc",
+        { key: publicKey },
       );
       return setCached("list", Array.isArray(rows) ? rows : []);
     } catch (e) {
@@ -67,11 +75,13 @@ export function createQuizStore({ supabaseUrl, serviceRoleKey, fetchImpl = fetch
     try {
       const rows = await rest(
         `/my20fit_quizzes?is_active=eq.true&slug=eq.${encodeURIComponent(slug)}&select=id,slug,title_id,title_en,description_id,description_en,category,cover_url,estimated_minutes&limit=1`,
+        { key: publicKey },
       );
       const quiz = Array.isArray(rows) && rows[0] ? rows[0] : null;
       if (!quiz) return setCached(key, null);
       const questions = await rest(
         `/my20fit_quiz_questions?quiz_id=eq.${quiz.id}&select=id,order,type,question_id,question_en,help_id,help_en,options,is_required&order=order.asc`,
+        { key: publicKey },
       );
       const full = { ...quiz, questions: Array.isArray(questions) ? questions : [] };
       return setCached(key, full);

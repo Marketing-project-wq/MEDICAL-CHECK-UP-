@@ -16,8 +16,12 @@
 // so the gate holds even if this client is bypassed.
 
 import { renderResult } from "/shared/renderResult.js";
+import { summarizeMetrics } from "/shared/mcuSummary.js";
+import { buildManualResult } from "/shared/manualMcu.js";
+import { relatedCategories, renderRelatedArticles } from "/shared/relatedArticles.js";
+import { createMcuService } from "/shared/mcuService.js";
 import { getStrings, getRenderLabels, getErrorMessage } from "/shared/i18n.js";
-import { buildLoginUrl } from "/shared/returnTo.js";
+import { safeNextPath } from "/shared/returnTo.js";
 import { LANG_STORAGE_KEY, equivalentLangPath } from "/shared/langPref.js";
 import { THEME_STORAGE_KEY } from "/shared/themePref.js";
 
@@ -99,6 +103,10 @@ const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 // failure here only disables Supabase-dependent features (auth, history,
 // saving results); the base page (including both toggles) stays working.
 let supabase = null;
+// The shared MCU data-access layer (src/shared/mcuService.js), created once the
+// Supabase client is ready. All save/history/delete DB work goes through this,
+// so the exact same logic can live in my.20fit.id/mcu unchanged.
+let mcuService = null;
 async function initSupabase() {
   if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return null;
   try {
@@ -121,13 +129,118 @@ let selectedFile = null;
 let currentSession = null;
 let currentWidget = null;
 
-function currentReturnTo() {
-  return window.location.origin + window.location.pathname + window.location.search;
+// Login is BUILT-IN and same-origin, so the link stays RELATIVE ("/login") —
+// it always resolves to the live host and never depends on PUBLIC_ORIGIN
+// (which on Railway may still read the old medicalcheckup domain). The current
+// page rides along as a safe internal ?next= so login returns the member here.
+function updateLoginCta() {
+  let next = "";
+  try {
+    next = safeNextPath(window.location.pathname + window.location.search, "");
+  } catch {
+    next = "";
+  }
+  const href = "/login" + (next && next !== "/" ? "?next=" + encodeURIComponent(next) : "");
+  document.querySelectorAll('[data-role="login-cta"]').forEach((cta) => {
+    cta.href = href;
+  });
 }
 
-function updateLoginCta() {
-  document.querySelectorAll('[data-role="login-cta"]').forEach((cta) => {
-    if (CFG.loginUrl) cta.href = buildLoginUrl(CFG.loginUrl, currentReturnTo());
+// Header auth control (top nav, next to the language toggle). A guest sees the
+// "Masuk / Daftar" link; a signed-in member sees their avatar → a profile
+// dropdown (name/email, Profil Saya / Riwayat Pembelian / Pengaturan, Keluar).
+// Present on every page, independent of the universal nav bar and the uploader.
+function profileNameOf(user) {
+  const m = (user && user.user_metadata) || {};
+  return m.full_name || m.name || (user && user.email ? user.email.split("@")[0] : "") || "User";
+}
+
+function fillProfile(box, user) {
+  const name = profileNameOf(user);
+  const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
+  const avatarUrl = (user && user.user_metadata && user.user_metadata.avatar_url) || null;
+  box.querySelectorAll('[data-role="avatar-initial"]').forEach((el) => {
+    if (avatarUrl) el.innerHTML = `<img src="${encodeURI(avatarUrl)}" alt="">`;
+    else el.textContent = initial;
+  });
+  const fn = box.querySelector('[data-role="profile-firstname"]');
+  if (fn) fn.textContent = name.split(" ")[0] || "Profile";
+  const nm = box.querySelector('[data-role="profile-name"]');
+  if (nm) nm.textContent = name;
+  const em = box.querySelector('[data-role="profile-email"]');
+  if (em) em.textContent = (user && user.email) || "";
+}
+
+function setHeaderAuthState(session) {
+  const box = document.querySelector('[data-role="header-auth"]');
+  if (!box) return;
+  const member = Boolean(session && session.user);
+  const login = box.querySelector('[data-role="login-cta"]');
+  const profile = box.querySelector('[data-role="nav-profile"]');
+  if (login) login.hidden = member;
+  if (profile) profile.hidden = !member;
+  if (member) fillProfile(box, session.user);
+}
+
+function wireHeaderAuth() {
+  const box = document.querySelector('[data-role="header-auth"]');
+  if (!box) return;
+  const logout = box.querySelector('[data-role="header-logout"]');
+  if (logout) {
+    logout.addEventListener("click", async () => {
+      try {
+        if (supabase) await supabase.auth.signOut();
+      } finally {
+        window.location.reload();
+      }
+    });
+  }
+  if (supabase) {
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setHeaderAuthState(data && data.session))
+      .catch(() => setHeaderAuthState(null));
+    supabase.auth.onAuthStateChange((_e, session) => setHeaderAuthState(session));
+  } else {
+    setHeaderAuthState(null);
+  }
+}
+
+// The header avatar's profile dropdown (name/email + hub links + logout).
+// Mutually exclusive with the Products menu; closes on outside-click / Esc.
+function wireProfileMenu() {
+  const wrap = document.querySelector('[data-role="nav-profile"]');
+  if (!wrap) return;
+  const btn = wrap.querySelector('[data-act="profile-toggle"]');
+  const panel = wrap.querySelector('[data-role="profile-panel"]');
+  if (!btn || !panel) return;
+  const close = () => {
+    panel.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+  };
+  const open = () => {
+    const apps = document.querySelector('[data-role="apps-panel"]');
+    if (apps) apps.hidden = true;
+    panel.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (panel.hidden) open();
+    else close();
+  });
+  document.addEventListener("click", (e) => {
+    if (!panel.hidden && !wrap.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !panel.hidden) close();
+  });
+  wrap.querySelectorAll('[data-role="profile-link"]').forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const url = a.getAttribute("data-url");
+      if (url) navigateWithSSO(url);
+    });
   });
 }
 
@@ -248,6 +361,14 @@ function setupUploadWidget(root, restoreState) {
     document.querySelectorAll('[data-role="cta-banner"]').forEach((banner) => {
       banner.hidden = member;
     });
+    // For a member, /check-mcu becomes their Medical Record (like my.20fit.id/
+    // medical): drop the marketing/education blocks (how-it-works, the fictional
+    // sample) so the page is just their own scans + tool. Guests keep them as
+    // the product preview. No-op on pages without these sections.
+    ["how", "example"].forEach((id) => {
+      const sec = document.getElementById(id);
+      if (sec) sec.hidden = member;
+    });
     if (member) loadHistory();
   }
 
@@ -290,12 +411,43 @@ function setupUploadWidget(root, restoreState) {
   });
 
   let lastDisplay = null; // tracked so a language switch can re-render this same result in the new language, instead of it silently vanishing
+  let autoShownLatest = false; // once true, we've already surfaced the member's most recent saved scan (see loadHistory) — never yank the view back to it after that
 
   function showResult(result, { scroll = true } = {}) {
     lastDisplay = { type: "result", data: result };
     resultBody.innerHTML = renderResult(result, T);
     resultSlot.hidden = false;
+    showRelatedArticles(result);
     if (scroll) resultSlot.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Real nutrition_articles (RLS-public, anon key) relevant to the flagged
+  // markers, shown under a result. Best-effort: any failure just shows nothing.
+  async function showRelatedArticles(result) {
+    const relatedEl = q('[data-role="related-articles"]');
+    if (!relatedEl) return;
+    relatedEl.innerHTML = "";
+    if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return;
+    try {
+      const cats = relatedCategories(result && result.metrics);
+      const wanted = (cats.length ? cats : ["nutrition-basics", "meal-planning"]).slice(0, 4).join(",");
+      const base = String(CFG.supabaseUrl).replace(/\/$/, "");
+      const url =
+        `${base}/rest/v1/nutrition_articles?select=slug,title,excerpt,category,accent,read_time_minutes` +
+        `&is_premium=eq.false&category=in.(${wanted})&order=published_at.desc.nullslast&limit=3`;
+      const res = await fetch(url, { headers: { apikey: CFG.supabaseAnonKey, Authorization: `Bearer ${CFG.supabaseAnonKey}` } });
+      if (!res.ok) return;
+      const rows = await res.json();
+      relatedEl.innerHTML = renderRelatedArticles(rows, {
+        lang: LANG,
+        urlTemplate: CFG.nutritionUrlTemplate,
+        heading: S.relatedHeading,
+        readLabel: S.readMinutes,
+        max: 3,
+      });
+    } catch {
+      /* best effort — related articles are a nice-to-have */
+    }
   }
 
   // ── Confirmation modal (my.20fit parity) ──────────────────────────────
@@ -466,47 +618,103 @@ function setupUploadWidget(root, restoreState) {
   }
 
   async function saveResult(result, setStatusFn) {
-    if (!supabase || !currentSession) return;
+    if (!mcuService || !currentSession) return;
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const { error } = await supabase.from("my20fit_mcu_result").insert({
-        auth_user_id: user.id,
-        result,
-        analyzed_at: new Date().toISOString(),
-      });
-      if (error) setStatusFn(S.errSave, true);
+      const res = await mcuService.saveScan(result);
+      if (!res.ok) setStatusFn(S.errSave, true);
     } catch {
       setStatusFn(S.errSave, true);
     }
   }
 
-  async function loadHistory() {
-    if (!supabase || !currentSession) return;
+  function gradeClassOf(grade) {
+    const g = typeof grade === "string" ? grade.trim().toUpperCase() : "";
+    return ["A", "B", "C", "D"].includes(g) ? { letter: g, cls: g.toLowerCase() } : null;
+  }
+
+  // Compact per-scan tally for a history card — same status counts as the
+  // full result's summary strip (see shared/mcuSummary.js), never a diagnosis.
+  function historyCounts(result) {
+    const c = summarizeMetrics(result && result.metrics);
+    if (!c.total) return null;
+    const chip = (cls, text) => el("span", { className: `hc hc-${cls}`, text });
+    const chips = [chip("ok", `${c.ok} ${T.statusOk}`)];
+    if (c.high > 0) chips.push(chip("attn", `▲ ${c.high}`));
+    if (c.low > 0) chips.push(chip("attn", `▼ ${c.low}`));
+    if (c.warning > 0) chips.push(chip("attn", `! ${c.warning}`));
+    if (c.unknown > 0) chips.push(chip("unk", `? ${c.unknown}`));
+    return el("div", { className: "history-counts" }, chips);
+  }
+
+  function historyCard(row) {
+    const when = row.analyzed_at || row.created_at || "";
+    const result = row.result || {};
+
+    const top = [el("span", { className: "history-date", text: formatDate(when) })];
+    const g = gradeClassOf(result.grade);
+    if (g) top.push(el("span", { className: `history-grade grade-${g.cls}`, text: g.letter }));
+
+    const mainChildren = [el("div", { className: "history-top" }, top)];
+    const counts = historyCounts(result);
+    if (counts) mainChildren.push(counts);
+    const label = result.patient_name || result.summary || "";
+    if (label) mainChildren.push(el("div", { className: "history-label", text: String(label).slice(0, 90) }));
+
+    const main = el("div", { className: "history-main", role: "button", tabindex: "0" }, mainChildren);
+    const open = () => showResult(result);
+    main.addEventListener("click", open);
+    main.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        open();
+      }
+    });
+
+    const del = el("button", {
+      className: "history-del",
+      type: "button",
+      "aria-label": S.historyDelete,
+      text: S.historyDelete,
+    });
+    del.addEventListener("click", () => deleteScan(row.id));
+
+    return el("div", { className: "history-item" }, [main, el("div", { className: "history-actions" }, [del])]);
+  }
+
+  async function deleteScan(id) {
+    if (!mcuService || !currentSession || !id) return;
+    if (typeof window.confirm === "function" && !window.confirm(S.historyDeleteConfirm)) return;
     try {
-      const { data, error } = await supabase
-        .from("my20fit_mcu_result")
-        .select("id, result, analyzed_at, created_at")
-        .eq("auth_user_id", currentSession.user.id)
-        .order("analyzed_at", { ascending: false })
-        .limit(20);
-      if (error) return;
-      if (!data || data.length === 0) {
+      const res = await mcuService.deleteScan(id);
+      if (!res.ok) {
+        setStatus(S.historyDeleteFailed, true);
+        return;
+      }
+      setStatus(S.historyDeleted, false);
+      await loadHistory();
+    } catch {
+      setStatus(S.historyDeleteFailed, true);
+    }
+  }
+
+  async function loadHistory() {
+    if (!mcuService || !currentSession) return;
+    try {
+      const { scans } = await mcuService.getScanHistory({ limit: 20 });
+      if (!scans || scans.length === 0) {
         historyEl.innerHTML = `<p class="section-intro">${S.historyEmpty}</p>`;
         return;
       }
       historyEl.innerHTML = "";
-      for (const row of data) {
-        const when = row.analyzed_at || row.created_at || "";
-        const label = (row.result && (row.result.summary || row.result.patient_name)) || "MCU";
-        const item = el("div", { className: "history-item", role: "button", tabindex: "0" }, [
-          el("div", { className: "history-date", text: formatDate(when) }),
-          el("div", { className: "history-label", text: String(label).slice(0, 90) }),
-        ]);
-        item.addEventListener("click", () => showResult(row.result));
-        historyEl.appendChild(item);
+      for (const row of scans) historyEl.appendChild(historyCard(row));
+
+      // Like my.20fit.id/medical, a returning member lands straight on their
+      // Medical Record: surface the most recent saved result expanded, once,
+      // unless something is already on screen (a restored in-progress result,
+      // or a card the member just opened). Never scroll — they're at the top.
+      if (!autoShownLatest && !lastDisplay && scans[0] && scans[0].result) {
+        autoShownLatest = true;
+        showResult(scans[0].result, { scroll: false });
       }
     } catch {
       /* history is best-effort */
@@ -524,6 +732,75 @@ function setupUploadWidget(root, restoreState) {
     analyzeBtn.disabled = !canAnalyze();
   }
 
+  // Manual-entry reader: type MCU values by hand -> the same result view. Status
+  // is computed ONLY from the reference range the member types (manualMcu.js) —
+  // no thresholds invented, no AI, no service-role key. Members-only (this whole
+  // uploader is member-gated, per spec §0.1).
+  const manualToggle = q('[data-act="manual-toggle"]');
+  const manualForm = q('[data-role="manual-form"]');
+  const manualRows = q('[data-role="manual-rows"]');
+  const manualAddBtn = q('[data-act="manual-add"]');
+  const manualSubmitBtn = q('[data-act="manual-submit"]');
+  const mNameEl = q('[data-role="m-name"]');
+  const mLabEl = q('[data-role="m-lab"]');
+
+  function manualMakeRow() {
+    if (!manualRows) return;
+    const inp = (role, ph) =>
+      el("input", { className: `manual-input mr-${role}`, type: "text", "data-role": `mr-${role}`, placeholder: ph, "aria-label": ph, autocomplete: "off" });
+    const del = el("button", { className: "manual-del", type: "button", "aria-label": S.manualRemoveRow, text: "×" });
+    const row = el("div", { className: "manual-row" }, [
+      inp("label", S.manualPhLabel),
+      inp("value", S.manualPhValue),
+      inp("unit", S.manualPhUnit),
+      inp("range", S.manualPhRange),
+      del,
+    ]);
+    del.addEventListener("click", () => {
+      row.remove();
+      if (!manualRows.querySelector(".manual-row")) manualMakeRow();
+    });
+    manualRows.appendChild(row);
+  }
+
+  function manualRunReading() {
+    const val = (r, role) => {
+      const input = r.querySelector(`[data-role="mr-${role}"]`);
+      return input ? input.value : "";
+    };
+    const rows = [...manualRows.querySelectorAll(".manual-row")]
+      .map((r) => ({ label: val(r, "label"), value: val(r, "value"), unit: val(r, "unit"), range: val(r, "range") }))
+      .filter((x) => x.label.trim() || x.value.trim());
+    if (!rows.length || !rows.some((x) => x.value.trim())) {
+      setStatus(S.manualEmpty, true);
+      return;
+    }
+    const result = buildManualResult({
+      patientName: mNameEl ? mNameEl.value : "",
+      laboratory: mLabEl ? mLabEl.value : "",
+      rows,
+      rangeLabel: S.manualRangeLabel,
+      summary: S.manualResultSummary,
+    });
+    setStatus("");
+    showResult(result);
+  }
+
+  if (manualToggle && manualForm) {
+    manualToggle.addEventListener("click", () => {
+      const opening = manualForm.hidden;
+      manualForm.hidden = !opening;
+      manualToggle.setAttribute("aria-expanded", String(opening));
+      if (opening && manualRows && !manualRows.querySelector(".manual-row")) {
+        manualMakeRow();
+        manualMakeRow();
+        manualMakeRow();
+      }
+    });
+  }
+  if (manualAddBtn) manualAddBtn.addEventListener("click", () => manualMakeRow());
+  if (manualSubmitBtn) manualSubmitBtn.addEventListener("click", manualRunReading);
+
   applySessionState(currentSession);
   return {
     applySessionState,
@@ -534,13 +811,181 @@ function setupUploadWidget(root, restoreState) {
   };
 }
 
+const SSO_FN_BASE = (CFG.supabaseUrl ? String(CFG.supabaseUrl).replace(/\/$/, "") : "") + "/functions/v1";
+
+// Redeem a one-time ?sso_token= (minted by another 20fit subdomain via the
+// shared sso-generate function) for this member's session, so they arrive
+// already signed in. Scrubs the token from the URL either way. This is the
+// query-param counterpart to consumeSsoFragment()'s hash-based SSO.
+async function consumeSsoQueryToken() {
+  const params = new URLSearchParams(location.search);
+  const token = params.get("sso_token");
+  if (!token) return false;
+  try {
+    if (supabase && CFG.supabaseUrl && CFG.supabaseAnonKey) {
+      const res = await fetch(`${SSO_FN_BASE}/sso-consume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: CFG.supabaseAnonKey },
+        body: JSON.stringify({ token }),
+      });
+      if (res.ok) {
+        const { access_token, refresh_token } = await res.json();
+        if (access_token && refresh_token) await supabase.auth.setSession({ access_token, refresh_token });
+      }
+    }
+  } catch (e) {
+    console.error("SSO consume failed:", e);
+  }
+  params.delete("sso_token");
+  const qs = params.toString();
+  history.replaceState({}, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+  return true;
+}
+
+// Navigate to another 20fit subdomain carrying this session via a one-time SSO
+// token (sso-generate), so the member isn't asked to sign in again. Same host,
+// no session, or any failure -> plain redirect (graceful, never blocks nav).
+async function navigateWithSSO(targetUrl) {
+  let targetHost;
+  try {
+    targetHost = new URL(targetUrl).hostname;
+  } catch {
+    location.href = targetUrl;
+    return;
+  }
+  if (targetHost === location.hostname || !supabase || !CFG.supabaseUrl) {
+    location.href = targetUrl;
+    return;
+  }
+  let session = null;
+  try {
+    ({
+      data: { session },
+    } = await supabase.auth.getSession());
+  } catch {
+    /* ignore */
+  }
+  if (!session) {
+    location.href = targetUrl; // not signed in here — let the target gate itself
+    return;
+  }
+  try {
+    const res = await fetch(`${SSO_FN_BASE}/sso-generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: CFG.supabaseAnonKey,
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ redirect_to: targetHost, refresh_token: session.refresh_token }),
+    });
+    if (!res.ok) throw new Error("sso-generate " + res.status);
+    const { token } = await res.json();
+    if (!token) throw new Error("no token");
+    const sep = targetUrl.includes("?") ? "&" : "?";
+    location.href = `${targetUrl}${sep}sso_token=${encodeURIComponent(token)}`;
+  } catch (e) {
+    console.error("SSO navigate failed; plain redirect:", e);
+    location.href = targetUrl;
+  }
+}
+
+// White-header app switcher: the waffle button opens the shared 20FIT Products
+// mega-menu. universal-nav.js is loaded with data-no-bar (no black bar) and
+// exposes window.UniversalNav.renderAppsInto — we drop the categorized grid
+// into a dropdown panel on first open, then just toggle it.
+function wireProductsMenu() {
+  const wrap = document.querySelector('[data-role="nav-apps"]');
+  if (!wrap) return;
+  const btn = wrap.querySelector('[data-act="apps-toggle"]');
+  const panel = wrap.querySelector('[data-role="apps-panel"]');
+  if (!btn || !panel) return;
+  let filled = false;
+  const close = () => {
+    panel.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+  };
+  const openMenu = () => {
+    const prof = document.querySelector('[data-role="profile-panel"]');
+    if (prof) prof.hidden = true;
+    if (!filled && window.UniversalNav && typeof window.UniversalNav.renderAppsInto === "function") {
+      window.UniversalNav.renderAppsInto(panel);
+      filled = true;
+    }
+    panel.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (panel.hidden) openMenu();
+    else close();
+  });
+  document.addEventListener("click", (e) => {
+    if (!panel.hidden && !wrap.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !panel.hidden) close();
+  });
+}
+
 async function boot() {
   wireLangToggleButtons();
   wireThemeToggle();
   updateLoginCta();
 
   supabase = await initSupabase();
-  await consumeSsoFragment();
+  mcuService = supabase ? createMcuService(supabase) : null;
+
+  // Auth pages (/login, /register, /reset-password, /auth/callback) own their
+  // own URL-token handling, so the generic SSO-fragment consumer is skipped
+  // there to avoid racing with them.
+  const authPageEl = document.querySelector("[data-auth-page]");
+  if (!authPageEl) {
+    await consumeSsoFragment();
+    await consumeSsoQueryToken();
+  }
+
+  // A logged-in member's home is their Medical Record — the faithful clone of
+  // my.20fit.id/medical (it auto-shows their latest saved result + history). Send
+  // members there from the marketing landing AND from the old /check-mcu tool page,
+  // so there is ONE member experience. Anonymous visitors keep both untouched.
+  if (!authPageEl && supabase) {
+    const p = location.pathname.replace(/\/+$/, "") || "/";
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data && data.session && data.session.user) {
+        if (p === "/" || p === "/en" || p === "/check-mcu") { location.replace("/medical"); return; }
+        if (p === "/id" || p === "/id/check-mcu") { location.replace("/id/medical"); return; }
+      }
+    } catch {
+      /* ignore — stay where we are */
+    }
+  }
+
+  // Top-nav login/logout control — reflects the (post-SSO) session on every page.
+  updateLoginCta();
+  wireHeaderAuth();
+  wireProductsMenu();
+  wireProfileMenu();
+
+  // Built-in auth pages — hydrate the login/register/reset/callback forms.
+  if (authPageEl) {
+    import("./auth.js")
+      .then((m) => m.setupAuth(authPageEl, { supabase, cfg: CFG, lang: LANG }))
+      .catch((e) => console.error("auth module failed to load:", e));
+  }
+
+  // Universal nav (public/universal-nav.js — the shared ecosystem bar, byte-for-
+  // byte the my.20fit one). It reads window.Auth (skeleton set inline in the
+  // layout) to show the signed-in member and route via SSO. Hand it THIS
+  // subdomain's Supabase client + SSO navigate + sign-out, then resolve
+  // Auth.ready so the bar fetches the session and renders the account button.
+  if (supabase && window.Auth) {
+    window.Auth.supabase = supabase;
+    window.__navSsoTo = navigateWithSSO;
+    window.__navSignOut = () => supabase.auth.signOut();
+    if (typeof window.__navAuthReady === "function") window.__navAuthReady();
+  }
 
   // Quiz wizard (quiz hub/detail pages only) — lazy-loaded, and given the
   // already-initialized Supabase client so it can tell a signed-in member
@@ -549,6 +994,26 @@ async function boot() {
     import("./quizWizard.js")
       .then((m) => m.setupQuizWizard(document, CFG, supabase))
       .catch((e) => console.error("quiz wizard module failed to load:", e));
+  }
+
+  // Standalone member-only routes (/history, /scan/:id) — hydrated by a separate
+  // lazy-loaded module so the uploader page stays untouched. Reuses the shared
+  // mcuService + renderResult so data and look match my.20fit.id/mcu exactly.
+  const scanView = document.getElementById("mcu-scan-view");
+  if (scanView) {
+    import("./scanViews.js")
+      .then((m) => m.setupScanViews(scanView, { supabase, mcuService, lang: LANG }))
+      .catch((e) => console.error("scan views module failed to load:", e));
+  }
+
+  // Medical Record page — the faithful clone of my.20fit.id/medical. Lazy-loaded
+  // (same pattern as scanViews/quizWizard) and handed this app's Supabase client
+  // so it shares the member session; it gates itself (guest → landing).
+  const medrec = document.querySelector("[data-medrec]");
+  if (medrec) {
+    import("./medical.js")
+      .then((m) => m.setupMedical(medrec, { supabase, lang: LANG }))
+      .catch((e) => console.error("medical module failed to load:", e));
   }
 
   const root = document.getElementById("member-app");

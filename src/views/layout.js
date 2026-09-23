@@ -100,6 +100,7 @@ export function renderLayout(opts) {
     logoDarkUrl,
     canonicalOverride = null,
     suppressAlternates = false,
+    extraStylesheets = [],
   } = opts;
 
   // Article detail pages pass canonicalOverride = the media.20fit published_url
@@ -139,9 +140,12 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
+${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href)}">`).join("\n")}
 <script nonce="${escapeHtml(nonce)}">window.__MCU_CONFIG__ = ${escapeJsonForScript(clientConfig)};</script>
 </head>
 <body class="${escapeHtml(bodyClass)}">
+<script nonce="${escapeHtml(nonce)}">window.__20FIT_NAV_LOGIN__="/login";window.Auth={ready:new Promise(function(r){window.__navAuthReady=r;}),ssoTo:function(u){(window.__navSsoTo||function(x){location.href=x;})(u);},signOut:function(){return (window.__navSignOut||function(){})();}};</script>
+<script src="/universal-nav.js" data-no-bar defer></script>
 <a class="skip-link" href="#main">${escapeHtml(s.skipToContent)}</a>
 <header class="site-header">
   <div class="wrap header-inner">
@@ -157,6 +161,40 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
       <a href="${escapeHtml(articlesHref)}" class="nav-secondary">${escapeHtml(s.nav.articles)}</a>
       <a href="${escapeHtml(homeHref)}#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
       <a href="${escapeHtml(checkMcuHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>
+      <div class="nav-apps" data-role="nav-apps">
+        <button type="button" class="nav-apps-btn" data-act="apps-toggle" aria-label="${escapeHtml(s.navProductsLabel)}" aria-expanded="false" aria-haspopup="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          <span class="header-label">${escapeHtml(s.navProducts)}</span>
+        </button>
+        <div class="nav-apps-panel" data-role="apps-panel" hidden></div>
+      </div>
+      <div class="nav-auth" data-role="header-auth">
+        <a class="nav-login" data-role="login-cta" href="/login" aria-label="${escapeHtml(s.navLogin)}">
+          <svg class="nav-ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+          <span class="header-label">${escapeHtml(s.navLogin)}</span>
+        </a>
+        <div class="nav-profile" data-role="nav-profile" hidden>
+          <button type="button" class="nav-avatar" data-act="profile-toggle" aria-label="${escapeHtml(s.accountLabel)}" aria-expanded="false" aria-haspopup="true">
+            <span class="avatar-circle" data-role="avatar-initial">?</span>
+            <span class="header-label" data-role="profile-firstname"></span>
+          </button>
+          <div class="nav-profile-panel" data-role="profile-panel" hidden>
+            <div class="profile-head">
+              <span class="avatar-circle avatar-lg" data-role="avatar-initial">?</span>
+              <div class="profile-id">
+                <div class="profile-name" data-role="profile-name">User</div>
+                <div class="profile-email" data-role="profile-email"></div>
+              </div>
+            </div>
+            <hr class="profile-hr">
+            <a class="profile-row" data-role="profile-link" data-url="${escapeHtml(myOrigin + "/profile")}" href="${escapeHtml(myOrigin + "/profile")}">${escapeHtml(s.profileMyProfile)}</a>
+            <a class="profile-row" data-role="profile-link" data-url="${escapeHtml(myOrigin + "/purchases")}" href="${escapeHtml(myOrigin + "/purchases")}">${escapeHtml(s.profilePurchases)}</a>
+            <a class="profile-row" data-role="profile-link" data-url="${escapeHtml(myOrigin + "/settings")}" href="${escapeHtml(myOrigin + "/settings")}">${escapeHtml(s.profileSettings)}</a>
+            <hr class="profile-hr">
+            <button type="button" class="profile-row profile-logout" data-role="header-logout">${escapeHtml(s.signOut)}</button>
+          </div>
+        </div>
+      </div>
       ${langToggleMarkup(lang, s)}
       <button type="button" class="theme-toggle" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>

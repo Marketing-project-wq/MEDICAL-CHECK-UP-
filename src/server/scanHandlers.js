@@ -20,8 +20,12 @@ import { bearerToken, readJsonBody, sendJson, createRateLimiter } from "./httpUt
 
 const MAX_BODY_BYTES = 14 * 1024 * 1024; // ~10MB file base64-encoded + JSON overhead
 const MAX_DECODED_BYTES = 10 * 1024 * 1024; // matches the real my.20fit.id backend's multer limit (verified against its source)
-const MEMBER_WINDOW_MS = 10 * 60 * 1000;
-const MEMBER_MAX_REQ = 20;
+// Per spec: at most 10 scans per day per member. Best-effort in-memory sliding
+// window (single instance; the durable per-day backstop still belongs on the
+// my20fit-dashboard side — see README). Resets on restart, which only ever
+// grants a member MORE headroom, never less, so it can't wrongly block anyone.
+const MEMBER_WINDOW_MS = 24 * 60 * 60 * 1000;
+const MEMBER_MAX_REQ = 10;
 
 // Best-effort in-memory sliding-window limiter (single instance; a hard
 // backstop still belongs on the my20fit-dashboard side — see README).

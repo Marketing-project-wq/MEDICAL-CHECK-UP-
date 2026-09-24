@@ -40,6 +40,13 @@ const svg = (inner, cls = "lp-ic") =>
  * @param {string} opts.myOrigin          my.20fit.id origin (for the real Privacy page)
  * @returns {{ title:string, description:string, bodyHtml:string }}
  */
+// Hero photo — the product image the user supplied (same shots as the login side
+// panel), hotlinked from media.20fit.id. The landing runs with relaxImg (any
+// https image allowed) and the header logo already loads from this same host, so
+// the photo loads the same way. Desktop = wide shot; mobile (≤720px) = portrait.
+const HERO_IMG_DESKTOP = "https://media.20fit.id/wp-content/uploads/2026/09/WhatsApp-Image-2026-07-31-at-16.45.06-2.jpeg";
+const HERO_IMG_MOBILE = "https://media.20fit.id/wp-content/uploads/2026/09/WhatsApp-Image-2026-07-31-at-15.04.33-3.jpeg";
+
 export function renderLandingPage({ lang, loginUrl = "/login", registerUrl = "/register", bookingUrl, clinicContactUrl, clinicAddress, myOrigin }) {
   const L = (o) => (lang === "id" ? (o.id != null ? o.id : o.en) : o.en);
   const e = escapeHtml;
@@ -58,17 +65,11 @@ export function renderLandingPage({ lang, loginUrl = "/login", registerUrl = "/r
         </div>
         <p class="lp-note">${svg(IC.shield, "lp-ic-sm")} ${e(L({ id: "Bukan diagnosis medis — hanya membantu Anda membaca hasil MCU Anda.", en: "Not a medical diagnosis — it only helps you read your MCU results." }))}</p>
       </div>
-      <div class="lp-hero-visual" aria-hidden="true">
-        <div class="lp-phone">
-          <div class="lp-phone-notch"></div>
-          <div class="lp-phone-screen">
-            <div class="lp-mini-row"><span class="lp-mini-dot ok"></span><span class="lp-mini-bar" style="width:70%"></span></div>
-            <div class="lp-mini-row"><span class="lp-mini-dot hi"></span><span class="lp-mini-bar" style="width:92%"></span></div>
-            <div class="lp-mini-row"><span class="lp-mini-dot ok"></span><span class="lp-mini-bar" style="width:55%"></span></div>
-            <div class="lp-mini-row"><span class="lp-mini-dot lo"></span><span class="lp-mini-bar" style="width:38%"></span></div>
-            <div class="lp-mini-row"><span class="lp-mini-dot ok"></span><span class="lp-mini-bar" style="width:64%"></span></div>
-          </div>
-        </div>
+      <div class="lp-hero-visual">
+        <picture class="lp-hero-pic">
+          <source media="(max-width: 720px)" srcset="${e(HERO_IMG_MOBILE)}">
+          <img class="lp-hero-img" src="${e(HERO_IMG_DESKTOP)}" alt="${e(L({ id: "20FIT Medical Check-Up", en: "20FIT Medical Check-Up" }))}" loading="eager" decoding="async">
+        </picture>
       </div>
     </div>
   </section>`;

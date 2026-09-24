@@ -52,6 +52,10 @@ html[data-theme="dark"] .lp-hero{background:linear-gradient(160deg,rgba(196,17,1
 .lp-mini-dot{width:10px;height:10px;border-radius:99px;flex:0 0 auto}
 .lp-mini-dot.ok{background:#46d369}.lp-mini-dot.hi{background:#ff6b6b}.lp-mini-dot.lo{background:var(--lp-amber)}
 .lp-mini-bar{height:10px;border-radius:99px;background:linear-gradient(90deg,var(--lp-line),color-mix(in srgb,var(--lp-line) 40%,transparent))}
+/* Hero product photo (replaces the old skeleton mockup). Soft-tint background so
+   the slot never looks empty while the image loads. */
+.lp-hero-pic{display:block;width:100%;max-width:440px;margin:0 auto}
+.lp-hero-img{width:100%;height:auto;display:block;border-radius:22px;box-shadow:var(--lp-shadow);background:var(--lp-red-soft)}
 
 /* steps */
 .lp-steps{display:grid;grid-template-columns:1fr;gap:14px;margin-top:18px}

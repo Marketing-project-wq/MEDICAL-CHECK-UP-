@@ -110,6 +110,43 @@ function wireMoreMenu() {
   });
 }
 
+// Header page tabs (SCAN · HISTORY) — the "Semua Produk 20FIT" left-side nav.
+// The tabs are plain links (SCAN → /medical, HISTORY → /medical#history) so they
+// work without JS; this only keeps the active underline in sync with the current
+// view. On the medical page HISTORY is an in-page hash switch (no reload), so the
+// active tab follows location.hash live. Off the medical page no tab is active.
+function wireHeaderTabs() {
+  const tabs = document.querySelectorAll("[data-tab]");
+  if (!tabs.length) return;
+  const medBase = LANG === "id" ? "/id/medical" : "/medical";
+  function activeId() {
+    const p = location.pathname.replace(/\/+$/, "") || "/";
+    if (p !== medBase) return null;
+    return (location.hash || "").replace(/^#/, "") === "history" ? "history" : "scan";
+  }
+  function paint() {
+    const active = activeId();
+    tabs.forEach((t) => {
+      const on = active != null && t.getAttribute("data-tab") === active;
+      t.classList.toggle("is-active", on);
+      if (on) t.setAttribute("aria-current", "page");
+      else t.removeAttribute("aria-current");
+    });
+  }
+  paint();
+  window.addEventListener("hashchange", paint);
+  window.addEventListener("popstate", paint);
+  // Choosing a tab inside the mobile [⋮] More dropdown closes the dropdown.
+  document.querySelectorAll('[data-role="more-tabs"] [data-tab]').forEach((a) => {
+    a.addEventListener("click", () => {
+      const mp = document.querySelector('[data-role="more-panel"]');
+      if (mp) mp.hidden = true;
+      const mb = document.querySelector('[data-act="more-toggle"]');
+      if (mb) mb.setAttribute("aria-expanded", "false");
+    });
+  });
+}
+
 function wireLangToggleButtons() {
   document.querySelectorAll('[data-act="lang"]').forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1017,6 +1054,7 @@ async function boot() {
   wireProductsMenu();
   wireProfileMenu();
   wireMoreMenu();
+  wireHeaderTabs();
 
   // Built-in auth pages — hydrate the login/register/reset/callback forms.
   if (authPageEl) {

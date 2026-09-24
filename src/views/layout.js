@@ -118,6 +118,26 @@ export function renderLayout(opts) {
   const articlesHref = lang === "id" ? "/id/articles" : "/articles";
   const quizHref = lang === "id" ? "/id/quiz" : "/quiz";
 
+  // Per-product page tabs — spec "Header Design — Semua Produk 20FIT". For
+  // medicalscanner the product has two views: SCAN (upload + latest result) and
+  // HISTORY (all saved MCUs). Both live on the SINGLE /medical page (a faithful
+  // clone of my.20fit.id/medical, which is likewise one page), so HISTORY is the
+  // same page with #history — an in-page view switch, not a reload. The active
+  // tab is refined client-side from the pathname + hash (app.js wireHeaderTabs);
+  // SSR marks SCAN active on the medical page (it can't see the hash yet).
+  const medBase = lang === "id" ? "/id/medical" : "/medical";
+  const onMedical = canonicalPath === medBase;
+  const productTabs = [
+    { id: "scan", label: s.tabScan, href: medBase, active: onMedical },
+    { id: "history", label: s.tabHistory, href: medBase + "#history", active: false },
+  ];
+  const tabLink = (t, cls) =>
+    `<a class="${cls}${t.active ? " is-active" : ""}" href="${escapeHtml(t.href)}" data-tab="${t.id}"${
+      t.active ? ' aria-current="page"' : ""
+    }>${escapeHtml(t.label)}</a>`;
+  const tabsHtml = productTabs.map((t) => tabLink(t, "nav-tab")).join("");
+  const moreTabsHtml = productTabs.map((t) => tabLink(t, "more-tab")).join("");
+
   return `<!doctype html>
 <html lang="${escapeHtml(s.htmlLang)}">
 <head>
@@ -156,18 +176,20 @@ ${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href
 <a class="skip-link" href="#main">${escapeHtml(s.skipToContent)}</a>
 <header class="site-header">
   <div class="wrap header-inner">
+    <div class="header-left">
     <a class="brand" href="${escapeHtml(myOrigin)}" aria-label="20FIT">
       <img class="brand-logo" alt="20FIT" width="112" height="32">
       <span class="brand-logo-fallback" hidden>20FIT</span>
       <script nonce="${escapeHtml(nonce)}">${themeLogoBootScript(logoLightUrl, logoDarkUrl)}</script>
       <span class="brand-sub">${escapeHtml(s.headerTagline)}</span>
     </a>
+    <nav class="nav-tabs desktop-only" data-role="header-tabs" aria-label="${escapeHtml(s.tabsNavLabel)}">${tabsHtml}</nav>
+    </div>
     <nav class="site-nav" aria-label="primary">
       <div class="nav-fixed">
       <div class="nav-apps" data-role="nav-apps">
         <button type="button" class="nav-apps-btn" data-act="apps-toggle" aria-label="${escapeHtml(s.navProductsLabel)}" aria-expanded="false" aria-haspopup="true">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
-          <span class="header-label">${escapeHtml(s.navProducts)}</span>
         </button>
         <div class="nav-apps-panel" data-role="apps-panel" hidden></div>
       </div>
@@ -202,18 +224,21 @@ ${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href
       <button type="button" class="theme-toggle desktop-only" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.4 14.7A8.6 8.6 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1Z"></path></svg>
+        <span class="header-label theme-label"><span class="tl-dark">${escapeHtml(s.themeDark)}</span><span class="tl-light">${escapeHtml(s.themeLight)}</span></span>
       </button>
       <div class="nav-more mobile-only" data-role="nav-more">
         <button type="button" class="nav-more-btn" data-act="more-toggle" aria-label="${escapeHtml(lang === "id" ? "Lainnya" : "More")}" aria-expanded="false" aria-haspopup="true">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="5" r="1.7" fill="currentColor"></circle><circle cx="12" cy="12" r="1.7" fill="currentColor"></circle><circle cx="12" cy="19" r="1.7" fill="currentColor"></circle></svg>
         </button>
         <div class="nav-more-panel" data-role="more-panel" hidden>
+          <nav class="more-section" data-role="more-tabs" aria-label="${escapeHtml(s.tabsNavLabel)}">${moreTabsHtml}</nav>
+          <hr class="more-divider">
           <div class="more-item more-static">
             <span class="more-label">${escapeHtml(lang === "id" ? "Bahasa" : "Language")}</span>
             ${langToggleMarkup(lang, s)}
           </div>
           <button type="button" class="more-item more-theme" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
-            <span class="more-label">${escapeHtml(lang === "id" ? "Tampilan" : "Appearance")}</span>
+            <span class="more-label theme-label"><span class="tl-dark">${escapeHtml(s.themeDark)}</span><span class="tl-light">${escapeHtml(s.themeLight)}</span></span>
             <span class="more-theme-ic">
               <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>
               <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.4 14.7A8.6 8.6 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1Z"></path></svg>

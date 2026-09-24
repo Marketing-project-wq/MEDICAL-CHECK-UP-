@@ -188,19 +188,29 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
 /* Tagline hidden — the logo alone carries the brand in the minimalist header. */
 .brand-sub { display: none; font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .brand-logo { height: 26px; }
-/* The header is ONE line at every width: controls never wrap or shrink; the
-   page links + Check MCU drop out on smaller screens (see the media queries). */
-/* Header = universal controls ONLY (no page links): Profile · Products · Lang ·
-   Theme on desktop; on mobile Lang + Theme collapse into a [⋮] More dropdown.
-   Everything is small + icon-sized, so the header is ALWAYS one line — never wraps,
-   never scrolls, never overflows. flex `order` shows Profile before Products
-   (matching the spec) without changing DOM order. */
+/* Header = "Semua Produk 20FIT" layout. LEFT: logo + page tabs (SCAN · HISTORY),
+   active tab = red + underline. RIGHT: Products · Theme · Language · Profile on
+   desktop; on mobile the tabs + Language + Theme collapse into a [⋮] More dropdown,
+   leaving Logo · Products · Profile · More in the bar. The header is ALWAYS one
+   line — never wraps, never scrolls, never overflows. flex `order` sets the
+   right-side sequence (Products → Theme → Language → Profile) without needing to
+   reshuffle the DOM (source order keeps Profile beside Language). */
+.header-left { display: flex; align-items: center; gap: 22px; min-width: 0; }
+.nav-tabs { display: inline-flex; align-items: stretch; gap: 2px; height: 48px; }
+.nav-tab {
+  display: inline-flex; align-items: center; height: 100%; padding: 0 11px;
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted); text-decoration: none; white-space: nowrap;
+  border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease;
+}
+.nav-tab:hover { color: var(--ink); text-decoration: none; }
+.nav-tab.is-active { color: var(--red-text); border-bottom-color: var(--red); }
 .site-nav { display: flex; flex-wrap: nowrap; flex: 1 1 auto; min-width: 0; justify-content: flex-end; align-items: center; gap: 16px; font-size: 0.92rem; }
 .nav-fixed { display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; flex: 0 0 auto; }
-.nav-fixed > .nav-auth { order: 1; }
-.nav-fixed > .nav-apps { order: 2; }
+.nav-fixed > .nav-apps { order: 1; }
+.nav-fixed > .theme-toggle { order: 2; }
 .nav-fixed > .nav-lang { order: 3; display: inline-flex; }
-.nav-fixed > .theme-toggle { order: 4; }
+.nav-fixed > .nav-auth { order: 4; }
 .nav-fixed > .nav-more { order: 5; }
 .desktop-only { display: inline-flex; }
 .mobile-only { display: none; }
@@ -212,9 +222,27 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
 .more-item.more-theme:hover { background: var(--header-hover); }
 .more-theme-ic { display: inline-flex; }
 .more-theme-ic svg { width: 18px; height: 18px; }
-.more-theme .icon-moon { display: none; }
-html[data-theme="dark"] .more-theme .icon-sun { display: none; }
-html[data-theme="dark"] .more-theme .icon-moon { display: block; }
+/* Theme icon shows the TARGET theme (spec: moon = "Dark mode", sun = "Light
+   mode"): light theme shows the moon, dark theme shows the sun. */
+.more-theme .icon-sun { display: none; }
+.more-theme .icon-moon { display: block; }
+html[data-theme="dark"] .more-theme .icon-sun { display: block; }
+html[data-theme="dark"] .more-theme .icon-moon { display: none; }
+/* Action label ("Dark mode" in light, "Light mode" in dark) — pure-CSS swap so
+   there is no first-paint flash and no JS needed to keep it in sync. */
+.theme-label .tl-light { display: none; }
+html[data-theme="dark"] .theme-label .tl-dark { display: none; }
+html[data-theme="dark"] .theme-label .tl-light { display: inline; }
+/* Page tabs inside the mobile [⋮] More dropdown. */
+.more-section { display: flex; flex-direction: column; gap: 2px; padding: 2px 0; }
+.more-tab {
+  display: block; padding: 10px 12px; border-radius: 8px; text-decoration: none;
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.76rem; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--ink);
+}
+.more-tab:hover { background: var(--header-hover); text-decoration: none; }
+.more-tab.is-active { color: var(--red-text); background: rgba(214, 40, 40, 0.09); }
+.more-divider { border: 0; border-top: 1px solid var(--header-border); margin: 6px 4px; }
 .header-label { display: inline; }
 .site-nav a { color: var(--ink); font-weight: 500; }
 .site-nav a:hover { color: var(--red-text); text-decoration: none; }
@@ -261,15 +289,17 @@ html[data-theme="dark"] .more-theme .icon-moon { display: block; }
 html[data-theme="dark"] .btn-ghost { background: var(--card); color: var(--ink); border-color: var(--border-strong); }
 
 .theme-toggle {
-  display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
-  border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: var(--ink);
-  cursor: pointer; flex: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 34px; padding: 0 13px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: transparent; color: var(--ink);
+  cursor: pointer; flex: none; font-family: inherit; font-size: 0.84rem; font-weight: 600; white-space: nowrap;
 }
 .theme-toggle:hover { background: var(--card-2); }
 .theme-toggle svg { width: 18px; height: 18px; }
-.theme-toggle .icon-moon { display: none; }
-html[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
-html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+html[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
 .btn-block { width: 100%; }
 .btn[disabled] { opacity: 0.45; cursor: not-allowed; transform: none; background: var(--muted-2); border-color: transparent; color: var(--white); }
 
@@ -517,6 +547,12 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 /* ── Header: ALWAYS one line — no wrap, no scroll, no overflow ──────────── */
 @media (max-width: 1023px) {
   .site-nav { gap: 8px; }
+  .header-left { gap: 14px; }
+  .nav-tab { padding: 0 8px; }
+  /* Tablet: theme control collapses to icon-only so logo + tabs + the right-side
+     controls always stay on a single line. */
+  .theme-toggle { width: 34px; padding: 0; }
+  .theme-toggle .header-label { display: none; }
 }
 /* Mobile — Lang + Theme move into the [⋮] More dropdown; only Logo · Profile ·
    Products · More stay in the bar = 4 small items, guaranteed to fit any width. */

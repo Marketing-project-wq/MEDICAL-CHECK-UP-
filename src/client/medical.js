@@ -344,6 +344,15 @@ export function setupMedical(root, { supabase, lang }) {
   if (modalBg) modalBg.addEventListener("click", (e) => { if (e.target === modalBg) closeMcuModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMcuModal(); });
 
+  // Header page tabs (SCAN · HISTORY) drive the view via the hash — HISTORY sets
+  // #history (open the full "All MCU" list), SCAN clears it (back to the top:
+  // upload + latest result). No reload: it's the same /medical page.
+  window.addEventListener("hashchange", () => {
+    const h = (location.hash || "").replace(/^#/, "");
+    if (h === "history") openAllMcu();
+    else if (!h) window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
   // ---- Boot: member gate + initial load ----
   (async function () {
     let session = null;
@@ -365,5 +374,8 @@ export function setupMedical(root, { supabase, lang }) {
       const idx = history.findIndex((r) => String(r.id) === wantId);
       if (idx >= 0) openHistory(idx);
     }
+    // Landed here with #history (the HISTORY tab, or the old /history route now
+    // redirected to /medical#history): open the full "All MCU" list on arrival.
+    else if ((location.hash || "").replace(/^#/, "") === "history") openAllMcu();
   })();
 }

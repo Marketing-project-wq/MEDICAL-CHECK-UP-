@@ -40,27 +40,55 @@ test("header carries a login/logout control next to the language toggle", () => 
   assert.match(html, /class="nav-login" data-role="login-cta" href="\/login"/, "relative login href");
 });
 
-test("header: controls-only (no page links) + mobile [More] dropdown holds lang + theme", () => {
+test("header: page tabs on the left + universal controls on the right; mobile [More] holds tabs + lang + theme", () => {
   const html = render("en");
-  // Universal controls only — the medicalscanner page links are gone from the header.
-  assert.ok(!/class="nav-secondary"/.test(html), "no Home/Quiz/Articles/FAQ links in the header");
-  assert.ok(!/class="nav-cta"/.test(html), "no Check MCU CTA in the header");
-  // Desktop: lang + theme inline (desktop-only). Mobile: a [More] button.
+  // No legacy page-link styles — the SCAN/HISTORY tabs are .nav-tab, not these.
+  assert.ok(!/class="nav-secondary"/.test(html), "no old Home/Quiz/Articles/FAQ links");
+  assert.ok(!/class="nav-cta"/.test(html), "no Check MCU CTA pill in the header");
+  // Left side: the product page tabs (desktop) — SCAN + HISTORY.
+  assert.match(html, /class="nav-tabs desktop-only" data-role="header-tabs"/, "desktop page-tabs nav");
+  assert.match(html, /class="nav-tab[^"]*" href="\/medical" data-tab="scan"[^>]*>Scan</, "SCAN tab → /medical");
+  assert.match(html, /class="nav-tab[^"]*" href="\/medical#history" data-tab="history"[^>]*>History</, "HISTORY tab → /medical#history");
+  // Right side: theme + lang inline on desktop; a [More] button on mobile.
   assert.match(html, /class="nav-lang desktop-only"/, "desktop language toggle");
   assert.match(html, /class="theme-toggle desktop-only"/, "desktop theme toggle");
   assert.match(html, /data-act="more-toggle"/, "mobile More button");
   assert.match(html, /data-role="more-panel"[^>]*hidden/, "More dropdown, hidden until opened");
-  // The More panel itself contains a language toggle + a theme toggle.
+  // The More panel holds the page tabs + a language toggle + a theme toggle.
   const panel = html.slice(html.indexOf('data-role="more-panel"'));
+  assert.ok(/data-role="more-tabs"/.test(panel), "More panel has the page-tabs section");
+  assert.ok(/class="more-tab[^"]*" href="\/medical#history" data-tab="history"/.test(panel), "More panel HISTORY tab");
   assert.ok(panel.includes('class="lang-toggle"'), "More panel has the language toggle");
   assert.ok(panel.includes('class="more-item more-theme"'), "More panel has the theme toggle");
+});
+
+test("header: SCAN tab is active (red + underline via .is-active) on the medical page", () => {
+  const html = renderLayout({
+    lang: "en",
+    strings: getStrings("en"),
+    title: "T",
+    description: "D",
+    canonicalPath: "/medical",
+    publicOrigin: "https://medicalscanner.20fit.id",
+    bodyHtml: "<main>x</main>",
+    clientConfig: { apiBase: "https://my.20fit.id", lang: "en" },
+    nonce: "n0nce",
+    logoLightUrl: "https://x/light.svg",
+    logoDarkUrl: "https://x/dark.svg",
+  });
+  assert.match(html, /class="nav-tab is-active" href="\/medical" data-tab="scan" aria-current="page">Scan</, "SCAN active on /medical");
+  // HISTORY's #history view is resolved client-side, so it is not active at SSR.
+  assert.match(html, /class="nav-tab" href="\/medical#history" data-tab="history">History</, "HISTORY inactive at SSR");
 });
 
 test("header carries the app-switcher (Products menu moved out of the black bar)", () => {
   const html = render("en");
   assert.match(html, /data-role="nav-apps"/, "app-switcher wrapper in the header");
   assert.match(html, /data-act="apps-toggle"/, "waffle toggle button");
-  assert.ok(html.includes('<span class="header-label">Products</span>'), "Products label (desktop; hidden on mobile)");
+  // Products is icon-only now (spec: grid icon, no "Products" text) — the name
+  // lives in aria-label for accessibility.
+  assert.match(html, /data-act="apps-toggle"[^>]*aria-label="All 20FIT products"/, "Products button named via aria-label");
+  assert.ok(!html.includes('<span class="header-label">Products</span>'), "no visible Products text label");
   assert.match(html, /data-role="apps-panel"[^>]*hidden/, "dropdown panel, hidden until opened");
   // The black universal-nav bar is suppressed (data-no-bar); only the header switcher remains.
   assert.match(html, /src="\/universal-nav\.js" data-no-bar/, "universal-nav loaded without its own bar");
@@ -69,8 +97,11 @@ test("header carries the app-switcher (Products menu moved out of the black bar)
 test("header login control is localized (ID)", () => {
   const html = render("id");
   assert.ok(html.includes('<span class="header-label">Masuk / Daftar</span>'), "ID login label");
-  assert.ok(html.includes('<span class="header-label">Produk</span>'), "ID products label");
+  assert.match(html, /data-act="apps-toggle"[^>]*aria-label="Semua produk 20FIT"/, "ID products aria-label");
   assert.ok(html.includes(">Keluar</button>"), "ID logout in the dropdown");
+  // ID tab labels (Scan · Riwayat).
+  assert.match(html, /data-tab="scan"[^>]*>Scan</, "ID SCAN tab");
+  assert.match(html, /data-tab="history"[^>]*>Riwayat</, "ID HISTORY tab");
 });
 
 test("profile dropdown: avatar + name/email placeholders + hub links + logout", () => {

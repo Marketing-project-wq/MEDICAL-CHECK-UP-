@@ -847,12 +847,15 @@ const server = http.createServer(async (req, res) => {
   // is a single page with no separate /history or /scan/:id routes. So these old
   // standalone routes (which still used the pre-clone metrics/grade shape and
   // would render empty against the real result shape) redirect to /medical.
+  // The HISTORY header tab points at /history; it (and any old deep link) lands
+  // on the Medical Record page with the full "All MCU" list opened, via the
+  // #history hash the client reads (medical.js). Same single page as /medical.
   if (pathname === "/history" || pathname === "/history/" || pathname === "/history/auth/callback") {
-    res.writeHead(302, { Location: "/medical" }).end();
+    res.writeHead(302, { Location: "/medical#history" }).end();
     return;
   }
   if (pathname === "/id/history" || pathname === "/id/history/" || pathname === "/id/history/auth/callback") {
-    res.writeHead(302, { Location: "/id/medical" }).end();
+    res.writeHead(302, { Location: "/id/medical#history" }).end();
     return;
   }
   {

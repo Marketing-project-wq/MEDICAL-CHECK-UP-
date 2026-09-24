@@ -15,10 +15,42 @@ import { safeNextPath } from "../shared/returnTo.js";
 // Small inline Google "G" (brand SVG, not an emoji — spec: no emoji).
 const GOOGLE_SVG = `<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.72a5.4 5.4 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.02-2.34z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58z"/></svg>`;
 
-function authShell(dataAttrs, inner) {
-  return `<section class="section auth-section"><div class="wrap wrap-narrow">
-    <div class="auth-card" ${dataAttrs}>
-      ${inner}
+// Login / register side graphic — supplied by the user, hotlinked from
+// media.20fit.id (same host as the logo; already allowed by the CSP img-src).
+// Desktop uses a wide shot; mobile (≤859px, where the panel stacks on top of
+// the form) swaps to a portrait shot via <picture>. If either image fails to
+// load, the panel falls back to a solid brand-red background and the white copy
+// stays legible. Override here if the source files ever move.
+const AUTH_SIDE_IMG_DESKTOP = "https://media.20fit.id/wp-content/uploads/2026/09/WhatsApp-Image-2026-07-31-at-16.45.06-2.jpeg";
+const AUTH_SIDE_IMG_MOBILE = "https://media.20fit.id/wp-content/uploads/2026/09/WhatsApp-Image-2026-07-31-at-15.04.33-3.jpeg";
+
+// The product panel beside the auth form. All copy is white over a dark scrim
+// so it reads over any photo; the text itself is truthful product framing
+// (awareness, not diagnosis), never an invented claim.
+function authAside(a) {
+  return `<aside class="auth-aside">
+    <picture class="auth-aside-pic">
+      <source media="(max-width: 859px)" srcset="${escapeHtml(AUTH_SIDE_IMG_MOBILE)}">
+      <img class="auth-aside-img" src="${escapeHtml(AUTH_SIDE_IMG_DESKTOP)}" alt="" loading="lazy" decoding="async">
+    </picture>
+    <div class="auth-aside-inner">
+      <div class="auth-aside-brand">20FIT</div>
+      <h2 class="auth-aside-title">${escapeHtml(a.sideTitle)}</h2>
+      <p class="auth-aside-desc">${escapeHtml(a.sideDesc)}</p>
+    </div>
+  </aside>`;
+}
+
+// `aside` (optional): the product graphic panel. When present the shell renders
+// a two-panel card (image beside the form on desktop, stacked on mobile); when
+// omitted it's the plain centered card (reset-password, callback).
+function authShell(dataAttrs, inner, aside = "") {
+  return `<section class="section auth-section"><div class="wrap">
+    <div class="auth-layout${aside ? " has-side" : ""}">
+      ${aside}
+      <div class="auth-card" ${dataAttrs}>
+        ${inner}
+      </div>
     </div>
   </div></section>`;
 }
@@ -62,7 +94,7 @@ export function renderLoginPage({ lang, next }) {
       <a href="${escapeHtml(regHref)}">${escapeHtml(a.toRegister)}</a>
     </div>
     <p class="auth-brandnote">${escapeHtml(a.brandNote)}</p>
-  `);
+  `, authAside(a));
   return { title: `${a.loginTitle} — ${s.brand}`, description: a.loginDesc, bodyHtml: body };
 }
 
@@ -90,7 +122,7 @@ export function renderRegisterPage({ lang, next }) {
       <a href="${escapeHtml(loginHref)}">${escapeHtml(a.toLogin)}</a>
     </div>
     <p class="auth-brandnote">${escapeHtml(a.brandNote)}</p>
-  `);
+  `, authAside(a));
   return { title: `${a.registerTitle} — ${s.brand}`, description: a.registerDesc, bodyHtml: body };
 }
 

@@ -52,6 +52,25 @@ test("callback page: processing shell carries next", () => {
   assert.ok(p.bodyHtml.includes('data-next="/history"'));
 });
 
+test("login/register: product side panel (responsive images + white copy); not on reset/callback", () => {
+  const login = renderLoginPage({ lang: "en", next: "" });
+  assert.ok(login.bodyHtml.includes('class="auth-layout has-side"'), "split layout on login");
+  assert.ok(login.bodyHtml.includes('class="auth-aside"'), "product graphic panel");
+  assert.match(login.bodyHtml, /<source media="\(max-width: 859px\)" srcset="https:\/\/media\.20fit\.id[^"]+15\.04\.33-3\.jpeg">/, "mobile image via <picture> source");
+  assert.match(login.bodyHtml, /<img class="auth-aside-img" src="https:\/\/media\.20fit\.id[^"]+16\.45\.06-2\.jpeg"/, "desktop image as the <img>");
+  assert.ok(login.bodyHtml.includes("awareness, not a diagnosis"), "truthful white side copy (awareness, not diagnosis)");
+  assert.equal((login.bodyHtml.match(/<h1[ >]/g) || []).length, 1, "aside heading is not a second h1");
+
+  const reg = renderRegisterPage({ lang: "en", next: "" });
+  assert.ok(reg.bodyHtml.includes('class="auth-aside"'), "aside on register too");
+
+  const reset = renderResetPage({ lang: "en" });
+  assert.ok(!reset.bodyHtml.includes('class="auth-aside"'), "no aside on reset");
+  assert.ok(!reset.bodyHtml.includes("has-side"), "reset stays the plain centered card");
+  const cb = renderCallbackPage({ lang: "en", next: "" });
+  assert.ok(!cb.bodyHtml.includes('class="auth-aside"'), "no aside on callback");
+});
+
 test("auth pages are localized (ID labels)", () => {
   const login = renderLoginPage({ lang: "id", next: "" });
   assert.ok(login.bodyHtml.includes('href="/id/register"') && login.bodyHtml.includes('href="/id/reset-password"'));

@@ -123,6 +123,8 @@ const STRINGS = {
     profileSettings: "Pengaturan",
     auth: {
       brandNote: "Gunakan akun 20FIT kamu — akun yang sama untuk my.20fit.id dan layanan 20FIT lainnya.",
+      sideTitle: "Pahami hasil medical check-up-mu",
+      sideDesc: "Upload hasil MCU atau lab, lalu dapatkan penjelasan tiap nilai dalam bahasa yang mudah — untuk kesadaran, bukan diagnosis.",
       emailLabel: "Email",
       emailPh: "kamu@email.com",
       passwordLabel: "Kata sandi",
@@ -475,6 +477,8 @@ const STRINGS = {
     profileSettings: "Settings",
     auth: {
       brandNote: "Use your 20FIT account — the same login as my.20fit.id and other 20FIT services.",
+      sideTitle: "Read your medical check-up with confidence",
+      sideDesc: "Upload your MCU or lab result and get a clear, plain-language explanation of every value — awareness, not a diagnosis.",
       emailLabel: "Email",
       emailPh: "you@email.com",
       passwordLabel: "Password",

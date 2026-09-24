@@ -163,13 +163,6 @@ ${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href
       <span class="brand-sub">${escapeHtml(s.headerTagline)}</span>
     </a>
     <nav class="site-nav" aria-label="primary">
-      <div class="nav-scroll">
-        <a href="${escapeHtml(homeHref)}" class="nav-secondary">${escapeHtml(s.nav.beranda)}</a>
-        <a href="${escapeHtml(quizHref)}" class="nav-secondary">${escapeHtml(s.nav.quiz)}</a>
-        <a href="${escapeHtml(articlesHref)}" class="nav-secondary">${escapeHtml(s.nav.articles)}</a>
-        <a href="${escapeHtml(homeHref)}#faq" class="nav-secondary">${escapeHtml(s.nav.example)}</a>
-        <a href="${escapeHtml(checkMcuHref)}" class="nav-cta">${escapeHtml(s.nav.home)}</a>
-      </div>
       <div class="nav-fixed">
       <div class="nav-apps" data-role="nav-apps">
         <button type="button" class="nav-apps-btn" data-act="apps-toggle" aria-label="${escapeHtml(s.navProductsLabel)}" aria-expanded="false" aria-haspopup="true">
@@ -205,11 +198,29 @@ ${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href
           </div>
         </div>
       </div>
-      ${langToggleMarkup(lang, s)}
-      <button type="button" class="theme-toggle" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
+      <div class="nav-lang desktop-only">${langToggleMarkup(lang, s)}</div>
+      <button type="button" class="theme-toggle desktop-only" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.4 14.7A8.6 8.6 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1Z"></path></svg>
       </button>
+      <div class="nav-more mobile-only" data-role="nav-more">
+        <button type="button" class="nav-more-btn" data-act="more-toggle" aria-label="${escapeHtml(lang === "id" ? "Lainnya" : "More")}" aria-expanded="false" aria-haspopup="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="5" r="1.7" fill="currentColor"></circle><circle cx="12" cy="12" r="1.7" fill="currentColor"></circle><circle cx="12" cy="19" r="1.7" fill="currentColor"></circle></svg>
+        </button>
+        <div class="nav-more-panel" data-role="more-panel" hidden>
+          <div class="more-item more-static">
+            <span class="more-label">${escapeHtml(lang === "id" ? "Bahasa" : "Language")}</span>
+            ${langToggleMarkup(lang, s)}
+          </div>
+          <button type="button" class="more-item more-theme" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
+            <span class="more-label">${escapeHtml(lang === "id" ? "Tampilan" : "Appearance")}</span>
+            <span class="more-theme-ic">
+              <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>
+              <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.4 14.7A8.6 8.6 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1Z"></path></svg>
+            </span>
+          </button>
+        </div>
+      </div>
       </div>
     </nav>
   </div>

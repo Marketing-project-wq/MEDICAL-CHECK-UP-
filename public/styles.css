@@ -190,12 +190,31 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
 .brand-logo { height: 26px; }
 /* The header is ONE line at every width: controls never wrap or shrink; the
    page links + Check MCU drop out on smaller screens (see the media queries). */
-/* The header is ONE line. The page links live in .nav-scroll (which scrolls
-   horizontally when they don't fit — they are NEVER hidden); the universal
-   controls live in .nav-fixed and stay pinned + visible at every width. */
+/* Header = universal controls ONLY (no page links): Profile · Products · Lang ·
+   Theme on desktop; on mobile Lang + Theme collapse into a [⋮] More dropdown.
+   Everything is small + icon-sized, so the header is ALWAYS one line — never wraps,
+   never scrolls, never overflows. flex `order` shows Profile before Products
+   (matching the spec) without changing DOM order. */
 .site-nav { display: flex; flex-wrap: nowrap; flex: 1 1 auto; min-width: 0; justify-content: flex-end; align-items: center; gap: 16px; font-size: 0.92rem; }
-.nav-scroll { display: flex; flex-wrap: nowrap; align-items: center; gap: 20px; flex: 0 0 auto; min-width: 0; }
-.nav-fixed { display: flex; flex-wrap: nowrap; align-items: center; gap: 16px; flex: 0 0 auto; }
+.nav-fixed { display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; flex: 0 0 auto; }
+.nav-fixed > .nav-auth { order: 1; }
+.nav-fixed > .nav-apps { order: 2; }
+.nav-fixed > .nav-lang { order: 3; display: inline-flex; }
+.nav-fixed > .theme-toggle { order: 4; }
+.nav-fixed > .nav-more { order: 5; }
+.desktop-only { display: inline-flex; }
+.mobile-only { display: none; }
+.nav-more { position: relative; }
+.nav-more-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--header-border); background: transparent; color: var(--header-text); cursor: pointer; }
+.nav-more-btn:hover { background: var(--header-hover); }
+.nav-more-panel { position: absolute; top: calc(100% + 8px); right: 0; width: 220px; background: var(--card); border: 1px solid var(--header-border); border-radius: 12px; box-shadow: var(--shadow); padding: 8px; z-index: 40; }
+.more-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--ink); background: transparent; border: 0; cursor: pointer; text-align: left; }
+.more-item.more-theme:hover { background: var(--header-hover); }
+.more-theme-ic { display: inline-flex; }
+.more-theme-ic svg { width: 18px; height: 18px; }
+.more-theme .icon-moon { display: none; }
+html[data-theme="dark"] .more-theme .icon-sun { display: none; }
+html[data-theme="dark"] .more-theme .icon-moon { display: block; }
 .header-label { display: inline; }
 .site-nav a { color: var(--ink); font-weight: 500; }
 .site-nav a:hover { color: var(--red-text); text-decoration: none; }
@@ -495,32 +514,21 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
   .cta-banner-inner { flex-direction: column; align-items: stretch; text-align: center; }
 }
 
-/* ── Header: ALWAYS one line (spec: satu garis, tidak turun ke bawah) ──── */
-/* When the page links don't fit, they become a horizontal-SCROLL strip — they
-   are NEVER hidden. The universal controls (.nav-fixed) stay pinned + visible. */
+/* ── Header: ALWAYS one line — no wrap, no scroll, no overflow ──────────── */
 @media (max-width: 1023px) {
   .site-nav { gap: 8px; }
-  .nav-scroll {
-    flex: 1 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 14px; padding: 2px 0;
-    /* fade the trailing edge so it reads as "scroll for more" */
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent 100%);
-            mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent 100%);
-  }
-  .nav-scroll::-webkit-scrollbar { display: none; }
-  .nav-scroll .nav-secondary { white-space: nowrap; }
 }
-/* Mobile — icon-only: the four controls compress, Check MCU + all text labels
-   drop out. Nothing wraps to a second row; the logo shortens. */
+/* Mobile — Lang + Theme move into the [⋮] More dropdown; only Logo · Profile ·
+   Products · More stay in the bar = 4 small items, guaranteed to fit any width. */
 @media (max-width: 767px) {
   .header-inner { height: 44px; gap: 8px; }
   .site-nav { gap: 6px; font-size: 0.85rem; }
   .nav-fixed { gap: 4px; }
-  .nav-scroll { gap: 12px; }
   .brand-sub { display: none; }
   .brand-logo { width: 78px; height: 24px; }
-  /* Check MCU stays visible — it just rides in the scrollable strip, compact. */
-  .site-nav .nav-cta { padding: 6px 12px; font-size: 0.8rem; }
+  .desktop-only { display: none !important; }
+  .mobile-only { display: inline-flex !important; }
+  .nav-more-panel { position: fixed; top: calc(44px + env(safe-area-inset-top, 0px)); right: 8px; left: auto; width: min(240px, calc(100vw - 16px)); }
   .header-label { display: none !important; }
   .nav-login { width: 38px; height: 38px; padding: 0; gap: 0; border-radius: 10px; }
   .nav-login .nav-ic { width: 20px; height: 20px; }

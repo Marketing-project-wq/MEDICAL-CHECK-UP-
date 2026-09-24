@@ -40,6 +40,22 @@ test("header carries a login/logout control next to the language toggle", () => 
   assert.match(html, /class="nav-login" data-role="login-cta" href="\/login"/, "relative login href");
 });
 
+test("header: controls-only (no page links) + mobile [More] dropdown holds lang + theme", () => {
+  const html = render("en");
+  // Universal controls only — the medicalscanner page links are gone from the header.
+  assert.ok(!/class="nav-secondary"/.test(html), "no Home/Quiz/Articles/FAQ links in the header");
+  assert.ok(!/class="nav-cta"/.test(html), "no Check MCU CTA in the header");
+  // Desktop: lang + theme inline (desktop-only). Mobile: a [More] button.
+  assert.match(html, /class="nav-lang desktop-only"/, "desktop language toggle");
+  assert.match(html, /class="theme-toggle desktop-only"/, "desktop theme toggle");
+  assert.match(html, /data-act="more-toggle"/, "mobile More button");
+  assert.match(html, /data-role="more-panel"[^>]*hidden/, "More dropdown, hidden until opened");
+  // The More panel itself contains a language toggle + a theme toggle.
+  const panel = html.slice(html.indexOf('data-role="more-panel"'));
+  assert.ok(panel.includes('class="lang-toggle"'), "More panel has the language toggle");
+  assert.ok(panel.includes('class="more-item more-theme"'), "More panel has the theme toggle");
+});
+
 test("header carries the app-switcher (Products menu moved out of the black bar)", () => {
   const html = render("en");
   assert.match(html, /data-role="nav-apps"/, "app-switcher wrapper in the header");

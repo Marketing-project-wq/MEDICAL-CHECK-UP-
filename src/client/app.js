@@ -51,20 +51,62 @@ function currentTheme() {
 }
 
 function wireThemeToggle() {
-  const btn = document.querySelector('[data-act="theme-toggle"]');
-  if (!btn) return;
-  btn.addEventListener("click", () => {
-    const next = currentTheme() === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next);
-    // Keep the browser address bar seamless with the header on a manual toggle.
-    const tc = document.getElementById("mcu-theme-color");
-    if (tc) tc.setAttribute("content", next === "dark" ? "#141414" : "#ffffff");
-    setLogosForTheme(next);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      /* best effort */
-    }
+  // There can be two theme toggles: the desktop one in the header, and one inside
+  // the mobile [More] dropdown — wire them both.
+  const btns = document.querySelectorAll('[data-act="theme-toggle"]');
+  if (!btns.length) return;
+  btns.forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const next = currentTheme() === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      // Keep the browser address bar seamless with the header on a manual toggle.
+      const tc = document.getElementById("mcu-theme-color");
+      if (tc) tc.setAttribute("content", next === "dark" ? "#141414" : "#ffffff");
+      setLogosForTheme(next);
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+      } catch {
+        /* best effort */
+      }
+      // Close the mobile More dropdown if the toggle lived inside it.
+      const mp = document.querySelector('[data-role="more-panel"]');
+      if (mp) mp.hidden = true;
+      const mb = document.querySelector('[data-act="more-toggle"]');
+      if (mb) mb.setAttribute("aria-expanded", "false");
+    }),
+  );
+}
+
+// [⋮] More dropdown (mobile) — holds Language + Theme. One of the three header
+// dropdowns; opening it closes Profile + Products, and vice versa.
+function wireMoreMenu() {
+  const wrap = document.querySelector('[data-role="nav-more"]');
+  if (!wrap) return;
+  const btn = wrap.querySelector('[data-act="more-toggle"]');
+  const panel = wrap.querySelector('[data-role="more-panel"]');
+  if (!btn || !panel) return;
+  const close = () => {
+    panel.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+  };
+  const open = () => {
+    const apps = document.querySelector('[data-role="apps-panel"]');
+    const prof = document.querySelector('[data-role="profile-panel"]');
+    if (apps) apps.hidden = true;
+    if (prof) prof.hidden = true;
+    panel.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (panel.hidden) open();
+    else close();
+  });
+  document.addEventListener("click", (e) => {
+    if (!panel.hidden && !wrap.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !panel.hidden) close();
   });
 }
 
@@ -224,6 +266,8 @@ function wireProfileMenu() {
   const open = () => {
     const apps = document.querySelector('[data-role="apps-panel"]');
     if (apps) apps.hidden = true;
+    const more = document.querySelector('[data-role="more-panel"]');
+    if (more) more.hidden = true;
     panel.hidden = false;
     btn.setAttribute("aria-expanded", "true");
   };
@@ -911,6 +955,8 @@ function wireProductsMenu() {
   const openMenu = () => {
     const prof = document.querySelector('[data-role="profile-panel"]');
     if (prof) prof.hidden = true;
+    const more = document.querySelector('[data-role="more-panel"]');
+    if (more) more.hidden = true;
     if (!filled && window.UniversalNav && typeof window.UniversalNav.renderAppsInto === "function") {
       window.UniversalNav.renderAppsInto(panel);
       filled = true;
@@ -970,6 +1016,7 @@ async function boot() {
   wireHeaderAuth();
   wireProductsMenu();
   wireProfileMenu();
+  wireMoreMenu();
 
   // Built-in auth pages — hydrate the login/register/reset/callback forms.
   if (authPageEl) {

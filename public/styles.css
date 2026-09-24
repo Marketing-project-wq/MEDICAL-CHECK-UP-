@@ -190,7 +190,12 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
 .brand-logo { height: 26px; }
 /* The header is ONE line at every width: controls never wrap or shrink; the
    page links + Check MCU drop out on smaller screens (see the media queries). */
-.site-nav { display: flex; flex-wrap: nowrap; flex-shrink: 0; align-items: center; gap: 20px; font-size: 0.92rem; }
+/* The header is ONE line. The page links live in .nav-scroll (which scrolls
+   horizontally when they don't fit — they are NEVER hidden); the universal
+   controls live in .nav-fixed and stay pinned + visible at every width. */
+.site-nav { display: flex; flex-wrap: nowrap; flex: 1 1 auto; min-width: 0; justify-content: flex-end; align-items: center; gap: 16px; font-size: 0.92rem; }
+.nav-scroll { display: flex; flex-wrap: nowrap; align-items: center; gap: 20px; flex: 0 0 auto; min-width: 0; }
+.nav-fixed { display: flex; flex-wrap: nowrap; align-items: center; gap: 16px; flex: 0 0 auto; }
 .header-label { display: inline; }
 .site-nav a { color: var(--ink); font-weight: 500; }
 .site-nav a:hover { color: var(--red-text); text-decoration: none; }
@@ -485,26 +490,37 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 }
 @media (max-width: 640px) {
   .brand-sub { display: none; }
-  .site-nav { gap: 12px; font-size: 0.85rem; }
-  .site-nav a.nav-secondary { display: none; }
+  .site-nav { gap: 8px; font-size: 0.85rem; }
   .mcu-table { min-width: 420px; }
   .cta-banner-inner { flex-direction: column; align-items: stretch; text-align: center; }
 }
 
 /* ── Header: ALWAYS one line (spec: satu garis, tidak turun ke bawah) ──── */
-/* Tablet — drop the page links so the four controls stay on one row. */
+/* When the page links don't fit, they become a horizontal-SCROLL strip — they
+   are NEVER hidden. The universal controls (.nav-fixed) stay pinned + visible. */
 @media (max-width: 1023px) {
-  .site-nav a.nav-secondary { display: none; }
-  .site-nav { gap: 10px; }
+  .site-nav { gap: 8px; }
+  .nav-scroll {
+    flex: 1 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 14px; padding: 2px 0;
+    /* fade the trailing edge so it reads as "scroll for more" */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent 100%);
+            mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent 100%);
+  }
+  .nav-scroll::-webkit-scrollbar { display: none; }
+  .nav-scroll .nav-secondary { white-space: nowrap; }
 }
 /* Mobile — icon-only: the four controls compress, Check MCU + all text labels
    drop out. Nothing wraps to a second row; the logo shortens. */
 @media (max-width: 767px) {
-  .header-inner { height: 44px; gap: 10px; }
-  .site-nav { gap: 4px; font-size: 0.85rem; }
+  .header-inner { height: 44px; gap: 8px; }
+  .site-nav { gap: 6px; font-size: 0.85rem; }
+  .nav-fixed { gap: 4px; }
+  .nav-scroll { gap: 12px; }
   .brand-sub { display: none; }
-  .brand-logo { width: 84px; height: 24px; }
-  .site-nav .nav-cta { display: none; }
+  .brand-logo { width: 78px; height: 24px; }
+  /* Check MCU stays visible — it just rides in the scrollable strip, compact. */
+  .site-nav .nav-cta { padding: 6px 12px; font-size: 0.8rem; }
   .header-label { display: none !important; }
   .nav-login { width: 38px; height: 38px; padding: 0; gap: 0; border-radius: 10px; }
   .nav-login .nav-ic { width: 20px; height: 20px; }

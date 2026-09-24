@@ -37,6 +37,8 @@ function themeInitScript() {
     var theme = stored === "dark" || stored === "light" ? stored :
       (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     document.documentElement.setAttribute("data-theme", theme);
+    var m = document.getElementById("mcu-theme-color");
+    if (m) m.setAttribute("content", theme === "dark" ? "#141414" : "#ffffff");
   }catch(e){document.documentElement.setAttribute("data-theme","light");}})();`;
 }
 
@@ -120,7 +122,12 @@ export function renderLayout(opts) {
 <html lang="${escapeHtml(s.htmlLang)}">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Seamless browser chrome: theme-color matches --header-bg and is kept in sync
+     with the resolved theme by the init script below + the toggle in app.js. -->
+<meta name="theme-color" id="mcu-theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script nonce="${escapeHtml(nonce)}">${themeInitScript()}</script>
 <script nonce="${escapeHtml(nonce)}">${langRedirectScript()}</script>
 <title>${escapeHtml(title)}</title>

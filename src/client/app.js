@@ -56,6 +56,9 @@ function wireThemeToggle() {
   btn.addEventListener("click", () => {
     const next = currentTheme() === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
+    // Keep the browser address bar seamless with the header on a manual toggle.
+    const tc = document.getElementById("mcu-theme-color");
+    if (tc) tc.setAttribute("content", next === "dark" ? "#141414" : "#ffffff");
     setLogosForTheme(next);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next);

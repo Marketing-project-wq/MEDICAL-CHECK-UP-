@@ -137,12 +137,13 @@ html[data-theme="dark"] .medrec{ --bg:#0C0D10;--pagetx:#F4F5F7;--dark:#000 }
 .medrec .med-cam svg{width:18px;height:18px;flex:0 0 auto;stroke:var(--red)}
 
 /* Sticky counts strip above a result (sits just under the sticky header on scroll) */
-.medrec .med-sticky{position:sticky;top:60px;z-index:20;display:flex;gap:14px;flex-wrap:wrap;align-items:center;
+.medrec .med-sticky{position:sticky;top:calc(44px + env(safe-area-inset-top, 0px));z-index:20;display:flex;gap:14px;flex-wrap:wrap;align-items:center;
   background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;margin-bottom:2px;box-shadow:var(--shadow)}
 .medrec .med-chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:750;color:var(--txt)}
 .medrec .med-cdot{width:9px;height:9px;border-radius:99px;background:#46d369;flex:0 0 auto}
 .medrec .med-chip-attn .med-cdot{background:#ff6b6b}
 .medrec .med-chip-unk .med-cdot{background:#8a8a8a}
+@media(min-width:768px){ .medrec .med-sticky{top:48px} }
 
 /* First-run onboarding card (shown in place of an empty result) */
 .medrec .med-onboard .med-ob-steps{margin-top:12px;display:flex;flex-direction:column;gap:8px}

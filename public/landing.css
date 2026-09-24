@@ -28,12 +28,15 @@ html[data-theme="dark"] .lp{
 .lp-ok{color:var(--lp-green)}
 
 /* buttons */
-.lp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:12px;font-weight:750;font-size:14px;cursor:pointer;border:1.5px solid transparent;transition:.15s}
-.lp-btn-primary{background:var(--lp-red);color:#fff;box-shadow:0 8px 20px color-mix(in srgb,var(--lp-red) 24%,transparent)}
-.lp-btn-primary:hover{filter:brightness(1.05)}
+.lp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer;border:1.5px solid transparent;transition:.15s}
+/* NOTE: `.lp a{color:inherit}` above (0,1,1) outranks a single-class `.lp-btn-*`
+   rule, which turned the filled buttons' text dark. Re-assert the fill colors
+   with a 2-class selector so white always wins on the red / green buttons. */
+.lp .lp-btn-primary{background:var(--lp-red);color:#fff;box-shadow:0 8px 20px color-mix(in srgb,var(--lp-red) 24%,transparent)}
+.lp .lp-btn-primary:hover{filter:brightness(1.05)}
 .lp-btn-ghost{background:transparent;color:var(--lp-ink);border-color:var(--lp-line)}
 .lp-btn-ghost:hover{background:var(--lp-alt)}
-.lp-btn-clinic{background:var(--lp-green);color:#fff}
+.lp .lp-btn-clinic{background:var(--lp-green);color:#fff}
 .lp-cta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
 .lp-cta-center{justify-content:center}
 

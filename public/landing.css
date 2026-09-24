@@ -1,0 +1,116 @@
+/* Landing page (guest) — medicalscanner.20fit.id. Scoped under .lp so it never
+   clashes with the app's global styles or the .medrec preview. Themed for light
+   and dark via html[data-theme]. Mobile-first: base = phone, @media = desktop. */
+.lp{
+  --lp-red:#C41101;--lp-red-soft:#FCEBED;--lp-green:#2A7A4F;--lp-green-soft:#E6F6EE;
+  --lp-amber:#C87000;--lp-blue:#2563eb;
+  --lp-bg:#FFFFFF;--lp-alt:#F6F5F3;--lp-card:#FFFFFF;--lp-ink:#15171C;--lp-muted:#6b6f76;
+  --lp-line:#E9E9ED;--lp-shadow:0 1px 2px rgba(16,18,22,.04),0 10px 30px rgba(16,18,22,.06);
+  color:var(--lp-ink);background:var(--lp-bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+html[data-theme="dark"] .lp{
+  --lp-bg:#0C0D10;--lp-alt:#121318;--lp-card:#16181E;--lp-ink:#F4F5F7;--lp-muted:#9aa0a8;
+  --lp-line:#262832;--lp-shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+}
+.lp *{box-sizing:border-box}
+.lp a{text-decoration:none;color:inherit}
+.lp .lp-wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.lp .lp-wrap-narrow{max-width:760px}
+.lp-section{padding:44px 0}
+.lp-section-alt{background:var(--lp-alt)}
+.lp-h1{font-size:30px;line-height:1.08;font-weight:800;letter-spacing:-.02em;margin:6px 0 12px}
+.lp-h2{font-size:23px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+.lp-sub{color:var(--lp-muted);margin:0 0 18px;font-size:14.5px}
+.lp-kick{color:var(--lp-red);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:800}
+.lp-ic{width:24px;height:24px;flex:0 0 auto}
+.lp-ic-sm{width:16px;height:16px;flex:0 0 auto;vertical-align:-3px}
+.lp-ok{color:var(--lp-green)}
+
+/* buttons */
+.lp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:12px;font-weight:750;font-size:14px;cursor:pointer;border:1.5px solid transparent;transition:.15s}
+.lp-btn-primary{background:var(--lp-red);color:#fff;box-shadow:0 8px 20px color-mix(in srgb,var(--lp-red) 24%,transparent)}
+.lp-btn-primary:hover{filter:brightness(1.05)}
+.lp-btn-ghost{background:transparent;color:var(--lp-ink);border-color:var(--lp-line)}
+.lp-btn-ghost:hover{background:var(--lp-alt)}
+.lp-btn-clinic{background:var(--lp-green);color:#fff}
+.lp-cta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.lp-cta-center{justify-content:center}
+
+/* hero */
+.lp-hero{background:linear-gradient(160deg,var(--lp-red-soft),transparent 60%);padding:40px 0 44px}
+html[data-theme="dark"] .lp-hero{background:linear-gradient(160deg,rgba(196,17,1,.14),transparent 60%)}
+.lp-hero-grid{display:grid;grid-template-columns:1fr;gap:26px;align-items:center}
+.lp-lead{font-size:16px;line-height:1.55;color:var(--lp-muted);margin:0}
+.lp-note{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:12.5px;color:var(--lp-muted)}
+.lp-note .lp-ic-sm{color:var(--lp-red)}
+.lp-hero-visual{display:flex;justify-content:center}
+.lp-phone{width:210px;height:320px;border-radius:30px;background:var(--lp-card);border:1px solid var(--lp-line);box-shadow:var(--lp-shadow);padding:18px 16px;position:relative;overflow:hidden}
+.lp-phone-notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:70px;height:6px;border-radius:99px;background:var(--lp-line)}
+.lp-phone-screen{margin-top:22px;display:flex;flex-direction:column;gap:14px}
+.lp-mini-row{display:flex;align-items:center;gap:10px}
+.lp-mini-dot{width:10px;height:10px;border-radius:99px;flex:0 0 auto}
+.lp-mini-dot.ok{background:#46d369}.lp-mini-dot.hi{background:#ff6b6b}.lp-mini-dot.lo{background:var(--lp-amber)}
+.lp-mini-bar{height:10px;border-radius:99px;background:linear-gradient(90deg,var(--lp-line),color-mix(in srgb,var(--lp-line) 40%,transparent))}
+
+/* steps */
+.lp-steps{display:grid;grid-template-columns:1fr;gap:14px;margin-top:18px}
+.lp-step{position:relative;background:var(--lp-card);border:1px solid var(--lp-line);border-radius:16px;padding:20px;box-shadow:var(--lp-shadow)}
+.lp-step-ic{width:44px;height:44px;border-radius:12px;background:var(--lp-red-soft);color:var(--lp-red);display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+html[data-theme="dark"] .lp-step-ic{background:rgba(196,17,1,.16)}
+.lp-step-n{position:absolute;top:16px;right:18px;font-weight:800;color:var(--lp-line);font-size:22px}
+.lp-step h3{font-size:16px;margin:0 0 4px}
+.lp-step p{margin:0;color:var(--lp-muted);font-size:13.5px;line-height:1.5}
+.lp-duration{margin:16px 0 0;color:var(--lp-muted);font-size:13px;text-align:center}
+
+/* benefits */
+.lp-benefits{list-style:none;margin:18px 0 0;padding:0;display:grid;grid-template-columns:1fr;gap:12px}
+.lp-benefits li{display:flex;align-items:flex-start;gap:10px;background:var(--lp-card);border:1px solid var(--lp-line);border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.45;box-shadow:var(--lp-shadow)}
+.lp-benefits li .lp-ic-sm{margin-top:1px}
+
+/* preview */
+.lp-preview{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--lp-line);box-shadow:var(--lp-shadow)}
+.lp-preview-frame{max-height:560px;overflow:hidden;border-radius:18px;padding-top:14px}
+.lp-preview-fade{position:absolute;left:0;right:0;bottom:0;height:220px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:26px;background:linear-gradient(to bottom,transparent,var(--lp-bg) 78%)}
+
+/* trust */
+.lp-badges{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lp-badge{background:var(--lp-card);border:1px solid var(--lp-line);border-radius:14px;padding:18px 16px;text-align:center;box-shadow:var(--lp-shadow)}
+.lp-badge-ic{width:42px;height:42px;border-radius:12px;background:var(--lp-green-soft);color:var(--lp-green);display:flex;align-items:center;justify-content:center;margin:0 auto 8px}
+html[data-theme="dark"] .lp-badge-ic{background:rgba(42,122,79,.18)}
+.lp-badge-t{font-weight:800;font-size:14px}
+.lp-badge-s{color:var(--lp-muted);font-size:12px;margin-top:2px;line-height:1.4}
+
+/* faq */
+.lp-faq{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.lp-faq-item{background:var(--lp-card);border:1px solid var(--lp-line);border-radius:12px;padding:2px 16px;box-shadow:var(--lp-shadow)}
+.lp-faq-item summary{cursor:pointer;font-weight:700;font-size:14.5px;padding:14px 0;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.lp-faq-item summary::-webkit-details-marker{display:none}
+.lp-faq-item summary::after{content:"+";color:var(--lp-red);font-weight:800;font-size:20px;line-height:1}
+.lp-faq-item[open] summary::after{content:"\2212"}
+.lp-faq-item p{margin:0 0 14px;color:var(--lp-muted);font-size:13.5px;line-height:1.55}
+
+/* final cta + clinic */
+.lp-final{text-align:center;padding:6px 0 22px}
+.lp-clinic{display:flex;gap:16px;background:var(--lp-card);border:1px solid var(--lp-line);border-radius:18px;padding:22px;box-shadow:var(--lp-shadow)}
+.lp-clinic-ic{width:48px;height:48px;border-radius:13px;background:var(--lp-red-soft);color:var(--lp-red);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+html[data-theme="dark"] .lp-clinic-ic{background:rgba(196,17,1,.16)}
+.lp-clinic-t{font-weight:800;font-size:16px}
+.lp-clinic-addr{color:var(--lp-ink);font-size:13.5px;margin-top:3px}
+.lp-clinic-s{color:var(--lp-muted);font-size:13.5px;line-height:1.5;margin:8px 0 0}
+
+/* footer */
+.lp-footer{border-top:1px solid var(--lp-line);padding:22px 0;color:var(--lp-muted);font-size:12.5px}
+.lp-footer-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.lp-footer-links a:hover{color:var(--lp-red)}
+
+/* desktop */
+@media(min-width:768px){
+  .lp-h1{font-size:42px}
+  .lp-h2{font-size:28px}
+  .lp-section{padding:60px 0}
+  .lp-hero-grid{grid-template-columns:1.15fr .85fr;gap:36px}
+  .lp-steps{grid-template-columns:1fr 1fr 1fr}
+  .lp-benefits{grid-template-columns:1fr 1fr}
+  .lp-badges{grid-template-columns:repeat(4,1fr)}
+}

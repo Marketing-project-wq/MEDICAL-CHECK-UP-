@@ -12,6 +12,7 @@ import crypto from "node:crypto";
 import { renderLayout } from "./views/layout.js";
 import { renderHomeHubPage, renderCheckMcuPage } from "./views/pages.js";
 import { renderMedicalPage } from "./views/medical.js";
+import { renderLandingPage } from "./views/landing.js";
 import { renderLoginPage, renderRegisterPage, renderResetPage, renderCallbackPage } from "./views/authPages.js";
 import { safeNextPath } from "./shared/returnTo.js";
 import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
@@ -315,6 +316,22 @@ async function renderHomeHub(lang, canonicalPath) {
     trainingLinks: TRAINING_LINKS,
   });
   return wrapPage(lang, canonicalPath, page);
+}
+
+// Landing — the guest homepage (medicalscanner-specific). Members are redirected
+// to /medical by app.js, so this is a guest conversion page. Loads landing.css and
+// medical.css (the result-preview section reuses the real renderMedical output).
+function renderLanding(lang, canonicalPath) {
+  const page = renderLandingPage({
+    lang,
+    loginUrl: "/login",
+    registerUrl: "/register",
+    bookingUrl: DOCTOR_BOOKING_URL,
+    clinicContactUrl: CLINIC_CONTACT_URL,
+    clinicAddress: CLINIC_ADDRESS,
+    myOrigin: MY20FIT_ORIGIN,
+  });
+  return wrapPage(lang, canonicalPath, page, { extraStylesheets: ["/landing.css", "/medical.css"] });
 }
 
 // Check MCU — the standalone Scan MCU tool page (§0.1 gate lives here).
@@ -680,7 +697,7 @@ const server = http.createServer(async (req, res) => {
   // prefix) — logos in particular are referenced from the very first
   // pre-paint <script> in <head>, so they stay on the same simple,
   // well-tested path convention as styles.css rather than a nested prefix.
-  const ROOT_ALIASES = { "/styles.css": "styles.css", "/medical.css": "medical.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg", "/universal-nav.js": "universal-nav.js" };
+  const ROOT_ALIASES = { "/styles.css": "styles.css", "/medical.css": "medical.css", "/landing.css": "landing.css", "/logo-light.svg": "logo-light.svg", "/logo-dark.svg": "logo-dark.svg", "/universal-nav.js": "universal-nav.js" };
   if (ROOT_ALIASES[pathname]) {
     try {
       const file = await readFile(path.join(PUBLIC_DIR, ROOT_ALIASES[pathname]));
@@ -709,13 +726,13 @@ const server = http.createServer(async (req, res) => {
   // Local auth now owns /auth/callback (see the auth routes below); the homepage
   // no longer doubles as the SSO landing.
   if (pathname === "/") {
-    const { html, nonce } = await renderHomeHub("en", "/");
+    const { html, nonce } = await renderLanding("en", "/");
     // relaxImg: Top-5 article cards carry cover photos from other https hosts.
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
   if (pathname === "/id" || pathname === "/id/") {
-    const { html, nonce } = await renderHomeHub("id", "/id");
+    const { html, nonce } = await renderLanding("id", "/id");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
@@ -723,12 +740,12 @@ const server = http.createServer(async (req, res) => {
   // RENDERING (a redirect could drop the URL fragment carrying the SSO token);
   // plain /home 301-redirects so there is one canonical URL per language.
   if (pathname === "/home/auth/callback") {
-    const { html, nonce } = await renderHomeHub("en", "/");
+    const { html, nonce } = await renderLanding("en", "/");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }
   if (pathname === "/id/home/auth/callback") {
-    const { html, nonce } = await renderHomeHub("id", "/id");
+    const { html, nonce } = await renderLanding("id", "/id");
     sendHtml(res, 200, html, nonce, { relaxImg: true });
     return;
   }

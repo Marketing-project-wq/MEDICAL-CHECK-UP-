@@ -222,7 +222,10 @@ function updateLoginCta() {
   } catch {
     next = "";
   }
-  const href = "/login" + (next && next !== "/" ? "?next=" + encodeURIComponent(next) : "");
+  // The header CTA is now "Sign Up" → the register page (calorietracker style);
+  // existing users reach login from there. Localized + carrying a safe ?next=.
+  const base = LANG === "id" ? "/id/register" : "/register";
+  const href = base + (next && next !== "/" ? "?next=" + encodeURIComponent(next) : "");
   document.querySelectorAll('[data-role="login-cta"]').forEach((cta) => {
     cta.href = href;
   });

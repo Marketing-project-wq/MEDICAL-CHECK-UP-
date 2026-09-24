@@ -210,8 +210,8 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
 .nav-fixed > .nav-apps { order: 1; }
 .nav-fixed > .theme-toggle { order: 2; }
 .nav-fixed > .nav-lang { order: 3; display: inline-flex; }
-.nav-fixed > .nav-auth { order: 4; }
-.nav-fixed > .nav-more { order: 5; }
+.nav-fixed > .nav-more { order: 4; }
+.nav-fixed > .nav-auth { order: 5; }
 .desktop-only { display: inline-flex; }
 .mobile-only { display: none; }
 .nav-more { position: relative; }
@@ -261,6 +261,17 @@ html[data-theme="dark"] .theme-label .tl-light { display: inline; }
 }
 .nav-login .nav-ic { flex: none; }
 .site-nav .nav-login:hover { border-color: var(--red); color: var(--red-text); text-decoration: none; }
+/* "Sign Up" auth CTA (calorietracker style): a minimal borderless text button —
+   no icon, no pill outline — that keeps its text on mobile too (not collapsed to
+   an icon like the old login control). Sits rightmost in the header. */
+.nav-auth .nav-signup {
+  display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;
+  font-family: inherit; font-size: 0.9rem; font-weight: 600; line-height: 1;
+  padding: 9px 14px; border-radius: 999px; border: 0; background: transparent;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-auth .nav-signup:hover { background: var(--header-hover); color: var(--red-text); text-decoration: none; }
 .lang-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 999px; padding: 2px; gap: 2px; }
 .lang-btn {
   border: none; background: transparent; color: var(--muted); font-family: var(--font-mono); font-weight: 700;
@@ -269,6 +280,11 @@ html[data-theme="dark"] .theme-label .tl-light { display: inline; }
 .lang-btn:hover { color: var(--ink); }
 .lang-btn.is-active { background: var(--red); color: var(--white); }
 .lang-btn.is-active:hover { color: var(--white); }
+/* Header language pill: neutral dark active (calorietracker style), not red — the
+   red accent stays reserved for the active page tab. Scoped to the header so the
+   footer's toggle (on the dark footer) keeps its own styling. */
+.site-header .lang-btn.is-active { background: var(--header-text); color: var(--header-bg); }
+.site-header .lang-btn.is-active:hover { color: var(--header-bg); }
 .footer-links { margin: 0 0 1rem; }
 .footer-links .lang-toggle { border-color: rgba(255, 255, 255, 0.3); }
 .footer-links .lang-btn { color: rgba(255, 255, 255, 0.82); }
@@ -288,11 +304,11 @@ html[data-theme="dark"] .theme-label .tl-light { display: inline; }
 .btn-ghost:hover { background: var(--card-2); }
 html[data-theme="dark"] .btn-ghost { background: var(--card); color: var(--ink); border-color: var(--border-strong); }
 
+/* Icon-only circular toggle (calorietracker style) — just the moon/sun, no text. */
 .theme-toggle {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  height: 34px; padding: 0 13px; border-radius: 999px;
-  border: 1px solid var(--border-strong); background: transparent; color: var(--ink);
-  cursor: pointer; flex: none; font-family: inherit; font-size: 0.84rem; font-weight: 600; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+  border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: var(--ink);
+  cursor: pointer; flex: none;
 }
 .theme-toggle:hover { background: var(--card-2); }
 .theme-toggle svg { width: 18px; height: 18px; }

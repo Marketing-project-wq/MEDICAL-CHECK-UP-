@@ -22,9 +22,9 @@ function render(lang) {
 test("header carries a login/logout control next to the language toggle", () => {
   const html = render("en");
   assert.match(html, /data-role="header-auth"/, "header auth container");
-  // Icon + a label span (the label hides on mobile via CSS → icon-only).
-  assert.match(html, /data-role="login-cta"[^>]*>\s*<svg class="nav-ic"/, "login control is an icon + label");
-  assert.ok(html.includes('<span class="header-label">Log in / Sign up</span>'), "login label text");
+  // Logged-out CTA is now a text-only "Sign Up" button → the register page
+  // (calorietracker style); existing users reach login from there.
+  assert.match(html, /<a class="nav-signup" data-role="login-cta" href="\/register">Sign Up<\/a>/, "Sign Up CTA → register");
   // Signed-in state: avatar button + profile dropdown containing the logout.
   assert.ok(html.includes('data-role="nav-profile"'), "avatar/profile wrapper (hidden until signed in)");
   assert.ok(html.includes('data-act="profile-toggle"'), "avatar toggle button");
@@ -35,9 +35,9 @@ test("header carries a login/logout control next to the language toggle", () => 
   const langIdx = html.indexOf('class="lang-toggle"');
   assert.ok(authIdx > -1 && langIdx > -1 && authIdx < langIdx, "auth control precedes the lang toggle");
 
-  // Login href is RELATIVE (/login) so it always hits the live host — never
-  // the stale PUBLIC_ORIGIN domain. The client refines it with a ?next=.
-  assert.match(html, /class="nav-login" data-role="login-cta" href="\/login"/, "relative login href");
+  // Href is RELATIVE (/register) so it always hits the live host; the client
+  // refines it with the current lang + a safe ?next=.
+  assert.match(html, /class="nav-signup" data-role="login-cta" href="\/register"/, "relative register href");
 });
 
 test("header: page tabs on the left + universal controls on the right; mobile [More] holds tabs + lang + theme", () => {
@@ -96,7 +96,7 @@ test("header carries the app-switcher (Products menu moved out of the black bar)
 
 test("header login control is localized (ID)", () => {
   const html = render("id");
-  assert.ok(html.includes('<span class="header-label">Masuk / Daftar</span>'), "ID login label");
+  assert.match(html, /<a class="nav-signup" data-role="login-cta" href="\/register">Daftar<\/a>/, "ID Sign Up CTA");
   assert.match(html, /data-act="apps-toggle"[^>]*aria-label="Semua produk 20FIT"/, "ID products aria-label");
   assert.ok(html.includes(">Keluar</button>"), "ID logout in the dropdown");
   // ID tab labels (Scan · Riwayat).

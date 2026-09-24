@@ -16,6 +16,14 @@ test("renderMedicalPage: faithful medical.html markup with the expected id/class
   assert.ok(h.includes('href="https://booking.20fit.id/clinic"'), "clinic consult link");
 });
 
+test("renderMedicalPage: mobile camera capture (input capture=environment + data-act button)", () => {
+  const en = renderMedicalPage({ lang: "en" }).bodyHtml;
+  assert.ok(en.includes('id="mcucam"') && en.includes('capture="environment"'), "rear-camera input");
+  assert.ok(en.includes('data-act="capture"') && en.includes("Take a Photo Now"), "camera button (EN)");
+  const id = renderMedicalPage({ lang: "id" }).bodyHtml;
+  assert.ok(id.includes("Ambil Foto Sekarang"), "camera button (ID)");
+});
+
 test("renderMedicalPage: CSP-safe — no inline event handlers, only data-act hooks", () => {
   const h = renderMedicalPage({ lang: "en" }).bodyHtml;
   assert.ok(!/on(click|change|load|error)\s*=/.test(h), "no inline on*= handlers (strict CSP)");

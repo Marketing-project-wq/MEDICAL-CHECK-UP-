@@ -30,6 +30,7 @@ export function setupMedical(root, { supabase, lang }) {
   const toggleLabel = q('[data-role="toggle-label"]');
   const scanNote = q('[data-role="open-all"]') || q("#mcuScanNote");
   const fileInput = q('[data-role="mcufile"]');
+  const camInput = q('[data-role="mcucam"]');
   const modalBg = q('[data-role="modal-bg"]');
   const modalTitleEl = q('[data-role="modal-title"]');
   const modalBodyEl = q('[data-role="modal-body"]');
@@ -67,6 +68,47 @@ export function setupMedical(root, { supabase, lang }) {
       "<li>" + L({ en: "A PDF of a laboratory report", id: "PDF laporan hasil laboratorium" }) + "</li>" +
       "</ul>" +
       '<button class="btn" data-act="pick-file" type="button" style="margin-top:14px">' + L({ en: "Try uploading again", id: "Coba Upload Lagi" }) + "</button>" +
+      "</div>";
+  }
+
+  // Sticky counts strip shown above a result (mobile polish): tally the statuses
+  // the backend already assigned — never a diagnosis, just a count. Sticks under
+  // the header on scroll so a member always sees "what needs attention".
+  function summaryCounts(res) {
+    const params = (res && res.parameters) || [];
+    let ok = 0, attn = 0, unknown = 0;
+    for (const p of params) {
+      if (p && p.status === "attention") attn++;
+      else if (p && p.status === "unknown") unknown++;
+      else ok++;
+    }
+    return { ok, attn, unknown, total: params.length };
+  }
+  function stickyBarHTML(res) {
+    const c = summaryCounts(res);
+    if (!c.total) return "";
+    const chip = (cls, n, label) => '<span class="med-chip med-chip-' + cls + '"><span class="med-cdot"></span>' + n + " " + label + "</span>";
+    let chips = chip("ok", c.ok, L({ en: "Normal", id: "Normal" }));
+    if (c.attn) chips += chip("attn", c.attn, L({ en: "to watch", id: "perhatian" }));
+    if (c.unknown) chips += chip("unk", c.unknown, "?");
+    return '<div class="med-sticky rfull" role="status">' + chips + "</div>";
+  }
+
+  // First-run onboarding — shown in place of an empty result for a member who has
+  // never scanned, so their first visit is guided, not a blank page.
+  function onboardingHTML() {
+    const step = (n, t) => '<div class="med-ob-step"><span class="med-ob-n">' + n + "</span><span>" + t + "</span></div>";
+    return '<div class="card med-onboard rfull">' +
+      '<div class="ch" style="color:var(--red)"><svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:var(--red);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
+      L({ en: "Welcome! Start with your first scan", id: "Selamat datang! Mulai dengan scan pertama" }) + "</div>" +
+      '<div style="margin-top:6px;line-height:1.55">' + L({ en: "Upload a photo or PDF of your Medical Check-Up above — the reader marks each value and explains it in plain language.", id: "Upload foto atau PDF hasil Medical Check-Up di atas — sistem menandai setiap nilai dan menjelaskannya dalam bahasa yang mudah." }) + "</div>" +
+      '<div class="med-ob-steps">' +
+      step("1", L({ en: "Have a photo/PDF of your lab result ready", id: "Siapkan foto/PDF hasil lab Anda" })) +
+      step("2", L({ en: "Tap Upload (or Take a Photo)", id: "Ketuk Upload (atau Ambil Foto)" })) +
+      step("3", L({ en: "Wait ~30 seconds for the reading", id: "Tunggu ±30 detik untuk hasilnya" })) +
+      "</div>" +
+      '<button class="btn" data-act="pick-file" type="button" style="margin-top:14px">' + L({ en: "Scan your first MCU", id: "Scan MCU Pertama Anda" }) + "</button>" +
+      '<div class="muted" style="margin-top:10px">' + L({ en: "Tip: a clear, well-lit photo where all numbers are readable gives the best result.", id: "Tips: foto yang jelas dan terang, semua angka terbaca, memberi hasil terbaik." }) + "</div>" +
       "</div>";
   }
 
@@ -183,7 +225,7 @@ export function setupMedical(root, { supabase, lang }) {
     else if (transCache[want]) { res = transCache[want]; banner = tbannerHTML("main", false, L(T_DISCLAIMER), "orig", L(T_VIEWORIG)); }
     else { res = base; }
     currentRes = res;
-    resultBox.innerHTML = banner + render(res);
+    resultBox.innerHTML = stickyBarHTML(res) + banner + render(res);
     if (!noScroll) resultBox.scrollIntoView({ behavior: "smooth" });
   }
   async function translateMain(noScroll) {
@@ -286,6 +328,7 @@ export function setupMedical(root, { supabase, lang }) {
     const el = ev.target.closest("[data-act]"); if (!el || !root.contains(el)) return;
     const act = el.getAttribute("data-act");
     if (act === "pick-file") { fileInput.click(); }
+    else if (act === "capture") { if (camInput) camInput.click(); }
     else if (act === "toggle-all") { toggleAllMcu(); }
     else if (act === "open-all") { openAllMcu(); }
     else if (act === "close-modal") { closeMcuModal(); }
@@ -297,6 +340,7 @@ export function setupMedical(root, { supabase, lang }) {
     }
   });
   fileInput.addEventListener("change", () => analyzeMCU(fileInput.files[0]));
+  if (camInput) camInput.addEventListener("change", () => analyzeMCU(camInput.files[0]));
   if (modalBg) modalBg.addEventListener("click", (e) => { if (e.target === modalBg) closeMcuModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMcuModal(); });
 
@@ -311,6 +355,8 @@ export function setupMedical(root, { supabase, lang }) {
     await loadHistory(); renderList();
     // After refresh: auto-show the newest saved result (like my.20fit.id/medical).
     if (history[0] && history[0].result) { showResult(history[0].result, true, history[0].id); }
+    // First-run: a member with no scans yet gets a guided onboarding, not a blank page.
+    else if (!history.length && resultBox) { resultBox.innerHTML = onboardingHTML(); }
     // Deep link from the old /scan/:id route (now redirected here as #scan=<id>):
     // open that scan's detail modal if it's one of the member's own rows.
     const dm = /#scan=([^&]+)/.exec(location.hash || "");

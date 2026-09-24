@@ -42,6 +42,13 @@ export function renderMedicalPage({ lang }) {
         <div class="muted" style="margin:4px 12px 0;line-height:1.45">${e(s.med_uploadsub)}</div>
       </div>
       <input id="mcufile" type="file" accept="image/*,application/pdf" style="display:none" data-role="mcufile" />
+      <input id="mcucam" type="file" accept="image/*" capture="environment" style="display:none" data-role="mcucam" />
+      <div class="med-cam-row">
+        <button type="button" class="med-cam" data-act="capture">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          ${e(lang === "id" ? "Ambil Foto Sekarang" : "Take a Photo Now")}
+        </button>
+      </div>
 
       <div class="consultbn">
         <div class="cbic"><svg viewBox="0 0 24 24"><path d="M11 2a2 2 0 0 0-2 2v1a2 2 0 0 0-2 2v3a6 6 0 0 0 12 0V7a2 2 0 0 0-2-2V4a2 2 0 0 0-2-2"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg></div>

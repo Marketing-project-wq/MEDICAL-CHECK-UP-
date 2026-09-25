@@ -12,8 +12,9 @@ test("renderMedicalPage: faithful medical.html markup with the expected id/class
   assert.ok(h.includes('id="result"'), "result grid");
   assert.ok(h.includes('id="mcuHistoryCard"') && h.includes('id="list"'), "history toggle + list");
   assert.ok(h.includes('id="mcuModalBg"') && h.includes('id="mcuModalBody"'), "detail modal");
-  // Consult banner → the real Sport Clinic booking line (not fabricated).
-  assert.ok(h.includes('href="https://booking.20fit.id/clinic"'), "clinic consult link");
+  // Consult banner "Consult a Doctor" → the clinic WhatsApp (src/shared/contact.js);
+  // `&` renders HTML-escaped as `&amp;`.
+  assert.ok(h.includes('class="cbbtn" href="https://api.whatsapp.com/send?phone=6281111859109'), "consult button → clinic WhatsApp");
 });
 
 test("renderMedicalPage: mobile camera capture (input capture=environment + data-act button)", () => {

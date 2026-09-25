@@ -16,9 +16,7 @@
 
 import { getStrings } from "../shared/i18n.js";
 import { escapeHtml } from "../shared/escape.js";
-
-// Real 20FIT Sport Clinic booking line — identical to medical.html (not fabricated).
-const CLINIC_BOOKING_URL = "https://booking.20fit.id/clinic";
+import { CLINIC_WHATSAPP_URL } from "../shared/contact.js";
 
 /**
  * @param {{ lang: "en"|"id" }} opts
@@ -56,7 +54,7 @@ export function renderMedicalPage({ lang }) {
           <div class="cbt">${e(s.med_consult_t)}</div>
           <div class="cbs">${e(s.med_consult_s)}</div>
         </div>
-        <a class="cbbtn" href="${CLINIC_BOOKING_URL}">${e(s.med_consult_cta)}</a>
+        <a class="cbbtn" href="${e(CLINIC_WHATSAPP_URL)}">${e(s.med_consult_cta)}</a>
       </div>
 
       <div id="result" data-role="result"></div>

@@ -48,11 +48,12 @@ const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalscanner.20fi
 // route "want more? consult a doctor" to the real in-app Book Doctor flow).
 // Override once the exact my.20fit.id route is confirmed.
 const DOCTOR_BOOKING_URL = process.env.DOCTOR_BOOKING_URL || MY20FIT_ORIGIN + "/book-doctor";
-// 20FIT Sports Clinic escalation on the MCU page. The contact URL defaults to
-// the real doctor-booking flow (never a hardcoded phone number) — set
-// CLINIC_CONTACT_URL to a WhatsApp link (e.g. https://wa.me/<number>) to use
-// that instead. Address is overridable via CLINIC_ADDRESS.
-const CLINIC_CONTACT_URL = process.env.CLINIC_CONTACT_URL || DOCTOR_BOOKING_URL;
+// 20FIT Sports Clinic escalation. Defaults to the clinic's real WhatsApp
+// click-to-chat (provided by the owner — opens WhatsApp with a prefilled consult
+// message). Override with CLINIC_CONTACT_URL; CLINIC_ADDRESS sets the address.
+const CLINIC_WHATSAPP_URL =
+  "https://api.whatsapp.com/send?phone=6281111859109&text=Hi%2020FIT%20Clinic%2C%20i%20got%20your%20number%20from%20the%20website%20would%20like%20to%20consult%20about%20my%20health%F0%9F%98%8A";
+const CLINIC_CONTACT_URL = process.env.CLINIC_CONTACT_URL || CLINIC_WHATSAPP_URL;
 const CLINIC_ADDRESS =
   process.env.CLINIC_ADDRESS || "20FIT Sports Clinic — Jl. Sinabung No. 9, Kebayoran Baru, Jakarta Selatan";
 // "Related nutrition articles" link out to the calorietracker.20fit.id content

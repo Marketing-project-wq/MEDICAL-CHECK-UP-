@@ -15,6 +15,7 @@ import { renderMedicalPage } from "./views/medical.js";
 import { renderLandingPage } from "./views/landing.js";
 import { renderLoginPage, renderRegisterPage, renderResetPage, renderCallbackPage } from "./views/authPages.js";
 import { safeNextPath } from "./shared/returnTo.js";
+import { CLINIC_WHATSAPP_URL } from "./shared/contact.js";
 import { renderQuizHubPage, renderQuizPage } from "./views/quizPages.js";
 import { renderApiDocsPage } from "./views/docsPage.js";
 import { articleListPage, articleDetailPage } from "./views/articles.js";
@@ -49,10 +50,9 @@ const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalscanner.20fi
 // Override once the exact my.20fit.id route is confirmed.
 const DOCTOR_BOOKING_URL = process.env.DOCTOR_BOOKING_URL || MY20FIT_ORIGIN + "/book-doctor";
 // 20FIT Sports Clinic escalation. Defaults to the clinic's real WhatsApp
-// click-to-chat (provided by the owner — opens WhatsApp with a prefilled consult
-// message). Override with CLINIC_CONTACT_URL; CLINIC_ADDRESS sets the address.
-const CLINIC_WHATSAPP_URL =
-  "https://api.whatsapp.com/send?phone=6281111859109&text=Hi%2020FIT%20Clinic%2C%20i%20got%20your%20number%20from%20the%20website%20would%20like%20to%20consult%20about%20my%20health%F0%9F%98%8A";
+// click-to-chat (src/shared/contact.js — the landing "Contact via WhatsApp"
+// button hardcodes that same link directly). Override the check-mcu / scan-detail
+// clinic CTA with CLINIC_CONTACT_URL; CLINIC_ADDRESS sets the address line.
 const CLINIC_CONTACT_URL = process.env.CLINIC_CONTACT_URL || CLINIC_WHATSAPP_URL;
 const CLINIC_ADDRESS =
   process.env.CLINIC_ADDRESS || "20FIT Sports Clinic — Jl. Sinabung No. 9, Kebayoran Baru, Jakarta Selatan";

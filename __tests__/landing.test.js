@@ -45,7 +45,10 @@ test("landing (ID): localized copy, CTAs, and the real clinic address", () => {
   // ID auth routes are /id/login, /id/register (they exist server-side)
   assert.ok(h.includes('href="/id/login"') && h.includes('href="/id/register"'), "ID auth hrefs");
   assert.ok(h.includes("Jl. Sinabung No. 9"), "configured clinic address (not fabricated)");
-  assert.ok(h.includes("https://wa.me/6281234567890"), "configured WhatsApp contact");
+  // The clinic "Contact via WhatsApp" button is hardcoded to the 20FIT clinic
+  // WhatsApp (src/shared/contact.js), not the passed-in contact URL — so it is
+  // always live regardless of deploy env. (`&` renders HTML-escaped as `&amp;`.)
+  assert.ok(h.includes("api.whatsapp.com/send?phone=6281111859109"), "clinic button hardcoded to the 20FIT WhatsApp");
 });
 
 test("landing has no fabricated stats and no emoji, no inline handlers", () => {

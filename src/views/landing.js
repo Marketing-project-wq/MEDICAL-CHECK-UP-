@@ -11,6 +11,7 @@
 import { escapeHtml } from "../shared/escape.js";
 import { buildResultHTML } from "../shared/renderMedical.js";
 import { getSampleMedical } from "../shared/sampleMedical.js";
+import { CLINIC_WHATSAPP_URL } from "../shared/contact.js";
 
 // Minimal stroke icons (no emoji — RULES.md). 24x24, currentColor stroke.
 const IC = {
@@ -174,7 +175,7 @@ export function renderLandingPage({ lang, loginUrl = "/login", registerUrl = "/r
           <div class="lp-clinic-addr">${e(clinicAddress || "20FIT Sports Clinic")}</div>
           <p class="lp-clinic-s">${e(L({ id: "Dokter kami bisa bantu interpretasi hasil MCU Anda dan menyusun rencana kesehatan yang tepat.", en: "Our doctors can help interpret your MCU results and build a plan that fits you." }))}</p>
           <div class="lp-cta-row">
-            <a class="lp-btn lp-btn-clinic" href="${e(clinicContactUrl || bookingUrl || "#")}">${svg(IC.wa, "lp-ic-sm")} ${e(L({ id: "Hubungi via WhatsApp", en: "Contact via WhatsApp" }))}</a>
+            <a class="lp-btn lp-btn-clinic" href="${e(CLINIC_WHATSAPP_URL)}">${svg(IC.wa, "lp-ic-sm")} ${e(L({ id: "Hubungi via WhatsApp", en: "Contact via WhatsApp" }))}</a>
             <a class="lp-btn lp-btn-ghost" href="${e(bookingUrl || "#")}">${svg(IC.cal, "lp-ic-sm")} ${e(L({ id: "Book Appointment", en: "Book Appointment" }))}</a>
           </div>
         </div>

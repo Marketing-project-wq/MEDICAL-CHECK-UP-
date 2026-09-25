@@ -217,7 +217,7 @@ ${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href
           </div>
         </div>
       </div>
-      <div class="nav-lang desktop-only">${langToggleMarkup(lang, s)}</div>
+      <div class="nav-lang">${langToggleMarkup(lang, s)}</div>
       <button type="button" class="theme-toggle desktop-only" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.4 14.7A8.6 8.6 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1Z"></path></svg>
@@ -229,10 +229,6 @@ ${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href
         <div class="nav-more-panel" data-role="more-panel" hidden>
           <nav class="more-section" data-role="more-tabs" aria-label="${escapeHtml(s.tabsNavLabel)}">${moreTabsHtml}</nav>
           <hr class="more-divider">
-          <div class="more-item more-static">
-            <span class="more-label">${escapeHtml(lang === "id" ? "Bahasa" : "Language")}</span>
-            ${langToggleMarkup(lang, s)}
-          </div>
           <button type="button" class="more-item more-theme" data-act="theme-toggle" aria-label="${escapeHtml(s.themeToggleLabel)}">
             <span class="more-label theme-label"><span class="tl-dark">${escapeHtml(s.themeDark)}</span><span class="tl-light">${escapeHtml(s.themeLight)}</span></span>
             <span class="more-theme-ic">

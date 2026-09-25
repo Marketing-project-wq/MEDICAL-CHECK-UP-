@@ -50,7 +50,7 @@ test("header: page tabs on the left + universal controls on the right; mobile [M
   assert.match(html, /class="nav-tab[^"]*" href="\/medical" data-tab="scan"[^>]*>Scan</, "SCAN tab → /medical");
   assert.match(html, /class="nav-tab[^"]*" href="\/medical#history" data-tab="history"[^>]*>History</, "HISTORY tab → /medical#history");
   // Right side: theme + lang inline on desktop; a [More] button on mobile.
-  assert.match(html, /class="nav-lang desktop-only"/, "desktop language toggle");
+  assert.match(html, /class="nav-lang">/, "inline language toggle (shown on mobile too, not tucked in the More dropdown)");
   assert.match(html, /class="theme-toggle desktop-only"/, "desktop theme toggle");
   assert.match(html, /data-act="more-toggle"/, "mobile More button");
   assert.match(html, /data-role="more-panel"[^>]*hidden/, "More dropdown, hidden until opened");
@@ -58,8 +58,8 @@ test("header: page tabs on the left + universal controls on the right; mobile [M
   const panel = html.slice(html.indexOf('data-role="more-panel"'));
   assert.ok(/data-role="more-tabs"/.test(panel), "More panel has the page-tabs section");
   assert.ok(/class="more-tab[^"]*" href="\/medical#history" data-tab="history"/.test(panel), "More panel HISTORY tab");
-  assert.ok(panel.includes('class="lang-toggle"'), "More panel has the language toggle");
-  assert.ok(panel.includes('class="more-item more-theme"'), "More panel has the theme toggle");
+  assert.ok(!panel.includes('class="more-item more-static"'), "language toggle is NOT inside the More dropdown (it moved inline)");
+  assert.ok(panel.includes('class="more-item more-theme"'), "More panel still has the theme toggle");
 });
 
 test("header: SCAN tab is active (red + underline via .is-active) on the medical page", () => {

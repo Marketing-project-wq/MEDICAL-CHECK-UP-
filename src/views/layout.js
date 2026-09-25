@@ -113,6 +113,10 @@ export function renderLayout(opts) {
   const altId = publicOrigin + "/id";
   const altEn = publicOrigin + "/";
   const myOrigin = clientConfig.apiBase;
+  // Per-deploy cache-buster appended to the CSS/JS this layout links, so an
+  // update is fetched fresh instead of a stale cached copy (server sets it in
+  // clientConfig.assetVersion). The static file handler ignores the query.
+  const assetV = clientConfig && clientConfig.assetVersion ? "?v=" + encodeURIComponent(clientConfig.assetVersion) : "";
   const homeHref = lang === "id" ? "/id" : "/";
   const checkMcuHref = lang === "id" ? "/id/check-mcu" : "/check-mcu";
   const articlesHref = lang === "id" ? "/id/articles" : "/articles";
@@ -166,8 +170,8 @@ ${suppressAlternates ? "" : `<link rel="alternate" hreflang="id" href="${escapeH
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">
-${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href)}">`).join("\n")}
+<link rel="stylesheet" href="/styles.css${assetV}">
+${extraStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtml(href + assetV)}">`).join("\n")}
 <script nonce="${escapeHtml(nonce)}">window.__MCU_CONFIG__ = ${escapeJsonForScript(clientConfig)};</script>
 </head>
 <body class="${escapeHtml(bodyClass)}">
@@ -284,7 +288,7 @@ ${bodyHtml}
     <p class="footer-copy">© ${new Date().getFullYear()} 20FIT Sport Clinic Indonesia</p>
   </div>
 </footer>
-<script type="module" src="/client/app.js"></script>
+<script type="module" src="/client/app.js${assetV}"></script>
 </body>
 </html>`;
 }

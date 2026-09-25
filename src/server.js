@@ -45,6 +45,11 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 // POST /api/articles. Unset → the publish endpoint is inert (503).
 const ARTICLES_PUBLISH_TOKEN = process.env.ARTICLES_PUBLISH_TOKEN || "";
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || "https://medicalscanner.20fit.id").replace(/\/$/, "");
+// Cache-busting token for the CSS/JS the layout links. It changes every deploy,
+// so a stylesheet/script update is fetched immediately instead of a stale cached
+// copy (the recurring "looks half-updated after deploy" problem). Railway sets
+// RAILWAY_GIT_COMMIT_SHA per deploy; fall back to the process start time.
+const ASSET_VERSION = String(process.env.RAILWAY_GIT_COMMIT_SHA || Date.now()).slice(0, 12);
 // Official escalation target for every health tool (spec: awareness tools must
 // route "want more? consult a doctor" to the real in-app Book Doctor flow).
 // Override once the exact my.20fit.id route is confirmed.
@@ -263,13 +268,15 @@ function clientConfig(lang) {
     logoDarkUrl: LOGO_DARK_URL,
     doctorBookingUrl: DOCTOR_BOOKING_URL,
     nutritionUrlTemplate: NUTRITION_ARTICLES_URL_TEMPLATE,
+    assetVersion: ASSET_VERSION,
   };
 }
 
 function sendHtml(res, status, html, nonce, opts = {}) {
   res.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
-    "Cache-Control": "public, max-age=300",
+    // Short so a deploy's new asset-version links are picked up within a minute.
+    "Cache-Control": "public, max-age=60",
     ...securityHeaders(nonce, opts),
   });
   res.end(html);

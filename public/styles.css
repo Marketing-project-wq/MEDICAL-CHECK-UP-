@@ -579,12 +579,13 @@ html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
   .site-header {
     margin: calc(env(safe-area-inset-top, 0px) + 8px) 10px 0;
     top: calc(env(safe-area-inset-top, 0px) + 8px);
-    border: 1px solid var(--header-border);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
+    border: none;
+    border-radius: 22px;
+    box-shadow: 0 6px 22px rgba(22, 23, 15, 0.10);
     padding-top: 0;
   }
   .site-header .wrap { padding-left: 15px; padding-right: 15px; }
+  html[data-theme="dark"] .site-header { box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55); }
   .site-nav { gap: 6px; font-size: 0.85rem; }
   .nav-fixed { gap: 4px; }
   /* Mobile control order (reference): [⋮ More] · [Products] · [Language] · [Profile]. */
@@ -594,10 +595,12 @@ html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
   .nav-fixed > .nav-auth { order: 4; }
   /* The three control buttons share one filled, rounded-square look. */
   .nav-more-btn, .nav-apps-btn, .nav-lang .lang-btn {
-    width: 40px; height: 40px; border-radius: 12px; padding: 0;
-    background: var(--header-hover); border: 1px solid var(--header-border); color: var(--header-text);
+    width: 40px; height: 40px; border-radius: 11px; padding: 0;
+    background: var(--header-hover); border: none; color: var(--header-text);
     font-family: var(--font-mono); font-weight: 700; font-size: 0.8rem;
   }
+  /* Keep the Products button flat at rest on mobile (no red outline / focus ring). */
+  .nav-apps-btn:hover, .nav-apps-btn[aria-expanded="true"] { border: none; background: var(--header-hover); }
   /* Language collapses to ONE button showing the OTHER language (tap to switch),
      matching the More / Products buttons — the active language's button is hidden. */
   .nav-lang .lang-toggle { border: 0; background: transparent; padding: 0; gap: 0; }

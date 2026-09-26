@@ -24,7 +24,7 @@ import { escapeHtml } from "./shared/escape.js";
 import { createSupabaseAdmin } from "./server/supabaseRest.js";
 import { createScanHandlers } from "./server/scanHandlers.js";
 import { createMcuProxyHandlers } from "./server/mcuProxy.js";
-import { createArticleStore, toPublicJson } from "./server/articles.js";
+import { createArticleStore, listPublicArticles } from "./server/articles.js";
 import { createArticleHandlers } from "./server/articleHandlers.js";
 import { createQuizStore } from "./server/quizzes.js";
 import { createQuizHandlers } from "./server/quizHandlers.js";
@@ -650,18 +650,18 @@ const server = http.createServer(async (req, res) => {
   // GET /api/public/articles — public, read-only listing of published health
   // articles (the same content already public on /articles; nothing new is
   // exposed). No auth: it's a content feed, not personal/health-record data.
-  // Deliberately NOT at /api/articles: that path is main's authenticated
-  // publish/management CRUD API (see createArticleHandlers above) — same
-  // path with two different auth models would be a real security hazard.
+  // GET /api/articles (main's authenticated publish/management CRUD API —
+  // see createArticleHandlers above) serves this same public feed when no
+  // Authorization header is sent, so both URLs work for public consumers;
+  // this one exists so a URL with no ambiguity about auth is always available.
   if (pathname === "/api/public/articles") {
     const q = url.searchParams;
     const lang = q.get("lang") === "id" ? "id" : "en";
     const limit = Math.min(Math.max(parseInt(q.get("limit"), 10) || 10, 1), 50);
     const category = q.get("category") || null;
-    const store = getArticleStore();
-    const rows = store ? await store.listPublished({ limit, category }) : [];
+    const articles = await listPublicArticles(getArticleStore(), { limit, lang, category, publicOrigin: PUBLIC_ORIGIN });
     res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" }).end(
-      JSON.stringify({ articles: rows.map((a) => toPublicJson(a, { publicOrigin: PUBLIC_ORIGIN, lang })) }),
+      JSON.stringify({ articles }),
     );
     return;
   }

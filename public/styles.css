@@ -574,6 +574,17 @@ html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
    Products · More stay in the bar = 4 small items, guaranteed to fit any width. */
 @media (max-width: 767px) {
   .header-inner { height: 44px; gap: 8px; }
+  /* Floating minimalist header (reference): a rounded pill detached from the
+     screen edges, sitting on the page's soft gradient with a soft shadow. */
+  .site-header {
+    margin: calc(env(safe-area-inset-top, 0px) + 8px) 10px 0;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    border: 1px solid var(--header-border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding-top: 0;
+  }
+  .site-header .wrap { padding-left: 15px; padding-right: 15px; }
   .site-nav { gap: 6px; font-size: 0.85rem; }
   .nav-fixed { gap: 4px; }
   /* Mobile control order (reference): [⋮ More] · [Products] · [Language] · [Profile]. */
@@ -595,7 +606,7 @@ html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
   .brand-logo { width: 100px; height: 30px; }
   .desktop-only { display: none !important; }
   .mobile-only { display: inline-flex !important; }
-  .nav-more-panel { position: fixed; top: calc(44px + env(safe-area-inset-top, 0px)); right: 8px; left: auto; width: min(240px, calc(100vw - 16px)); }
+  .nav-more-panel { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 62px); right: 10px; left: auto; width: min(240px, calc(100vw - 20px)); }
   .header-label { display: none !important; }
   .nav-login { width: 38px; height: 38px; padding: 0; gap: 0; border-radius: 10px; }
   .nav-login .nav-ic { width: 20px; height: 20px; }
@@ -1042,7 +1053,7 @@ a.history-main:hover { text-decoration: none; }
 }
 .nav-apps-panel * { box-sizing: border-box; }
 @media (max-width: 639px) {
-  .nav-apps-panel { position: fixed; top: calc(44px + env(safe-area-inset-top, 0px)); right: 8px; left: 8px; width: auto; max-height: calc(100dvh - 60px); }
+  .nav-apps-panel { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 62px); right: 10px; left: 10px; width: auto; max-height: calc(100dvh - 80px); }
 }
 
 /* ── Header profile menu (avatar → account dropdown) ──────────────────── */
@@ -1077,7 +1088,7 @@ a.history-main:hover { text-decoration: none; }
 .profile-logout { color: var(--red-text); font-weight: 600; }
 @media (max-width: 767px) {
   .nav-avatar { padding: 0; gap: 0; }
-  .nav-profile-panel { position: fixed; top: calc(44px + env(safe-area-inset-top, 0px)); right: 8px; left: auto; width: min(300px, calc(100vw - 16px)); }
+  .nav-profile-panel { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 62px); right: 10px; left: auto; width: min(300px, calc(100vw - 20px)); }
 }
 .history-grade.grade-na { background: var(--unk-bg); color: var(--muted); }
 .history-counts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }

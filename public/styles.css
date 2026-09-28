@@ -176,6 +176,22 @@ hr.rule { border: none; border-top: 3px solid var(--ink); margin: 10px 0 28px; w
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 @media (prefers-reduced-motion: reduce) { .site-header { transition: none; } }
+/* Desktop / tablet: the header is a floating bar too — a centered rounded bar
+   detached from the top edge, sitting on the page's soft gradient with a soft
+   shadow (matches the mobile floating pill). Width tracks the content column so
+   it lines up with everything below it. */
+@media (min-width: 768px) {
+  .site-header {
+    width: min(var(--wrap), calc(100% - 36px));
+    margin: 14px auto 0;
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 22px rgba(22, 23, 15, 0.09);
+    top: 14px;
+    padding-top: 0;
+  }
+  html[data-theme="dark"] .site-header { box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5); }
+}
 /* Fixed box (avoids layout shift while loading) + object-fit: contain, so
    the hotlinked logo (whatever its real aspect ratio turns out to be —
    we can't inspect the source file from here) scales proportionally

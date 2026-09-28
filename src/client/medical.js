@@ -355,6 +355,12 @@ export function setupMedical(root, { supabase, lang }) {
 
   // ---- Boot: member gate + initial load ----
   (async function () {
+    // If the Supabase client failed to load (CDN blip), DON'T bounce to the
+    // landing — that would look like a logout to a signed-in member whose session
+    // is still safe in storage. Just stop here; a refresh with the client back
+    // will restore their record. We only send guests away once we've positively
+    // confirmed (client present) that there is no session.
+    if (!supabase) return;
     let session = null;
     try { const { data } = await supabase.auth.getSession(); session = data && data.session; } catch (e) {}
     if (!session || !session.user) { location.replace(LANG === "id" ? "/id" : "/"); return; } // guest → landing

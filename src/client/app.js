@@ -191,20 +191,34 @@ let supabase = null;
 let mcuService = null;
 async function initSupabase() {
   if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return null;
-  try {
-    const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
-    return createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: false, // we handle the SSO fragment ourselves
-        storageKey: "mcu20fit-auth",
-      },
-    });
-  } catch (e) {
-    console.error("Failed to load Supabase client (CDN unreachable?):", e);
-    return null;
+  // persistSession keeps the session in localStorage, so a refresh (or any
+  // navigation) NEVER logs a member out — only an explicit sign-out, or an
+  // expired refresh token, ends it. autoRefreshToken silently renews the access
+  // token in the background. The one thing that can still drop a signed-in
+  // member on refresh is a transient failure loading this client script from the
+  // CDN, so retry the import a few times before giving up (the session itself is
+  // safe in storage the whole time — we just need the client to read it back).
+  let createClient = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      ({ createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm"));
+      break;
+    } catch (e) {
+      if (attempt === 2) {
+        console.error("Failed to load Supabase client (CDN unreachable?):", e);
+        return null;
+      }
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
   }
+  return createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false, // we handle the SSO fragment ourselves
+      storageKey: "mcu20fit-auth",
+    },
+  });
 }
 
 let selectedFile = null;

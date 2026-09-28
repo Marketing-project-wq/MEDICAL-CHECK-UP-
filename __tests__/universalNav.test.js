@@ -7,9 +7,9 @@ import path from "node:path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC = readFileSync(path.join(__dirname, "..", "public", "universal-nav.js"), "utf8");
 
-test("universal-nav lists all 17 ecosystem products in five groups", () => {
+test("universal-nav lists all 19 ecosystem products in five groups", () => {
   const labels = [
-    "Home", "My 20FIT", "Recipe", "Sports Clinic",
+    "Home", "My 20FIT", "Recipe", "Shop", "Arena", "Sports Clinic",
     "Calorie Tracker", "MCU Scanner", "Body Scan",
     "Workout", "Progress", "Media",
     "Photo", "Ticket", "Talent",

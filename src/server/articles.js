@@ -33,8 +33,10 @@ const MCU_ADMIN_LIST_COLS =
 const MCU_ADMIN_ONE_COLS = MCU_ADMIN_LIST_COLS + ",body_html,meta_title,meta_description,cover_image_url";
 
 // Normalizes either a LOCAL_ARTICLES entry or a media_articles row into the
-// shape served by GET /api/articles — see server.js for the route. Never
-// includes body_html/tags/etc: this is a listing feed, not the full article.
+// public listing shape — served at GET /api/public/articles, and at
+// GET /api/articles when no Authorization header is sent (see
+// server/articleHandlers.js). Never includes body_html/tags/etc: this is a
+// listing feed, not the full article.
 export function toPublicJson(a, { publicOrigin, lang }) {
   const listPath = lang === "id" ? "/id/articles" : "/articles";
   return {
@@ -46,6 +48,13 @@ export function toPublicJson(a, { publicOrigin, lang }) {
     published_at: a.published_at || null,
     url: a.published_url || `${publicOrigin}${listPath}/${encodeURIComponent(a.slug || "")}`,
   };
+}
+
+// Shared by both public listing routes (GET /api/public/articles, and the
+// unauthenticated branch of GET /api/articles) so the two never drift apart.
+export async function listPublicArticles(articleStore, { limit = 10, lang = "en", category = null, publicOrigin }) {
+  const rows = articleStore ? await articleStore.listPublished({ limit, category }) : [];
+  return rows.map((a) => toPublicJson(a, { publicOrigin, lang }));
 }
 
 export function createArticleStore({ supabaseUrl, serviceRoleKey, ttlMs = 5 * 60 * 1000, fetchImpl = fetch }) {

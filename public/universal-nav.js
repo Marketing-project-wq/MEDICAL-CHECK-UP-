@@ -51,6 +51,7 @@
     photo   : '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/>',   // dashboard.html :: camera
     ticket  : '<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4z"/><line x1="13" y1="7" x2="13" y2="17"/>',   // dashboard.html :: ticket
     talent  : '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',   // dashboard.html :: coach
+    clinic  : '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M12 8.2v7.6M8.2 12h7.6"/>',   // clinic.20fit.id :: palang medis
     bodyscan: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>',   // js/nav.js :: scan
     progress: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',   // js/nav.js :: progress (tren naik)
     bookclass: '<path d="M6.5 6.5 17.5 17.5M4 9l1-1M20 15l-1 1M8 4l-2 2 3 3M16 20l2-2-3-3M3 12l2 2M19 10l2 2"/>',   // dashboard.html :: dumbbell
@@ -86,6 +87,7 @@
     { id: "home",    group: "main", label: "Home",            desc: "Direktori Olahraga",          icon: "home",    url: "https://20fit.id",                color: "#1a1a1a" },
     { id: "my20fit", group: "main", label: "My 20FIT",        desc: "Member Portal",               icon: "my20fit", url: "https://my.20fit.id",             color: "#6366F1", path: "/dashboard" },
     { id: "recipe",  group: "main", label: "Recipe",          desc: "Menu & Resep Sehat",          icon: "recipe",  url: "https://recepie.20fit.id",        color: "#16A34A", path: "/recipe" },
+    { id: "clinic",  group: "main", label: "Sports Clinic",   desc: "Fisioterapi & Sports Clinic", icon: "clinic",  url: "https://clinic.20fit.id",         color: "#C00000" },
     // Health
     { id: "calorie", group: "health", label: "Calorie Tracker", desc: "Hitung Kalori Harian",      icon: "calorie", url: "https://calorietracker.20fit.id", color: "#F97316", path: "/calories" },
     { id: "mcu",     group: "health", label: "MCU Scanner",     desc: "Baca Hasil Medical Check-Up", icon: "mcu",    url: "https://medicalscanner.20fit.id", color: "#0EA5E9", path: "/medical" },
@@ -136,7 +138,7 @@
   // di /img/products/<id>.png). 14 dari 16 produk punya artwork; Body Scan & Talent belum
   // ada → tetap pakai ikon garis inline (P[icon], ikut warna/tema). Artwork raster full-color
   // (tidak ikut tema) — makanya diberi chip putih di CSS supaya rapi di light & dark.
-  var NO_ART = { bodyscan: 1, talent: 1 };
+  var NO_ART = { bodyscan: 1, talent: 1, clinic: 1 };
   ITEMS.forEach(function (it) { if (!NO_ART[it.id]) it.img = "/img/products/" + it.id + ".png"; });
   // Base URL ikon: di my.20fit/staging = same-origin (""), di subdomain lain = absolut ke
   // my.20fit.id (tempat berkasnya) supaya bar universal tetap dapat ikon di mana pun dipasang.
@@ -157,7 +159,8 @@
     "workout.20fit.id": "workout",
     "photo.20fit.id": "photo",
     "ticket.20fit.id": "ticket",
-    "talent.20fit.id": "talent"
+    "talent.20fit.id": "talent",
+    "clinic.20fit.id": "clinic"
   };
   function currentId() {
     var h = location.hostname;

@@ -7,9 +7,9 @@ import path from "node:path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC = readFileSync(path.join(__dirname, "..", "public", "universal-nav.js"), "utf8");
 
-test("universal-nav lists all 16 ecosystem products in five groups", () => {
+test("universal-nav lists all 17 ecosystem products in five groups", () => {
   const labels = [
-    "Home", "My 20FIT", "Recipe",
+    "Home", "My 20FIT", "Recipe", "Sports Clinic",
     "Calorie Tracker", "MCU Scanner", "Body Scan",
     "Workout", "Progress", "Media",
     "Photo", "Ticket", "Talent",
@@ -24,7 +24,7 @@ test("universal-nav lists all 16 ecosystem products in five groups", () => {
 });
 
 test("current-app highlight covers medicalscanner + the recepie typo domain", () => {
-  for (const host of ["20fit.id", "my.20fit.id", "recipe.20fit.id", "recepie.20fit.id", "medicalscanner.20fit.id", "calorietracker.20fit.id"]) {
+  for (const host of ["20fit.id", "my.20fit.id", "recipe.20fit.id", "recepie.20fit.id", "medicalscanner.20fit.id", "calorietracker.20fit.id", "clinic.20fit.id"]) {
     assert.ok(SRC.includes('"' + host + '"'), `host map missing ${host}`);
   }
   assert.ok(SRC.includes("medicalscanner.20fit.id"), "medicalscanner mapped");
